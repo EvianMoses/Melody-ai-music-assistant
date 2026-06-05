@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Melody — AI Music Discovery</title>
+  <meta name="description" content="Chat with Melody to discover songs, artists, and whole sonic worlds." />
+
+  <!-- Tailwind CDN (layout utilities) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- marked.js for markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+
+  <!-- Orbitron — futuristic logo font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+  <!-- Shared gradient referenced by all masked logo letter SVGs.
+       gradientUnits="userSpaceOnUse" means x1/x2 resolve in each
+       referencing element's own coordinate space (viewBox 0 0 28 32). -->
+  <svg width="0" height="0" style="position:absolute;overflow:hidden;" aria-hidden="true">
+    <defs>
+      <linearGradient id="melodyFlow" x1="0" y1="0" x2="28" y2="0" gradientUnits="userSpaceOnUse">
+        <stop class="flow-stop flow-stop-1" offset="0%" />
+        <stop class="flow-stop flow-stop-2" offset="34%" />
+        <stop class="flow-stop flow-stop-3" offset="67%" />
+        <stop class="flow-stop flow-stop-4" offset="100%" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="flex h-screen w-full overflow-hidden">
+
+    <!-- ═══════════════════════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════════════════════════ -->
+    <aside class="hidden md:flex flex-col h-screen w-64 shrink-0"
+      style="background-color:var(--sidebar);border-right:1px solid var(--sidebar-border);">
+
+      <!-- Wordmark — clickable, navigates to home screen -->
+      <a href="/"
+        style="text-decoration:none;display:flex;align-items:center;padding:1rem;border-bottom:1px solid var(--sidebar-border);">
+        <div class="flex flex-col justify-center leading-none melody-wordmark">
+          <!-- mel + animated-'o' + animated-'d' + y -->
+          <div class="sidebar-wordmark" style="display:flex;align-items:center;line-height:1;">
+            <span class="logo-font logo-grad">mel</span>
+            <!-- 'o': animated bars masked to exact Orbitron glyph shape -->
+            <svg class="logo-letter-mask logo-letter-o" viewBox="0 0 28 32" aria-hidden="true">
+              <defs>
+                <mask id="mask-o-sb">
+                  <text x="14" y="30.5" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="33"
+                    font-weight="800" fill="white">o</text>
+                </mask>
+              </defs>
+              <g mask="url(#mask-o-sb)">
+                <rect class="wave-bar" style="--delay:-1.0s" x="0" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:-0.7s" x="6.25" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:-0.4s" x="12.5" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:-0.2s" x="18.75" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:0s" x="25" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+              </g>
+            </svg>
+            <!-- 'd': animated bars masked to exact Orbitron glyph shape -->
+            <svg class="logo-letter-mask logo-letter-d" viewBox="0 0 28 32" aria-hidden="true">
+              <defs>
+                <mask id="mask-d-sb">
+                  <text x="14" y="30.5" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="33"
+                    font-weight="800" fill="white">d</text>
+                </mask>
+              </defs>
+              <g mask="url(#mask-d-sb)">
+                <rect class="wave-bar" style="--delay:-0.9s" x="0" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:-0.5s" x="6.25" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:-0.3s" x="12.5" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:-0.1s" x="18.75" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+                <rect class="wave-bar" style="--delay:-0.6s" x="25" y="1" width="3" height="30" rx="1.5"
+                  fill="url(#melodyFlow)" />
+              </g>
+            </svg>
+            <span class="logo-font logo-grad logo-letter-y">y</span>
+          </div>
+          <span class="font-medium uppercase"
+            style="font-size:0.56rem;color:var(--muted-foreground);letter-spacing:0.3em;margin-top:3px;">MUSIC ·
+            AI</span>
+        </div>
+      </a>
+
+      <!-- New chat -->
+      <div class="p-3">
+        <button id="btn-new-chat" onclick="newThread()">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          New chat
+        </button>
+      </div>
+
+      <!-- Thread list -->
+      <div class="flex-1 overflow-y-auto px-2 pb-4">
+        <div class="px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider"
+          style="color:var(--muted-foreground);">Recent</div>
+        <ul id="thread-list" class="space-y-0.5" style="list-style:none;padding:0;margin:0;"></ul>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-4 py-3 text-[10px]"
+        style="border-top:1px solid var(--sidebar-border);color:var(--muted-foreground);">
+        Powered by Melody AI
+      </div>
+    </aside>
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+       MAIN AREA
+  ════════════════════════════════════════════════════════════ -->
+    <main id="main-area" class="flex flex-1 flex-col h-full min-w-0 overflow-hidden relative">
+
+      <section id="main-chat-section" aria-label="Melody chat home">
+        <!-- Ambient surface glow (non-interactive overlay) -->
+        <div class="pointer-events-none absolute inset-0 bg-surface-glow" style="z-index:0;" aria-hidden="true">
+          <span class="ambient-blob ambient-blob-purple"></span>
+          <span class="ambient-blob ambient-blob-red"></span>
+          <span class="ambient-blob ambient-blob-orange"></span>
+          <span class="ambient-blob ambient-blob-violet"></span>
+        </div>
+
+        <!-- Messages scroll container -->
+        <div id="messages-container" class="flex-1 overflow-y-auto relative" style="z-index:1;">
+          <div id="messages-inner" class="mx-auto w-full max-w-3xl px-4 py-8 space-y-6">
+            {% if response %}
+            <div class="flex items-start gap-3 fade-in-up">
+              <div class="flex-1 min-w-0 pt-1">
+                <div class="ai-bubble">
+                  <div class="melody-markdown" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
+                    {{ response }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Input area -->
+        <div id="input-area" class="relative px-4 pb-6 pt-2" style="z-index:1;">
+          <div class="mx-auto w-full max-w-3xl">
+            <form method="POST" action="/" onsubmit="handleSubmit(); return false;">
+              <div id="prompt-box">
+                <textarea id="message-input" name="user_query" rows="2"
+                  placeholder="Ask Melody about any sound, mood, or artist…"
+                  style="min-height:60px;max-height:200px;" onkeydown="handleKeyDown(event)"
+                  oninput="autoResize(this)"></textarea>
+                <div class="flex items-center justify-end px-3 pb-3">
+                  <button id="submit-btn" type="submit">
+                    <!-- Paper-plane send icon -->
+                    <svg id="send-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5"
+                      viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    </svg>
+                    Send
+                  </button>
+                </div>
+              </div>
+            </form>
+            <div id="home-suggestions" class="mt-5 w-full grid-cols-1 sm:grid-cols-2 gap-3">
+              {% for query in sample_queries %}
+              <button class="suggestion-btn" type="button" data-suggestion="{{ query }}">
+                {{ query }}
+              </button>
+              {% endfor %}
+            </div>
+            <p class="mt-2 text-center text-[11px]" style="color:var(--muted-foreground);">
+              Melody suggests music using AI — double-check details before trusting them.
+            </p>
+          </div>
+        </div>
+
+        <div id="spotify-cta-row">
+          <button class="spotify-scroll-cta" type="button" aria-label="Scroll to Spotify login options">
+            <span class="spotify-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.59 14.43a.72.72 0 0 1-.99.24c-2.72-1.66-6.14-2.04-10.17-1.12a.72.72 0 1 1-.32-1.4c4.41-1.01 8.19-.57 11.24 1.29.34.21.45.65.24.99Zm1.31-2.92a.9.9 0 0 1-1.23.3c-3.12-1.91-7.87-2.47-11.56-1.35a.9.9 0 1 1-.52-1.72c4.22-1.28 9.45-.66 13.01 1.52.42.26.55.82.3 1.25Zm.11-3.03C14.27 8.25 8.1 8.04 4.53 9.2a1.08 1.08 0 1 1-.67-2.05c4.1-1.34 10.92-1.1 15.25 1.47a1.08 1.08 0 0 1-1.1 1.86Z" />
+              </svg>
+            </span>
+            <span>Connect Spotify</span>
+            <svg class="spotify-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+              aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <section id="spotify-login-section" aria-label="Spotify login options">
+        <div class="spotify-login-card">
+          <div class="mx-auto mb-5 flex items-center justify-center rounded-full"
+            style="width:58px;height:58px;background:color-mix(in oklab,#1DB954 16%,transparent);border:1px solid color-mix(in oklab,#1DB954 45%,transparent);color:#1DB954;box-shadow:0 0 28px -12px #1DB954;">
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.59 14.43a.72.72 0 0 1-.99.24c-2.72-1.66-6.14-2.04-10.17-1.12a.72.72 0 1 1-.32-1.4c4.41-1.01 8.19-.57 11.24 1.29.34.21.45.65.24.99Zm1.31-2.92a.9.9 0 0 1-1.23.3c-3.12-1.91-7.87-2.47-11.56-1.35a.9.9 0 1 1-.52-1.72c4.22-1.28 9.45-.66 13.01 1.52.42.26.55.82.3 1.25Zm.11-3.03C14.27 8.25 8.1 8.04 4.53 9.2a1.08 1.08 0 1 1-.67-2.05c4.1-1.34 10.92-1.1 15.25 1.47a1.08 1.08 0 0 1-1.1 1.86Z" />
+            </svg>
+          </div>
+          <div class="text-xs font-semibold uppercase tracking-[0.35em]" style="color:#1DB954;">Melody Sync</div>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight" style="color:var(--foreground);">Connect your listening universe</h2>
+          <p class="mx-auto mt-3 max-w-sm text-sm leading-6" style="color:var(--muted-foreground);">
+            Sign in to unlock future personalization from playlists, saved tracks, and listening context.
+          </p>
+          <div class="mt-8 space-y-3">
+            <button class="login-btn spotify" type="button">
+              <span class="spotify-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.59 14.43a.72.72 0 0 1-.99.24c-2.72-1.66-6.14-2.04-10.17-1.12a.72.72 0 1 1-.32-1.4c4.41-1.01 8.19-.57 11.24 1.29.34.21.45.65.24.99Zm1.31-2.92a.9.9 0 0 1-1.23.3c-3.12-1.91-7.87-2.47-11.56-1.35a.9.9 0 1 1-.52-1.72c4.22-1.28 9.45-.66 13.01 1.52.42.26.55.82.3 1.25Zm.11-3.03C14.27 8.25 8.1 8.04 4.53 9.2a1.08 1.08 0 1 1-.67-2.05c4.1-1.34 10.92-1.1 15.25 1.47a1.08 1.08 0 0 1-1.1 1.86Z" />
+                </svg>
+              </span>
+              Continue with Spotify
+            </button>
+            <button class="login-btn secondary" type="button">
+              <span aria-hidden="true">G</span>
+              Continue with Google
+            </button>
+            <button class="login-btn secondary" type="button">
+              <span aria-hidden="true">f</span>
+              Continue with Facebook
+            </button>
+          </div>
+          <p class="mt-6 text-[11px]" style="color:var(--muted-foreground);">
+            UI preview only — authentication wiring comes later.
+          </p>
+        </div>
+      </section>
+    </main>
+
+  </div><!-- /app -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════════ -->
+  <script>
+    /* ── marked config ─────────────────────────────────────────── */
+    marked.setOptions({ breaks: true, gfm: true });
+
+    /* ── State ──────────────────────────────────────────────────── */
+    const STORAGE_KEY = 'melody_threads';
+    const INITIAL_QUESTION = {{ question|default('', true)|tojson }};
+    const INITIAL_ANSWER = {{ response|default(answer|default('', true), true)|tojson }};
+    const INITIAL_ERROR = {{ error|default('', true)|tojson }};
+    let currentThreadId = null;
+    let currentMessages = [];
+    let isLoading = false;
+
+    /* ── localStorage helpers ───────────────────────────────────── */
+    function loadThreads() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+      catch { return []; }
+    }
+    function persistThreads(threads) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(threads));
+    }
+    function mkThreadId() {
+      return 'melody-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    }
+    function createThreadObj() {
+      return { id: mkThreadId(), title: 'New chat', messages: [], updatedAt: Date.now() };
+    }
+    function getThread(id) {
+      return loadThreads().find(t => t.id === id) || null;
+    }
+    function upsertThread(thread) {
+      const all = loadThreads();
+      const i = all.findIndex(t => t.id === thread.id);
+      if (i >= 0) all[i] = thread; else all.unshift(thread);
+      all.sort((a, b) => b.updatedAt - a.updatedAt);
+      persistThreads(all);
+    }
+    function removeThread(id) {
+      persistThreads(loadThreads().filter(t => t.id !== id));
+    }
+    function deriveTitle(messages) {
+      const first = messages.find(m => m.role === 'user');
+      if (!first) return 'New chat';
+      const s = first.content.slice(0, 44);
+      return s.length < first.content.length ? s + '…' : s;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────────── */
+    function renderSidebar() {
+      const threads = loadThreads();
+      const list = document.getElementById('thread-list');
+      if (!list) return;
+
+      if (threads.length === 0) {
+        list.innerHTML =
+          '<li style="padding:0.5rem 0.5rem;font-size:0.75rem;' +
+          'color:var(--muted-foreground);">No conversations yet.</li>';
+        return;
+      }
+
+      list.innerHTML = threads.map(t => {
+        const active = t.id === currentThreadId;
+        const baseStyle =
+          'display:flex;align-items:center;gap:8px;border-radius:0.375rem;' +
+          'padding:0.5rem 0.625rem;font-size:0.875rem;text-decoration:none;' +
+          'border:1px solid;transition:background-color 0.15s,color 0.15s;' +
+          'overflow:hidden;white-space:nowrap;';
+        const stateStyle = active
+          ? 'background-color:color-mix(in oklab,var(--primary) 15%,transparent);' +
+          'border-color:color-mix(in oklab,var(--primary) 30%,transparent);' +
+          'color:var(--foreground);'
+          : 'background-color:transparent;border-color:transparent;' +
+          'color:var(--muted-foreground);';
+        return `
+        <li class="thread-item" style="position:relative;list-style:none;">
+          <a href="#" onclick="switchThread('${t.id}');return false;"
+             style="${baseStyle}${stateStyle}"
+             onmouseover="if('${t.id}'!==currentThreadId){this.style.backgroundColor='var(--secondary)';this.style.color='var(--foreground)';}"
+             onmouseout="if('${t.id}'!==currentThreadId){this.style.backgroundColor='transparent';this.style.color='var(--muted-foreground)';}">
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${esc(t.title)}</span>
+          </a>
+          <button class="thread-delete" onclick="handleDeleteThread(event,'${t.id}')"
+                  aria-label="Delete thread"
+                  style="position:absolute;right:6px;top:50%;transform:translateY(-50%);
+                         padding:4px;border-radius:4px;border:none;background:transparent;
+                         cursor:pointer;color:var(--muted-foreground);"
+                  onmouseover="this.style.background='color-mix(in oklab,var(--destructive) 20%,transparent)';this.style.color='var(--destructive)';"
+                  onmouseout="this.style.background='transparent';this.style.color='var(--muted-foreground)';">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M19 7l-.867 12.14A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </li>`;
+      }).join('');
+    }
+
+    /* ── Thread actions ─────────────────────────────────────────── */
+    function switchThread(id) {
+      currentThreadId = id;
+      const t = getThread(id);
+      currentMessages = t ? [...t.messages] : [];
+      renderMessages();
+      renderSidebar();
+      document.getElementById('message-input')?.focus();
+    }
+
+    function newThread() {
+      const t = createThreadObj();
+      upsertThread(t);
+      switchThread(t.id);
+    }
+
+    function handleDeleteThread(e, id) {
+      e.preventDefault(); e.stopPropagation();
+      removeThread(id);
+      if (id === currentThreadId) {
+        const remaining = loadThreads();
+        if (remaining.length > 0) { switchThread(remaining[0].id); }
+        else { currentThreadId = null; currentMessages = []; renderMessages(); renderSidebar(); }
+      } else {
+        renderSidebar();
+      }
+    }
+
+    /* ── Message rendering ──────────────────────────────────────── */
+    function renderMessages() {
+      const inner = document.getElementById('messages-inner');
+      if (!inner) return;
+
+      const isHomeMode = currentMessages.length === 0 && !isLoading;
+      document.getElementById('main-area')?.classList.toggle('home-mode', isHomeMode);
+
+      if (currentMessages.length === 0 && !isLoading) {
+        inner.innerHTML = renderEmptyState();
+        return;
+      }
+
+      inner.innerHTML = currentMessages.map(m => renderMsg(m)).join('');
+      if (isLoading) inner.innerHTML += renderEqualizer();
+      scrollToBottom();
+    }
+
+    function renderMsg(m) {
+      if (m.role === 'user') {
+        return `
+        <div class="flex justify-end fade-in-up">
+          <div class="user-bubble">${esc(m.content)}</div>
+        </div>`;
+      }
+      return `
+      <div class="flex items-start gap-3 fade-in-up">
+        ${avatarHTML(32)}
+        <div class="flex-1 min-w-0 pt-1">
+          <div class="mb-1 text-xs font-medium tracking-wide" style="color:color-mix(in oklab,var(--primary) 80%,transparent);">Melody</div>
+          <div class="ai-bubble">
+            <div class="melody-markdown" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
+              ${marked.parse(m.content)}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderEqualizer() {
+      const delays = [-0.64, -0.48, -0.32, -0.16, 0, -0.16, -0.32, -0.48, -0.64];
+      const bars = delays.map(d =>
+        `<span class="soundwave-bar" style="--delay:${d}s;"></span>`
+      ).join('');
+      return `
+      <div class="flex items-start gap-3">
+        ${avatarHTML(32)}
+        <div class="flex items-center gap-3 text-sm" style="height:40px;color:var(--muted-foreground);">
+          <div class="flex items-center gap-[4px]" style="height:30px;">${bars}</div>
+          <span class="text-glow">Melody is listening…</span>
+        </div>
+      </div>`;
+    }
+
+    function renderEmptyState() {
+      return `
+      <div id="home-empty-state" class="flex flex-col items-center justify-center px-4 text-center">
+        <!-- Integrated wordmark — bars animate inside 'o' and 'd' -->
+        <div class="melody-wordmark hero-wordmark" style="display:flex;align-items:center;line-height:1;">
+          <span class="logo-font logo-grad">mel</span>
+          <svg class="logo-letter-mask logo-letter-o" viewBox="0 0 28 32" aria-hidden="true">
+            <defs>
+              <mask id="mask-o-hero">
+                <text x="14" y="30.5" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="33" font-weight="800" fill="white">o</text>
+              </mask>
+            </defs>
+            <g mask="url(#mask-o-hero)">
+              <rect class="wave-bar" style="--delay:-1.0s" x="0"     y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:-0.7s" x="6.25"  y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:-0.4s" x="12.5"  y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:-0.2s" x="18.75" y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:0s"    x="25"    y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+            </g>
+          </svg>
+          <svg class="logo-letter-mask logo-letter-d" viewBox="0 0 28 32" aria-hidden="true">
+            <defs>
+              <mask id="mask-d-hero">
+                <text x="14" y="30.5" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="33" font-weight="800" fill="white">d</text>
+              </mask>
+            </defs>
+            <g mask="url(#mask-d-hero)">
+              <rect class="wave-bar" style="--delay:-0.9s" x="0"     y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:-0.5s" x="6.25"  y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:-0.3s" x="12.5"  y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:-0.1s" x="18.75" y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+              <rect class="wave-bar" style="--delay:-0.6s" x="25"    y="1" width="3" height="30" rx="1.5" fill="url(#melodyFlow)"/>
+            </g>
+          </svg>
+          <span class="logo-font logo-grad logo-letter-y">y</span>
+        </div>
+        <div class="font-medium uppercase" style="font-size:0.72rem;color:var(--muted-foreground);letter-spacing:0.3em;margin-bottom:1.5rem;">MUSIC · AI</div>
+        <h1 class="text-2xl font-semibold tracking-tight" style="color:var(--foreground);">
+          What do you want to hear?
+        </h1>
+        <p class="mt-2 max-w-md text-sm" style="color:var(--muted-foreground);">
+          Ask Melody for songs, artists, or whole sonic worlds. The more specific the better.
+        </p>
+      </div>`;
+    }
+
+    /* ── SVG helpers ────────────────────────────────────────────── */
+    function logoSVG(size, pulse = false) {
+      const glowClass = pulse ? 'glow-pulse' : 'melody-neon';
+      return `
+      <svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none"
+           xmlns="http://www.w3.org/2000/svg" aria-label="Melody"
+           class="${glowClass}" style="color:var(--primary);">
+        <rect class="melody-logo-bar" style="--delay:-0.48s" x="11" y="20" width="7" height="28" rx="3.5"
+              fill="currentColor"/>
+        <rect class="melody-logo-bar" style="--delay:-0.16s" x="23" y="10" width="7" height="38" rx="3.5"
+              fill="currentColor"/>
+        <rect class="melody-logo-bar" style="--delay:-0.34s" x="35" y="16" width="7" height="32" rx="3.5"
+              fill="currentColor"/>
+        <rect class="melody-logo-bar" style="--delay:-0.06s" x="47" y="25" width="7" height="23" rx="3.5"
+              fill="currentColor"/>
+      </svg>`;
+    }
+
+    function avatarHTML(size) {
+      const inner = Math.round(size * 0.72);
+      return `
+      <div class="shrink-0 flex items-center justify-center rounded-full"
+           style="width:${size}px;height:${size}px;
+                  background-color:var(--card);
+                  border:1px solid color-mix(in oklab,var(--primary) 40%,transparent);
+                  color:var(--primary);
+                  box-shadow:var(--glow-primary);">
+        ${logoSVG(inner, false)}
+      </div>`;
+    }
+
+    /* ── Chat submission ────────────────────────────────────────── */
+    async function handleSubmit() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text || isLoading) return;
+
+      input.value = '';
+      input.style.height = '';
+
+      if (!currentThreadId) {
+        const t = createThreadObj();
+        upsertThread(t);
+        currentThreadId = t.id;
+      }
+
+      currentMessages.push({ role: 'user', content: text });
+      isLoading = true;
+      setSubmitState(true);
+      renderMessages();
+
+      try {
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: text }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Request failed.');
+        }
+        currentMessages.push({ role: 'assistant', content: data.answer || 'No answer returned.' });
+      } catch (error) {
+        currentMessages.push({
+          role: 'assistant',
+          content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+        });
+      } finally {
+        isLoading = false;
+        setSubmitState(false);
+        upsertThread({
+          id: currentThreadId,
+          title: deriveTitle(currentMessages),
+          messages: currentMessages,
+          updatedAt: Date.now(),
+        });
+        renderMessages();
+        renderSidebar();
+        document.getElementById('message-input')?.focus();
+      }
+    }
+
+    function handleSuggestion(text) {
+      if (isLoading) return;
+      const input = document.getElementById('message-input');
+      if (input) { input.value = text; autoResize(input); }
+      handleSubmit();
+    }
+
+    function setupSuggestionButtons() {
+      document.querySelectorAll('[data-suggestion]').forEach(button => {
+        button.addEventListener('click', () => {
+          handleSuggestion(button.dataset.suggestion || button.textContent.trim());
+        });
+      });
+    }
+
+    function setupSpotifyScroll() {
+      const button = document.querySelector('.spotify-scroll-cta');
+      const section = document.getElementById('spotify-login-section');
+      if (!button || !section) return;
+
+      button.addEventListener('click', () => {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+    }
+
+    function setSubmitState(loading) {
+      const btn = document.getElementById('submit-btn');
+      const icon = document.getElementById('send-icon');
+      if (!btn) return;
+      btn.disabled = loading;
+      if (loading) {
+        icon.innerHTML =
+          '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" fill="none" opacity="0.3"/>' +
+          '<path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">' +
+          '<animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>' +
+          '</path>';
+      } else {
+        icon.innerHTML =
+          '<path stroke-linecap="round" stroke-linejoin="round"' +
+          ' d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>';
+      }
+    }
+
+    /* ── Scroll helpers ─────────────────────────────────────────── */
+    function scrollToBottom() {
+      const c = document.getElementById('messages-container');
+      if (c) requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
+    }
+
+    /* ── Utility ────────────────────────────────────────────────── */
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    /* ── Init ───────────────────────────────────────────────────── */
+    function init() {
+      setupSuggestionButtons();
+      setupSpotifyScroll();
+      if (INITIAL_QUESTION && (INITIAL_ANSWER || INITIAL_ERROR)) {
+        currentMessages = [
+          { role: 'user', content: INITIAL_QUESTION },
+          { role: 'assistant', content: INITIAL_ANSWER || INITIAL_ERROR },
+        ];
+      }
+      renderSidebar();
+      renderMessages();
+      document.getElementById('message-input')?.focus();
+    }
+
+    init();
+  </script>
+</body>
+
+</html>
