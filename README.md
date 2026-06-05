@@ -19,13 +19,14 @@ The application combines a polished Flask web experience with **Amazon Bedrock K
 
 <img src="https://github.com/user-attachments/assets/29dcd6dc-a2f9-4af9-9a34-053a7108f124" />
 
-
 <img src="https://github.com/user-attachments/assets/f581b43a-c660-4aac-a1de-03c5675caa86" />
 
+<img src="https://github.com/user-attachments/assets/e9e3afc8-e207-481f-b4df-2b16f90808ac" />
 </details>
 
+
 ---
-## Proof screenshots from AWS
+## screenshots Proofs
 <details>
   <summary>📸 <b>Click here to view knowledge base AWS Screenshots</b></summary>
   <br>
