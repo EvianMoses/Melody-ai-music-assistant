@@ -38,7 +38,7 @@ The application combines a polished Flask web experience with **Amazon Bedrock K
 
 
   <details>
-  <summary>📸 <b>Click here to view knowledge base AWS Screenshots</b></summary>
+  <summary>📸 <b>Click here to view EC2 & Docker container running AWS Screenshots</b></summary>
   <br>
 <img width="950" height="134" alt="instances status" src="https://github.com/user-attachments/assets/4a3e5049-d6f2-48d6-9ba9-1a2b370b415c" />
 <img width="634" height="367" alt="AWS Server running in console" src="https://github.com/user-attachments/assets/b90b4518-2af5-4f88-a786-a995937082b8" />
