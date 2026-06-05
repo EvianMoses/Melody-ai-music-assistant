@@ -11,7 +11,7 @@ The application combines a polished Flask web experience with **Amazon Bedrock K
 <details>
   <summary>📸 <b>Click here to view App Screenshots</b></summary>
   <br>
-  
+  <img src="https://github.com/user-attachments/assets/b4fc180d-1c6c-4c37-95f4-ee630e49d9c8" />
  
 <img src="https://github.com/user-attachments/assets/398a4ccf-b39d-46ae-bc7e-fb559d99bf3f" />
 
@@ -19,12 +19,33 @@ The application combines a polished Flask web experience with **Amazon Bedrock K
 
 <img src="https://github.com/user-attachments/assets/29dcd6dc-a2f9-4af9-9a34-053a7108f124" />
 
+
 <img src="https://github.com/user-attachments/assets/f581b43a-c660-4aac-a1de-03c5675caa86" />
 
 </details>
 
 ---
+## Proof screenshots from AWS
+<details>
+  <summary>📸 <b>Click here to view knowledge base AWS Screenshots</b></summary>
+  <br>
+<img src="https://github.com/user-attachments/assets/e21bc7ec-e0c3-4f75-b618-f188bc5f085e" />
+<img src="https://github.com/user-attachments/assets/d7f9a0c2-18d4-4ca1-b864-dd28f44c60e8" />
+<img src="https://github.com/user-attachments/assets/cb4a27a8-ed17-4fed-bad6-38c82ccacf93" />
+<img src="https://github.com/user-attachments/assets/176759c5-33f8-4b23-800b-d6f7bb7fc6dc" />
 
+  </details>
+
+
+  <details>
+  <summary>📸 <b>Click here to view knowledge base AWS Screenshots</b></summary>
+  <br>
+<img width="950" height="134" alt="instances status" src="https://github.com/user-attachments/assets/4a3e5049-d6f2-48d6-9ba9-1a2b370b415c" />
+<img width="634" height="367" alt="AWS Server running in console" src="https://github.com/user-attachments/assets/b90b4518-2af5-4f88-a786-a995937082b8" />
+
+  </details>
+
+---
 ## Core Features
 
 - **AI-powered music discovery**  
@@ -288,7 +309,7 @@ docker run --rm -p 5000:5000 `
 
 The application was successfully containerized and deployed to a public AWS EC2 instance.
 
-[Tested on Public IP: http://YOUR.IP.HERE:5000]
+[Tested on Public IP: [http://18.226.60.121:)5000]
 
 Immediately after testing and verifying the public URL, the compute-heavy and cost-generating AWS resources were deleted to prevent unnecessary costs:
 1. Terminated the EC2 Instance (`Melody-App-Server`).
