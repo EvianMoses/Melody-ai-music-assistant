@@ -6,7 +6,22 @@ The application combines a polished Flask web experience with **Amazon Bedrock K
 
 ## Media
 
-![Demo Video/Screenshot](link-here)
+[Recording 2026-06-05 150227.webm](https://github.com/user-attachments/assets/b31e56e3-a6c6-464e-ad07-af1234d995e1)
+
+<details>
+  <summary>📸 <b>Click here to view Project Screenshots</b></summary>
+  <br>
+  
+  ### 1. EC2 Instance Running
+<img width="384" height="219" alt="app test q3" src="https://github.com/user-attachments/assets/398a4ccf-b39d-46ae-bc7e-fb559d99bf3f" />
+
+<img width="382" height="312" alt="app test q2" src="https://github.com/user-attachments/assets/2c619db0-8626-4f2f-b6a4-c0e711d507fd" />
+
+<img width="373" height="212" alt="app test q1" src="https://github.com/user-attachments/assets/29dcd6dc-a2f9-4af9-9a34-053a7108f124" />
+
+<img width="337" height="356" alt="app test q4" src="https://github.com/user-attachments/assets/f581b43a-c660-4aac-a1de-03c5675caa86" />
+
+</details>
 
 ---
 
