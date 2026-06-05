@@ -111,7 +111,7 @@ flowchart LR
 ## Project Structure
 
 ```text
-Finch/
+Melody/
 ├── app.py
 │   └── Flask application entrypoint, Bedrock Knowledge Base integration, prompt logic, and randomized query selection.
 ├── templates/
@@ -207,7 +207,7 @@ python app.py
 Then open:
 
 ```text
-http://localhost:5000
+http://18.226.60.121:5000
 ```
 
 ---
