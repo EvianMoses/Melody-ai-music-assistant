@@ -165,6 +165,11 @@
           <div class="mx-auto w-full max-w-3xl">
             <form method="POST" action="/" onsubmit="handleSubmit(); return false;">
               <div id="prompt-box">
+                <div id="feedback-controls" class="feedback-controls" aria-label="Recommendation feedback">
+                  <span class="feedback-label">How was the last recommendation?</span>
+                  <button class="feedback-btn" type="button" data-feedback="Loved it" aria-label="Loved it">👍</button>
+                  <button class="feedback-btn" type="button" data-feedback="Not for me" aria-label="Not for me">👎</button>
+                </div>
                 <textarea id="message-input" name="user_query" rows="2"
                   placeholder="Ask Melody about any sound, mood, or artist…"
                   style="min-height:60px;max-height:200px;" onkeydown="handleKeyDown(event)"
@@ -232,6 +237,9 @@
     let currentThreadId = null;
     let currentMessages = [];
     let isLoading = false;
+    let activeFeedback = null;
+    let renderedMessageCount = 0;
+    let loadingNode = null;
 
     /* ── localStorage helpers ───────────────────────────────────── */
     function loadThreads() {
@@ -353,14 +361,44 @@
 
       const isHomeMode = currentMessages.length === 0 && !isLoading;
       document.getElementById('main-area')?.classList.toggle('home-mode', isHomeMode);
+      const renderKey = currentThreadId || (currentMessages.length ? 'transient-chat' : 'home');
+
+      if (inner.dataset.renderKey !== renderKey || renderedMessageCount > currentMessages.length) {
+        inner.innerHTML = '';
+        inner.dataset.renderKey = renderKey;
+        renderedMessageCount = 0;
+        loadingNode = null;
+      }
 
       if (currentMessages.length === 0 && !isLoading) {
         inner.innerHTML = renderEmptyState();
+        renderedMessageCount = 0;
+        loadingNode = null;
+        updateFeedbackControls();
         return;
       }
 
-      inner.innerHTML = currentMessages.map(m => renderMsg(m)).join('');
-      if (isLoading) inner.innerHTML += renderEqualizer();
+      if (inner.querySelector('#home-empty-state')) {
+        inner.innerHTML = '';
+        renderedMessageCount = 0;
+        loadingNode = null;
+      }
+
+      if (loadingNode) {
+        loadingNode.remove();
+        loadingNode = null;
+      }
+
+      for (let i = renderedMessageCount; i < currentMessages.length; i += 1) {
+        inner.insertAdjacentHTML('beforeend', renderMsg(currentMessages[i]));
+      }
+      renderedMessageCount = currentMessages.length;
+
+      if (isLoading) {
+        inner.insertAdjacentHTML('beforeend', renderEqualizer());
+        loadingNode = inner.querySelector('[data-loading-message="true"]');
+      }
+      updateFeedbackControls();
       scrollToBottom();
     }
 
@@ -371,6 +409,7 @@
           <div class="user-bubble">${esc(m.content)}</div>
         </div>`;
       }
+      const parsed = parseAgentResponse(m.content);
       return `
       <div class="flex items-start gap-3 fade-in-up">
         ${avatarHTML(32)}
@@ -378,10 +417,35 @@
           <div class="mb-1 text-xs font-medium tracking-wide" style="color:color-mix(in oklab,var(--primary) 80%,transparent);">Melody</div>
           <div class="ai-bubble">
             <div class="melody-markdown" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
-              ${marked.parse(m.content)}
+              ${marked.parse(parsed.text)}
             </div>
+            ${renderTrackEnhancement(parsed)}
           </div>
         </div>
+      </div>`;
+    }
+
+    function parseAgentResponse(content) {
+      const raw = String(content || '');
+      const trackMatch = raw.match(/\[TRACK_ID:\s*([^\]]+)\]/i);
+      const trackId = trackMatch ? trackMatch[1].trim() : null;
+      const text = raw
+        .replace(/\[TRACK_ID:\s*[^\]]+\]/gi, '')
+        .trim();
+      return { text, trackId };
+    }
+
+    function renderTrackEnhancement({ trackId }) {
+      if (!trackId) return '';
+      return `
+      <div class="track-enhancement" data-track-id="${esc(trackId)}">
+        <div class="spotify-embed-wrap">
+          <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/${esc(trackId)}" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+        </div>
+        <button class="liked-track-btn" type="button" onclick="saveRecommendedTrack(this, '${esc(trackId)}')">
+          <span class="heart-symbol">♡</span>
+          <span class="liked-track-label">Add to your liked songs</span>
+        </button>
       </div>`;
     }
 
@@ -391,7 +455,7 @@
         `<span class="soundwave-bar" style="--delay:${d}s;"></span>`
       ).join('');
       return `
-      <div class="flex items-start gap-3">
+      <div class="flex items-start gap-3" data-loading-message="true">
         ${avatarHTML(32)}
         <div class="flex items-center gap-3 text-sm" style="height:40px;color:var(--muted-foreground);">
           <div class="flex items-center gap-[4px]" style="height:30px;">${bars}</div>
@@ -482,6 +546,9 @@
       const input = document.getElementById('message-input');
       const text = input.value.trim();
       if (!text || isLoading) return;
+      const outboundText = activeFeedback
+        ? `[User rated previous recommendation: ${activeFeedback}] ${text}`
+        : text;
 
       input.value = '';
       input.style.height = '';
@@ -493,6 +560,7 @@
       }
 
       currentMessages.push({ role: 'user', content: text });
+      resetFeedback();
       isLoading = true;
       setSubmitState(true);
       renderMessages();
@@ -501,13 +569,13 @@
         const res = await fetch('/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: text }),
+          body: JSON.stringify({ question: outboundText }),
         });
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.error || 'Request failed.');
         }
-        currentMessages.push({ role: 'assistant', content: data.answer || 'No answer returned.' });
+        currentMessages.push({ role: 'assistant', content: data.response || data.answer || 'No answer returned.' });
       } catch (error) {
         currentMessages.push({
           role: 'assistant',
@@ -535,11 +603,61 @@
       handleSubmit();
     }
 
+    async function saveRecommendedTrack(button, trackId) {
+      if (!trackId || button.disabled) return;
+      const label = button.querySelector('.liked-track-label');
+      const heart = button.querySelector('.heart-symbol');
+      button.disabled = true;
+
+      try {
+        const res = await fetch('/api/save_track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ track_id: trackId }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Could not save track.');
+        }
+        button.classList.add('is-added');
+        if (heart) heart.textContent = '♥';
+        if (label) label.textContent = 'Added to your Liked Songs';
+      } catch (error) {
+        button.disabled = false;
+        if (label) label.textContent = error.message || 'Log in to save this track';
+      }
+    }
+
     function setupSuggestionButtons() {
       document.querySelectorAll('[data-suggestion]').forEach(button => {
         button.addEventListener('click', () => {
           handleSuggestion(button.dataset.suggestion || button.textContent.trim());
         });
+      });
+    }
+
+    function setupFeedbackButtons() {
+      document.querySelectorAll('.feedback-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const value = button.dataset.feedback;
+          activeFeedback = activeFeedback === value ? null : value;
+          updateFeedbackControls();
+        });
+      });
+    }
+
+    function resetFeedback() {
+      activeFeedback = null;
+      updateFeedbackControls();
+    }
+
+    function updateFeedbackControls() {
+      const controls = document.getElementById('feedback-controls');
+      if (!controls) return;
+      const hasAssistantResponse = currentMessages.some(m => m.role === 'assistant');
+      controls.classList.toggle('is-visible', hasAssistantResponse && !isLoading);
+      controls.querySelectorAll('.feedback-btn').forEach(button => {
+        button.classList.toggle('is-active', button.dataset.feedback === activeFeedback);
       });
     }
 
@@ -632,6 +750,7 @@
     /* ── Init ───────────────────────────────────────────────────── */
     function init() {
       setupSuggestionButtons();
+      setupFeedbackButtons();
       updateAuthStatus();
       if (INITIAL_QUESTION && (INITIAL_ANSWER || INITIAL_ERROR)) {
         currentMessages = [
