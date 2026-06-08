@@ -148,7 +148,7 @@ flowchart LR
 ## Project Structure
 
 ```text
-Finch/
+Melody/
 ├── app.py
 │   └── Flask application entrypoint, Bedrock Knowledge Base integration, prompt logic, and randomized query selection.
 ├── templates/

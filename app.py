@@ -1,5 +1,6 @@
 import os
 import random
+import time
 import uuid
 
 from dotenv import load_dotenv
@@ -17,21 +18,11 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(32)
 
 KNOWLEDGE_BASE_ID = "AOGLLMF80H"
 MODEL_ARN = MODEL_ARN = MODEL_ARN = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+BEDROCK_AGENT_ID = "CB87YOINOM"
+BEDROCK_AGENT_ALIAS_ID = "TSTALIASID"
 AWS_REGION = "us-east-2"
 SPOTIFY_SCOPE = "user-top-read playlist-modify-public playlist-modify-private user-library-modify"
-SYSTEM_PROMPT = """You are 'Melody', an expert, passionate, and highly knowledgeable music discovery assistant. Your goal is to help users discover new music and break out of their algorithmic echo chambers, using ONLY the provided documents (artist data, reviews, and genre descriptions).
-
-CRITICAL INSTRUCTIONS FOR REASONING AND ANSWERING:
-1. ACT LIKE A CURATOR: Do not act like a database reader. NEVER use phrases like "Based on the documents", "The documents don't contain", or "I don't have enough information". Hide the technical mechanics from the user.
-2. CONNECT THE DOTS (CROSS-REFERENCING): When a user asks for abstract concepts (e.g., "Songs like Bon Iver but warmer"), use analytical reasoning:
-   - First, identify the baseline artist's genre/vibe from the data.
-   - Second, refer to the genre guidelines to understand the requested vibe (e.g., "warmer").
-   - Third, search the data for other artists/albums that combine that genre with the requested vibe.
-3. BE CONCISE AND PUNCHY: Give your recommendation immediately. Do not write long essays. Make your comparison ONCE and do not repeat the same point.
-4. FOCUS ON THE POSITIVE: If you cannot find a perfect match, do not dwell on it and do not apologize repeatedly. Instead, confidently pivot and highlight the closest, most exciting recommendation you CAN find in the data based on mood, genre, or aesthetic.
-5. LOGICAL FLOW: Your answer must be a cohesive, engaging narrative. Acknowledge the user's taste, present your recommendation, and explain exactly WHY they will love it based on the musical descriptions.
-6. TONE: Be enthusiastic, inspiring, and focused entirely on the joy of discovering great music.
-7. TERMINOLOGY: 'EDM' stands for 'Electronic Dance Music'. Treat these terms identically when searching the data and answering."""
+SYSTEM_PROMPT = ""
 
 QUESTIONS_LIST = [
     "Recommend indie-folk song from the late 2000s.",
@@ -63,6 +54,7 @@ QUESTIONS_LIST = [
 def ensure_session_id():
     if "session_id" not in session:
         session["session_id"] = str(uuid.uuid4())
+        session.modified = True
 
 
 def get_spotify_oauth():
@@ -77,48 +69,59 @@ def get_spotify_oauth():
 
 
 def get_valid_spotify_token():
-    token_info = session.get("spotify_token")
+    token_info = session.get("spotify_token_info")
     if not token_info:
         return None
 
-    spotify_oauth = get_spotify_oauth()
-    if spotify_oauth.is_token_expired(token_info):
+    expires_at = token_info.get("expires_at", 0)
+    is_expired_or_stale = expires_at <= int(time.time()) + 60
+
+    if is_expired_or_stale:
         refresh_token = token_info.get("refresh_token")
         if not refresh_token:
-            session.pop("spotify_token", None)
+            session.pop("spotify_token_info", None)
             return None
 
+        spotify_oauth = get_spotify_oauth()
+        previous_refresh_token = refresh_token
         token_info = spotify_oauth.refresh_access_token(refresh_token)
-        session["spotify_token"] = token_info
+        if "refresh_token" not in token_info:
+            token_info["refresh_token"] = previous_refresh_token
+        session["spotify_token_info"] = token_info
+        session.modified = True
 
-    return token_info
+    return token_info.get("access_token")
 
 
 def query_bedrock(question):
-    client = boto3.client("bedrock-agent-runtime", region_name=AWS_REGION)
+    if "session_id" not in session:
+        session["session_id"] = str(uuid.uuid4())
+        session.modified = True
 
-    response = client.retrieve_and_generate(
-        input={"text": question},
-        retrieveAndGenerateConfiguration={
-            "type": "KNOWLEDGE_BASE",
-            "knowledgeBaseConfiguration": {
-                "knowledgeBaseId": KNOWLEDGE_BASE_ID,
-                "modelArn": MODEL_ARN,
-                "generationConfiguration": {
-                    "promptTemplate": {
-                        "textPromptTemplate": (
-                            f"{SYSTEM_PROMPT}\n\n"
-                            "Retrieved documents:\n"
-                            "$search_results$\n\n"
-                            "Answer:"
-                        )
-                    }
-                },
-            },
+    client = boto3.client("bedrock-agent-runtime", region_name=AWS_REGION)
+    spotify_access_token = get_valid_spotify_token()
+
+    session_attributes = {}
+    if spotify_access_token:
+        session_attributes["spotify_token"] = spotify_access_token
+
+    response = client.invoke_agent(
+        agentId=BEDROCK_AGENT_ID,
+        agentAliasId=BEDROCK_AGENT_ALIAS_ID,
+        sessionId=session["session_id"],
+        inputText=question,
+        sessionState={
+            "sessionAttributes": session_attributes
         },
     )
 
-    return response.get("output", {}).get("text", "")
+    final_text = ""
+    for event in response.get("completion", []):
+        if "chunk" in event:
+            chunk = event["chunk"].get("bytes", b"")
+            final_text += chunk.decode("utf-8")
+
+    return final_text
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -164,7 +167,8 @@ def callback():
     if code:
         spotify_oauth = get_spotify_oauth()
         token_info = spotify_oauth.get_access_token(code, as_dict=True)
-        session["spotify_token"] = token_info
+        session["spotify_token_info"] = token_info
+        session.modified = True
 
     return redirect(url_for("index"))
 
@@ -177,15 +181,16 @@ def logout():
 
 @app.route("/api/auth_status")
 def auth_status():
-    token_info = get_valid_spotify_token()
-    if not token_info:
+    access_token = get_valid_spotify_token()
+    if not access_token:
         return jsonify({"logged_in": False, "session_id": session.get("session_id")})
 
     try:
-        sp = spotipy.Spotify(auth=token_info["access_token"])
+        sp = spotipy.Spotify(auth=access_token)
         user = sp.current_user()
     except Exception:
-        session.pop("spotify_token", None)
+        session.pop("spotify_token_info", None)
+        session.modified = True
         return jsonify({"logged_in": False, "session_id": session.get("session_id")})
 
     return jsonify(
@@ -196,6 +201,21 @@ def auth_status():
             "session_id": session.get("session_id"),
         }
     )
+
+
+@app.route("/api/save_track", methods=["POST"])
+def save_track():
+    data = request.get_json(silent=True) or {}
+    track_id = data.get("track_id")
+
+    access_token = get_valid_spotify_token()
+    if access_token is None:
+        return jsonify({"success": False, "error": "Not logged in"}), 401
+
+    sp = spotipy.Spotify(auth=access_token)
+    sp.current_user_saved_tracks_add(tracks=[track_id])
+
+    return jsonify({"success": True})
 
 
 @app.route("/ask", methods=["POST"])
@@ -224,7 +244,7 @@ def ask():
     except (BotoCoreError, ClientError) as error:
         return jsonify({"error": f"Bedrock request failed: {error}"}), 500
 
-    return jsonify({"answer": answer})
+    return jsonify({"response": answer, "answer": answer})
 
 
 if __name__ == "__main__":
