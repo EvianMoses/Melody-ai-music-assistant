@@ -5,3 +5,4 @@ venv/
 .cursor/
 .vscode/
 *.cursorrules
+.cache

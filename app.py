@@ -1,14 +1,24 @@
+import os
 import random
+import uuid
 
+from dotenv import load_dotenv
+load_dotenv() 
+
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(32)
 
 KNOWLEDGE_BASE_ID = "AOGLLMF80H"
 MODEL_ARN = MODEL_ARN = MODEL_ARN = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
 AWS_REGION = "us-east-2"
+SPOTIFY_SCOPE = "user-top-read playlist-modify-public playlist-modify-private user-library-modify"
 SYSTEM_PROMPT = """You are 'Melody', an expert, passionate, and highly knowledgeable music discovery assistant. Your goal is to help users discover new music and break out of their algorithmic echo chambers, using ONLY the provided documents (artist data, reviews, and genre descriptions).
 
 CRITICAL INSTRUCTIONS FOR REASONING AND ANSWERING:
@@ -47,6 +57,41 @@ QUESTIONS_LIST = [
      "Find R&B or soul music with a modern, electronic twist.",
      "What are some highly-rated club anthems from the database?",
 ]
+
+
+@app.before_request
+def ensure_session_id():
+    if "session_id" not in session:
+        session["session_id"] = str(uuid.uuid4())
+
+
+def get_spotify_oauth():
+    return SpotifyOAuth(
+        client_id=os.environ.get("SPOTIPY_CLIENT_ID"),
+        client_secret=os.environ.get("SPOTIPY_CLIENT_SECRET"),
+        redirect_uri=os.environ.get("SPOTIPY_REDIRECT_URI"),
+        scope=SPOTIFY_SCOPE,
+        cache_handler=None,
+        show_dialog=True,
+    )
+
+
+def get_valid_spotify_token():
+    token_info = session.get("spotify_token")
+    if not token_info:
+        return None
+
+    spotify_oauth = get_spotify_oauth()
+    if spotify_oauth.is_token_expired(token_info):
+        refresh_token = token_info.get("refresh_token")
+        if not refresh_token:
+            session.pop("spotify_token", None)
+            return None
+
+        token_info = spotify_oauth.refresh_access_token(refresh_token)
+        session["spotify_token"] = token_info
+
+    return token_info
 
 
 def query_bedrock(question):
@@ -101,6 +146,56 @@ def index():
 
     sample_queries = random.sample(QUESTIONS_LIST, 4)
     return render_template("index.html", sample_queries=sample_queries)
+
+
+@app.route("/login")
+def login():
+    spotify_oauth = get_spotify_oauth()
+    authorization_url = spotify_oauth.get_authorize_url()
+    return redirect(authorization_url)
+
+
+@app.route("/callback")
+def callback():
+    if request.args.get("error"):
+        return redirect(url_for("index"))
+
+    code = request.args.get("code")
+    if code:
+        spotify_oauth = get_spotify_oauth()
+        token_info = spotify_oauth.get_access_token(code, as_dict=True)
+        session["spotify_token"] = token_info
+
+    return redirect(url_for("index"))
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
+
+@app.route("/api/auth_status")
+def auth_status():
+    token_info = get_valid_spotify_token()
+    if not token_info:
+        return jsonify({"logged_in": False, "session_id": session.get("session_id")})
+
+    try:
+        sp = spotipy.Spotify(auth=token_info["access_token"])
+        user = sp.current_user()
+    except Exception:
+        session.pop("spotify_token", None)
+        return jsonify({"logged_in": False, "session_id": session.get("session_id")})
+
+    return jsonify(
+        {
+            "logged_in": True,
+            "display_name": user["display_name"],
+            "profile_image_url": user["images"][0]["url"] if user["images"] else None,
+            "session_id": session.get("session_id"),
+        }
+    )
 
 
 @app.route("/ask", methods=["POST"])
