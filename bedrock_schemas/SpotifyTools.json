@@ -1,0 +1,149 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "SpotifyTools",
+        "version": "1.0.0",
+        "description": "API for fetching user taste, searching tracks, playlists, albums, and artists."
+    },
+    "paths": {
+        "/get_user_taste": {
+            "get": {
+                "summary": "Get user taste",
+                "description": "Fetches the user's top artists and genres.",
+                "operationId": "get_user_taste",
+                "responses": {
+                    "200": {
+                        "description": "User taste",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search_track": {
+            "get": {
+                "summary": "Search track",
+                "description": "Searches Spotify for a track.",
+                "operationId": "search_track",
+                "parameters": [
+                    {
+                        "name": "search_query",
+                        "in": "query",
+                        "description": "Track query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Track JSON",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search_playlist": {
+            "get": {
+                "summary": "Search playlist",
+                "description": "Searches Spotify for a playlist.",
+                "operationId": "search_playlist",
+                "parameters": [
+                    {
+                        "name": "search_query",
+                        "in": "query",
+                        "description": "Playlist query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Playlist JSON",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search_album": {
+            "get": {
+                "summary": "Search album",
+                "description": "Searches Spotify for an album.",
+                "operationId": "search_album",
+                "parameters": [
+                    {
+                        "name": "search_query",
+                        "in": "query",
+                        "description": "Album query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Album JSON",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search_artist": {
+            "get": {
+                "summary": "Search artist",
+                "description": "Searches Spotify for an artist.",
+                "operationId": "search_artist",
+                "parameters": [
+                    {
+                        "name": "search_query",
+                        "in": "query",
+                        "description": "Artist query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Artist JSON",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

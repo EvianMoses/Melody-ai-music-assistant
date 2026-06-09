@@ -233,8 +233,11 @@
     }
 
     .sidebar-wordmark {
+      display: flex;
       align-items: center;
-      font-size: 1.12rem;
+      justify-content: center;
+      font-size: 1.28rem;
+      width: 100%;
     }
 
     .sidebar-wordmark .logo-letter-mask {
@@ -268,11 +271,109 @@
       flex-direction: column;
     }
 
+    #mobile-menu-btn {
+      position: fixed;
+      top: 0.85rem;
+      left: 0.85rem;
+      z-index: 70;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.65rem;
+      height: 2.65rem;
+      border: 1px solid color-mix(in oklab, var(--primary) 48%, transparent);
+      border-radius: 0.85rem;
+      background:
+        radial-gradient(circle at 25% 20%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 44%),
+        color-mix(in oklab, var(--card) 78%, transparent);
+      color: var(--foreground);
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 0 28px -18px var(--primary);
+      backdrop-filter: blur(14px);
+    }
+
+    #mobile-sidebar-close {
+      position: absolute;
+      top: 0.8rem;
+      right: 0.8rem;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.2rem;
+      height: 2.2rem;
+      border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--primary) 8%, transparent);
+      color: var(--foreground);
+      font-size: 1.45rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 0 22px -16px var(--primary);
+    }
+
+    #mobile-sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 55;
+      background: rgba(0, 0, 0, 0.64);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+      backdrop-filter: blur(3px);
+    }
+
+    @media (max-width: 767px) {
+      #app-sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 60;
+        width: min(82vw, 20rem);
+        max-width: 20rem;
+        transform: translateX(-105%);
+        transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 28px 0 60px -42px var(--primary), 18px 0 42px rgba(0, 0, 0, 0.42);
+      }
+
+      body.mobile-sidebar-open #app-sidebar {
+        transform: translateX(0);
+      }
+
+      body.mobile-sidebar-open #mobile-sidebar-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.mobile-sidebar-open {
+        overflow: hidden;
+      }
+
+      #main-area {
+        width: 100%;
+      }
+    }
+
+    @media (min-width: 768px) {
+
+      #mobile-menu-btn,
+      #mobile-sidebar-close,
+      #mobile-sidebar-backdrop {
+        display: none;
+      }
+
+      #app-sidebar {
+        position: static;
+        transform: none;
+      }
+    }
+
     #main-area.home-mode #main-chat-section {
       display: grid;
       min-height: 100vh;
       height: 100vh;
-      grid-template-rows: minmax(2rem, 1fr) auto auto minmax(5.5rem, 0.85fr);
+      grid-template-rows: minmax(2rem, 1fr) auto auto minmax(2rem, 1fr);
     }
 
     #main-area.home-mode #messages-container {
@@ -295,18 +396,6 @@
       grid-row: 3;
       padding-top: 1.35rem;
       padding-bottom: 0;
-    }
-
-    #spotify-cta-row {
-      display: none;
-    }
-
-    #main-area.home-mode #spotify-cta-row {
-      display: flex;
-      grid-row: 4;
-      align-items: end;
-      justify-content: center;
-      padding: 0 1rem 1.6rem;
     }
 
     #home-suggestions {
@@ -426,6 +515,7 @@
     }
 
     @keyframes ambient-blob-purple {
+
       0%,
       100% {
         transform: translate3d(0, 0, 0) scale(1);
@@ -437,6 +527,7 @@
     }
 
     @keyframes ambient-blob-red {
+
       0%,
       100% {
         transform: translate3d(0, 0, 0) scale(1);
@@ -452,6 +543,7 @@
     }
 
     @keyframes ambient-blob-orange {
+
       0%,
       100% {
         transform: translate3d(0, 0, 0) scale(1);
@@ -467,6 +559,7 @@
     }
 
     @keyframes ambient-blob-violet {
+
       0%,
       100% {
         transform: translate3d(0, 0, 0) scale(0.98);
@@ -527,24 +620,37 @@
     }
 
     /* ─── Markdown styles ────────────────────────────────────────── */
+    .melody-markdown {
+      text-align: start;
+      unicode-bidi: plaintext;
+    }
+
     .melody-markdown p {
       margin: 0.5rem 0;
+      text-align: start;
+      unicode-bidi: plaintext;
     }
 
     .melody-markdown ul {
       margin: 0.5rem 0;
-      padding-left: 1.25rem;
+      padding-inline-start: 1.25rem;
       list-style: disc;
+      text-align: start;
+      unicode-bidi: plaintext;
     }
 
     .melody-markdown ol {
       margin: 0.5rem 0;
-      padding-left: 1.25rem;
+      padding-inline-start: 1.25rem;
       list-style: decimal;
+      text-align: start;
+      unicode-bidi: plaintext;
     }
 
     .melody-markdown li {
       margin: 0.25rem 0;
+      text-align: start;
+      unicode-bidi: plaintext;
     }
 
     .melody-markdown strong {
@@ -595,10 +701,12 @@
     }
 
     .melody-markdown blockquote {
-      border-left: 2px solid var(--primary);
-      padding-left: 0.75rem;
+      border-inline-start: 2px solid var(--primary);
+      padding-inline-start: 0.75rem;
       margin: 0.5rem 0;
       color: var(--muted-foreground);
+      text-align: start;
+      unicode-bidi: plaintext;
     }
 
     /* ─── Scrollbar ──────────────────────────────────────────────── */
@@ -636,7 +744,7 @@
       color: color-mix(in oklab, var(--foreground) 85%, transparent);
       border-radius: 0.75rem;
       padding: 0.75rem 1rem;
-      text-align: left;
+      text-align: start;
       font-size: 0.875rem;
       cursor: pointer;
       transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, color 0.2s;
@@ -776,6 +884,8 @@
       max-width: 80%;
       font-size: 0.9375rem;
       line-height: 1.6;
+      text-align: start;
+      unicode-bidi: plaintext;
       word-break: break-word;
     }
 
@@ -790,6 +900,8 @@
       box-shadow: 0 0 28px -18px var(--primary);
       padding: 0.75rem 1rem;
       color: var(--foreground);
+      text-align: start;
+      unicode-bidi: plaintext;
     }
 
     /* ─── Agent media enrichments ───────────────────────────────── */
@@ -843,6 +955,7 @@
       font-weight: 600;
       letter-spacing: 0.01em;
       margin-right: auto;
+      line-height: 1.35;
     }
 
     .feedback-btn {
@@ -886,38 +999,7 @@
       transform: scale(1.08);
     }
 
-    /* ─── Spotify scroll + login section ────────────────────────── */
-    .spotify-scroll-cta {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 0.55rem;
-      margin: 1.25rem auto 0;
-      padding: 0.58rem 0.9rem 0.58rem 0.7rem;
-      border: 1px solid color-mix(in oklab, #1DB954 48%, transparent);
-      border-radius: 999px;
-      color: #d7ffe5;
-      background:
-        radial-gradient(circle at 20% 20%, color-mix(in oklab, #1DB954 28%, transparent), transparent 34%),
-        color-mix(in oklab, #1DB954 8%, #121212);
-      box-shadow: 0 0 30px -16px #1DB954, inset 0 0 20px color-mix(in oklab, #1DB954 8%, transparent);
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-decoration: none;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-    }
-
-    #main-area.home-mode .spotify-scroll-cta {
-      display: inline-flex;
-    }
-
-    .spotify-scroll-cta:hover {
-      border-color: #1DB954;
-      box-shadow: 0 0 34px -12px #1DB954, inset 0 0 22px color-mix(in oklab, #1DB954 12%, transparent);
-      transform: translateY(-2px);
-    }
-
+    /* ─── Spotify auth widgets ──────────────────────────────────── */
     .spotify-icon {
       display: inline-flex;
       align-items: center;
@@ -928,23 +1010,6 @@
       background: #1DB954;
       color: #061114;
       box-shadow: 0 0 18px -6px #1DB954;
-    }
-
-    @keyframes chevron-bounce {
-      0%,
-      100% {
-        transform: translateY(-1px);
-        opacity: 0.72;
-      }
-
-      50% {
-        transform: translateY(4px);
-        opacity: 1;
-      }
-    }
-
-    .spotify-chevron {
-      animation: chevron-bounce 1.45s ease-in-out infinite;
     }
 
     .spotify-auth-button {
@@ -1023,4 +1088,3 @@
       color: #1DB954;
       text-decoration: underline;
     }
-
