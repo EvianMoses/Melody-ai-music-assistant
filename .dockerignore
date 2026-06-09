@@ -1,5 +1,6 @@
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 .Python
 venv/
@@ -7,6 +8,8 @@ venv/
 env/
 .env
 .env.*
+*.zip
+.DS_Store
 
 .cursor/
 .vscode/
@@ -15,8 +18,10 @@ env/
 data/
 data_prep/
 genres_knowledge1/
+aws_lambdas/
 
 .git/
 .gitignore
+README.md
 Dockerfile
 .dockerignore

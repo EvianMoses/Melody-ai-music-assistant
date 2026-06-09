@@ -1,0 +1,59 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "ExtraMusicTools",
+        "version": "1.0.0",
+        "description": "Tools for fetching artist history and global trending charts."
+    },
+    "paths": {
+        "/get_artist_info": {
+            "get": {
+                "summary": "Get Artist Info",
+                "description": "Fetches a detailed biography and history about an artist from Wikipedia.",
+                "operationId": "get_artist_info",
+                "parameters": [
+                    {
+                        "name": "artist_name",
+                        "in": "query",
+                        "description": "The exact name of the artist or band.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Artist biography",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get_global_charts": {
+            "get": {
+                "summary": "Get Global Charts",
+                "description": "Fetches the current top 10 trending songs in the world. Use this when the user asks what is popular, trending, or the top global charts right now.",
+                "operationId": "get_global_charts",
+                "responses": {
+                    "200": {
+                        "description": "Top 10 global songs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

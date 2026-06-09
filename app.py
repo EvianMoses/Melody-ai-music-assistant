@@ -4,7 +4,7 @@ import time
 import uuid
 
 from dotenv import load_dotenv
-load_dotenv() 
+load_dotenv()
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -14,13 +14,16 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(32)
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.urandom(32)
 
 KNOWLEDGE_BASE_ID = "AOGLLMF80H"
 MODEL_ARN = MODEL_ARN = MODEL_ARN = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
-BEDROCK_AGENT_ID = "CB87YOINOM"
-BEDROCK_AGENT_ALIAS_ID = "TSTALIASID"
-AWS_REGION = "us-east-2"
+BEDROCK_AGENT_ID = os.getenv("BEDROCK_AGENT_ID")
+BEDROCK_AGENT_ALIAS_ID = os.getenv("BEDROCK_AGENT_ALIAS_ID")
+AWS_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-2")
+SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
+SPOTIPY_CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
+SPOTIPY_REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
 SPOTIFY_SCOPE = "user-top-read playlist-modify-public playlist-modify-private user-library-modify"
 SYSTEM_PROMPT = ""
 
@@ -59,9 +62,9 @@ def ensure_session_id():
 
 def get_spotify_oauth():
     return SpotifyOAuth(
-        client_id=os.environ.get("SPOTIPY_CLIENT_ID"),
-        client_secret=os.environ.get("SPOTIPY_CLIENT_SECRET"),
-        redirect_uri=os.environ.get("SPOTIPY_REDIRECT_URI"),
+        client_id=SPOTIPY_CLIENT_ID,
+        client_secret=SPOTIPY_CLIENT_SECRET,
+        redirect_uri=SPOTIPY_REDIRECT_URI,
         scope=SPOTIFY_SCOPE,
         cache_handler=None,
         show_dialog=True,
@@ -262,4 +265,4 @@ def chat():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=5000)
