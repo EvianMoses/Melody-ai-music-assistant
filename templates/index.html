@@ -159,7 +159,8 @@
             <div class="flex items-start gap-3 fade-in-up">
               <div class="flex-1 min-w-0 pt-1">
                 <div class="ai-bubble">
-                  <div class="melody-markdown" dir="auto" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
+                  <div class="melody-markdown" dir="auto"
+                    style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
                     {{ response }}
                   </div>
                 </div>
@@ -238,7 +239,8 @@
      JAVASCRIPT
 ════════════════════════════════════════════════════════════════ -->
   <script id="initial-question-data" type="application/json">{{ question|default ('', true) | tojson }}</script>
-  <script id="initial-answer-data" type="application/json">{{ response|default (answer |default ('', true), true)| tojson }}</script>
+  <script id="initial-answer-data"
+    type="application/json">{{ response|default (answer |default ('', true), true)| tojson }}</script>
   <script id="initial-error-data" type="application/json">{{ error|default ('', true) | tojson }}</script>
   <script>
     /* ── marked config ─────────────────────────────────────────── */
@@ -772,7 +774,7 @@
       }
     }
 
-    /* ── Scroll helpers ─────────────────────────────────────────── */
+    /* ── Scroll helpers ─────────-────────────────────────────────── */
     function scrollToBottom() {
       const c = document.getElementById('messages-container');
       if (c) requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
