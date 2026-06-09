@@ -47,13 +47,29 @@ The application combines a polished Flask web experience with **Amazon Bedrock K
   </details>
 
 ---
+
+## AWS Folder and Deployment Artifacts
+
+Under the `aws/` folder you can find the relevant deployment artifacts, Bedrock Action Group schemas, and Lambda packaging materials used for the next steps of the project. These files document how Melody connects the Flask application to AWS Bedrock, Lambda tools, Spotify API actions, and external music-information services.
+
+Important AWS-related project assets include:
+
+- `aws/bedrock_schemas/SpotifyTools.json` - OpenAPI-style schema for Spotify-related Bedrock Agent tools.
+- `aws/bedrock_schemas/Extra_music_Tools.json` - Schema for additional music-information tools.
+- `aws/lambda_spotify_package/` - Packaged Spotify Lambda Action Group code and dependencies.
+- `aws/info_lambda_package/` - Packaged extra music-information Lambda code and dependencies.
+
+These artifacts support reproducibility for grading and make the AWS integration transparent for future deployment, debugging, and cleanup.
+
+---
+
 ## Core Features
 
 - **AI-powered music discovery**  
   Melody answers natural-language discovery prompts such as “Songs like Bon Iver but warmer” or “Find music that blends melancholy with high infectious energy.”
 
 - **Custom RAG pipeline on AWS**  
-  User questions are sent from the Flask backend through `boto3` to an Amazon Bedrock Knowledge Base, which retrieves semantically relevant documents before generating a grounded final response.
+  User questions are sent from the Flask backend through `boto3` to an Amazon Bedrock Agent, which can combine Knowledge Base retrieval with Lambda tool calls before generating a grounded final response.
 
 - **Dynamic UI prompt suggestions**  
   The frontend displays **4 randomized prompt suggestions** out of a pool of **15 diverse questions** on every page load, encouraging exploration and preventing repetitive usage patterns.
@@ -120,28 +136,75 @@ This helps the system connect abstract user requests like **“warmer,” “mel
 ## System Architecture
 
 ```mermaid
-flowchart LR
-    UI["User UI<br/>Dark Melody Frontend"] --> Flask["Flask Backend<br/>app.py"]
+flowchart TB
+    User["User<br/>Browser"] --> Frontend["Melody Frontend<br/>HTML/CSS/JavaScript"]
+    Frontend --> Flask["Flask Server<br/>Docker container on EC2<br/>HTTPS :5000"]
     Flask --> Boto3["boto3<br/>Bedrock Agent Runtime"]
-    Boto3 --> KB["Amazon Bedrock<br/>Knowledge Base"]
-    KB --> OSS["OpenSearch Serverless<br/>Vector DB"]
-    KB --> S3["Amazon S3<br/>Source Documents"]
-    OSS --> Claude["Claude 4.5 Sonnet<br/>Curator Persona"]
-    S3 --> Claude
-    Claude --> Response["Final Context-Aware<br/>Music Recommendation"]
-    Response --> UI
+    Boto3 --> Agent["Amazon Bedrock Agent<br/>Claude 4.5 Sonnet Curator Persona"]
+
+    Agent --> RAGPath["RAG Path"]
+    RAGPath --> KB["Amazon Bedrock<br/>Knowledge Base"]
+    KB --> OSS["OpenSearch Serverless<br/>Vector Collection"]
+    KB --> S3["Amazon S3<br/>Curated music reviews dataset<br/>genre knowledge files"]
+
+    Agent --> ToolPath["Tool Path"]
+    ToolPath --> ActionGroups["Bedrock Action Groups"]
+    ActionGroups --> LambdaSpotify["AWS Lambda<br/>Spotify tools"]
+    ActionGroups --> LambdaInfo["AWS Lambda<br/>extra music information tools"]
+    LambdaSpotify --> Spotify["Spotify Web API<br/>user taste, search, previews, actions"]
+    LambdaInfo --> PublicAPIs["Public music APIs<br/>Wikipedia and charts"]
+
+    Agent --> Flask
+    Flask --> Frontend
 ```
 
 ### Runtime Flow
 
 1. The user enters a discovery query in the Melody UI.
-2. Flask receives the request through `/` or `/ask`.
-3. The backend calls `retrieve_and_generate` through `boto3`.
-4. Amazon Bedrock retrieves relevant chunks from the Knowledge Base.
-5. OpenSearch Serverless performs vector similarity retrieval.
-6. S3 provides the source documents used by the Knowledge Base.
-7. Claude 4.5 Sonnet generates a curator-style response.
-8. The final answer is returned to the UI.
+2. Flask receives the request through the chat API and maintains a tab-specific chat session identifier.
+3. The backend calls the Amazon Bedrock Agent Runtime through `boto3`.
+4. The Bedrock Agent decides whether to answer from retrieved knowledge, invoke external tools, or combine both.
+5. The RAG path retrieves relevant chunks from the Knowledge Base, backed by OpenSearch Serverless and S3 source documents.
+6. The tool path invokes Lambda Action Groups for Spotify and supplemental music-information APIs.
+7. Claude 4.5 Sonnet generates a curator-style response with optional structured UI tags for the frontend.
+8. Flask returns the response to the browser, where JavaScript renders Markdown text and Spotify embeds.
+
+---
+
+## Lambda Functions & Tools (MCP)
+
+Melody uses AWS Lambda functions as Bedrock Agent tools, allowing the model to move beyond static retrieval and interact with live music services. In the project documentation, these tools are treated as the agent’s MCP-style capability layer: the Bedrock Agent can call external functions through Action Groups, receive structured results, and incorporate them into the final recommendation.
+
+### Spotify Lambda Action Group
+
+The Spotify Lambda function gives the Bedrock Agent controlled access to Spotify functionality. It uses OAuth user tokens when a listener is logged in and client credentials for guest-safe search operations.
+
+- **User Context Fetching**  
+  When a user connects Spotify, Melody can retrieve taste signals such as top artists, top tracks, and genre patterns. This context grounds recommendations in the listener’s actual habits while still allowing the assistant to challenge those habits through “anti-algorithm” prompts.
+
+- **Track Preview Fetching**  
+  The agent can search Spotify for tracks and return structured identifiers such as track IDs and preview metadata. The Flask frontend parses these outputs and converts them into interactive Spotify embeds or playable music UI elements.
+
+- **Active Actions**  
+  The project design includes active Spotify actions through Lambda tools, including POST-style operations such as saving a recommended track to the user’s “Liked Songs” library. This demonstrates how the agent can move from passive recommendation into user-authorized music-library interaction.
+
+### Extra Music Information Lambda
+
+The supplemental Lambda function provides music context from public APIs. It supports artist background lookups and global chart retrieval, allowing Melody to enrich responses with broader cultural and historical context when the Knowledge Base alone is not enough.
+
+---
+
+## The System Prompt / AI Persona
+
+Melody is guided by a deliberately opinionated system prompt. The assistant is not meant to behave like a generic chatbot or a database reader. Instead, it acts as a deeply knowledgeable, slightly snobby, but ultimately generous music curator: someone who understands scenes, production aesthetics, genre lineage, and the subtle emotional language people use when describing music.
+
+The persona is designed around three academic goals:
+
+- **Break algorithmic echo chambers**: Melody should not simply recommend more of the same. It should help users discover artists, albums, playlists, and tracks outside their usual listening loops.
+- **Reason like a curator**: The agent should connect user intent, genre knowledge, review language, and Spotify context rather than returning shallow keyword matches.
+- **Produce UI-aware responses**: The prompt instructs the agent to include structured tags such as `[TRACK_ID: ...]`, `[PLAYLIST_ID: ...]`, `[ALBUM_ID: ...]`, `[ARTIST_ID: ...]`, and earlier preview-style tags such as `[PREVIEW: https...]`. The Flask frontend parses these tags, removes them from visible prose, and converts them into interactive Spotify UI elements such as official embed players or audio previews.
+
+This separation between natural-language explanation and machine-readable UI tags is central to Melody’s design. It allows the LLM to remain conversational while still controlling rich frontend behavior in a predictable, testable way.
 
 ---
 
@@ -150,35 +213,64 @@ flowchart LR
 ```text
 Melody/
 ├── app.py
-│   └── Flask application entrypoint, Bedrock Knowledge Base integration, prompt logic, and randomized query selection.
+│   └── Flask entrypoint: Bedrock Agent invocation, Spotify OAuth, randomized prompts, and API routes (/chat, /ask, /login, /callback, /logout, /api/auth_status).
 ├── templates/
 │   └── index.html
-│       └── Main Melody frontend template with chat UI, Jinja rendering hooks, and client-side interaction logic.
+│       └── Chat UI, per-tab Bedrock session IDs, Spotify embed tag parsing, anti-algorithm prompts, and mobile sidebar.
 ├── static/
 │   └── style.css
-│       └── Extracted application styling, animations, dark theme, logo effects, and responsive UI rules.
+│       └── Dark high-tech theme, animated Melody wordmark, responsive layout, and feedback controls.
 ├── data/
 │   ├── cleaned_large_dataset_t.csv
-│   │   └── Cleaned dataset artifact used during knowledge-base preparation.
+│   │   └── Cleaned song dataset for Knowledge Base ingestion.
 │   ├── all_songs_rating_review/
-│   │   └── Raw song metadata source files.
+│   │   └── song.csv — raw song metadata source.
 │   ├── Contemporary album ratings and reviews/
-│   │   └── Album rating and review source data.
+│   │   ├── album_ratings.csv
+│   │   └── Review excerpts for NLP/ (train.csv, test.csv)
+│   ├── 18,393 Pitchfork Reviews/
+│   │   └── database.sqlite — Pitchfork review archive.
 │   └── genres_knowledge/
-│       └── Markdown genre knowledge files optimized for RAG ingestion.
-├── data_prep/
+│       └── Markdown genre files scraped and formatted for RAG ingestion.
+├── prep_files/
 │   ├── prepare_mvp_dataset.py
 │   │   └── Offline CSV cleaning script for filtering incomplete music records.
-│   └── scrape_musicmap.py
-│       └── Offline scraper for collecting and formatting genre knowledge from musicmap.info.
+│   ├── scrape_musicmap.py
+│   │   └── Offline scraper for collecting genre knowledge from musicmap.info.
+│   └── get_master_token.py
+│       └── One-off Spotify OAuth helper for obtaining a master refresh token.
+├── aws/
+│   ├── system_prompt.txt
+│   │   └── Bedrock Agent curator persona and orchestration rules.
+│   ├── bedrock_schemas/
+│   │   ├── SpotifyTools.json
+│   │   │   └── OpenAPI schema for Spotify Action Group tools (search, taste profile).
+│   │   └── Extra_music_Tools.json
+│   │       └── OpenAPI schema for artist info and global charts tools.
+│   ├── lambda_spotify_package/
+│   │   ├── spotify_lambda.py
+│   │   │   └── Spotify Action Group handler (/get_user_taste, /search_track, /search_playlist, /search_album, /search_artist).
+│   │   └── (vendored spotipy, requests, and runtime dependencies)
+│   └── info_lambda_package/
+│       ├── extra_tools_lambda.py
+│       │   └── Extra tools handler (/get_artist_info, /get_global_charts).
+│       └── (vendored requests and runtime dependencies)
+├── bedrock_schemas/
+│   └── Root-level copy of Bedrock Action Group schemas (mirrors aws/bedrock_schemas/).
+├── lambda_spotify_package/
+│   └── Root-level Spotify Lambda package for zip/upload workflows (mirrors aws/lambda_spotify_package/).
+├── info_lambda_package/
+│   └── Root-level extra-tools Lambda package for zip/upload workflows (mirrors aws/info_lambda_package/).
 ├── requirements.txt
-│   └── Pinned Python runtime dependencies.
+│   └── Pinned Python dependencies for the Flask app (Flask, boto3, spotipy, python-dotenv, requests).
 ├── Dockerfile
-│   └── Container build definition for running the Flask app.
+│   └── Container build: Python 3.12-slim, self-signed TLS certs, runs app.py on port 5000.
 ├── .dockerignore
 │   └── Excludes local data, virtualenvs, editor files, and prep artifacts from Docker builds.
 ├── .gitignore
-│   └── Excludes local Python, environment, and editor artifacts from Git.
+│   └── Excludes .env, __pycache__, venv, *.zip, and editor artifacts from Git.
+├── .env
+│   └── Local environment variables (gitignored): AWS, Bedrock Agent, and Spotify credentials.
 └── README.md
     └── Project documentation.
 ```
@@ -244,8 +336,10 @@ python app.py
 Then open:
 
 ```text
-http://localhost:5000
+https://localhost:5000
 ```
+
+Because the development deployment uses a self-signed certificate, the browser may ask you to accept a local certificate warning.
 
 ---
 
@@ -281,7 +375,7 @@ docker run --rm -p 5000:5000 \
 Then visit:
 
 ```text
-http://localhost:5000
+https://localhost:5000
 ```
 
 ### Run with a mounted local AWS profile
@@ -306,25 +400,62 @@ docker run --rm -p 5000:5000 `
 
 ---
 
-## AWS Deployment & Cleanup Proof
+## Project Validation & Cleanup Proof (Mandatory for Grading)
 
-The application was successfully containerized and deployed to a public AWS EC2 instance.
+This section is included specifically for academic evaluation and deployment verification. Melody was prepared for public testing as a Dockerized Flask application running on AWS EC2 with HTTPS enabled through a self-signed certificate.
 
-[Tested on Public IP: [http://18.226.60.121:)5000]
+### Public Access Link Used During Testing
 
-Immediately after testing and verifying the public URL, the compute-heavy and cost-generating AWS resources were deleted to prevent unnecessary costs:
-1. Terminated the EC2 Instance (`Melody-App-Server`).
-2. Deleted the Amazon Bedrock Knowledge Base and its associated OpenSearch Serverless vector store (to avoid hourly compute charges).
-(Note: The S3 bucket containing the source files was kept intact for ongoing development, as storage costs for the dataset are negligible).
+```text
+https://18.191.243.177:5000
+```
+
+Note: This deployment uses a self-signed certificate so the Flask application can serve HTTPS traffic during grading and satisfy Spotify OAuth requirements for public IP testing. Browsers may display a certificate warning before allowing access.
+
+### Validation Checklist
+
+- The Flask application is containerized with Docker.
+- The public endpoint exposes the Melody web UI on port `5000`.
+- The backend calls the Amazon Bedrock Agent through `boto3`.
+- Spotify OAuth is configured through environment variables rather than hardcoded credentials.
+- Bedrock Agent tool schemas and Lambda packages are documented under the `aws/` folder.
+- The frontend parses structured agent tags and renders interactive Spotify UI elements.
+
+### Cleanup Proof
+
+To avoid unnecessary AWS charges after grading, the following resources will be deleted:
+
+1. **EC2 Instance**  
+   Terminate the public Melody application server used for Docker deployment.
+
+2. **Amazon Bedrock Agent and Agent Alias**  
+   Delete the Melody Bedrock Agent configuration and any related aliases used during testing.
+
+3. **Amazon Bedrock Knowledge Base**  
+   Delete the Knowledge Base used for RAG orchestration.
+
+4. **OpenSearch Serverless Collection**  
+   Delete the vector collection backing semantic retrieval to avoid ongoing serverless capacity charges.
+
+5. **Amazon S3 Buckets**  
+   Delete or archive the S3 buckets containing curated music reviews, genre files, and Knowledge Base source documents once grading is complete.
+
+6. **Custom IAM Roles and Policies**  
+   Remove project-specific IAM roles and policies created for Bedrock, Lambda, OpenSearch Serverless, S3 access, and EC2 deployment.
+
+7. **Lambda Functions and Action Groups**  
+   Delete custom Lambda functions used by the Bedrock Agent Action Groups if they are no longer needed after evaluation.
 
 ---
 
 ## AWS Components
 
 - **Amazon Bedrock Knowledge Bases**: Handles retrieval-augmented generation orchestration.
+- **Amazon Bedrock Agents**: Orchestrates reasoning, RAG retrieval, and Lambda Action Group tool calls.
 - **Claude 4.5 Sonnet**: Generates the final recommendation response using the curator persona prompt.
 - **OpenSearch Serverless**: Stores vector embeddings and performs semantic retrieval.
 - **Amazon S3**: Stores source documents for ingestion.
+- **AWS Lambda**: Provides Spotify tools and supplemental music-information tools to the Bedrock Agent.
 - **Amazon EC2**: Used for public container deployment testing.
 - **boto3**: Python AWS SDK used by the Flask backend.
 
@@ -338,6 +469,9 @@ Pinned runtime dependencies:
 Flask==3.1.3
 boto3==1.43.22
 botocore==1.43.22
+spotipy==2.26.0
+python-dotenv==1.2.1
+requests==2.32.5
 ```
 
 Python runtime in Docker:
@@ -349,7 +483,9 @@ python:3.12-slim
 The Flask app currently targets:
 
 ```text
-AWS Region: us-east-2
+AWS Region: configured through AWS_DEFAULT_REGION
+Bedrock Agent ID: configured through BEDROCK_AGENT_ID
+Bedrock Agent Alias ID: configured through BEDROCK_AGENT_ALIAS_ID
 Knowledge Base ID: AOGLLMF80H
 Model / Inference Profile: global.anthropic.claude-sonnet-4-5-20250929-v1:0
 ```
