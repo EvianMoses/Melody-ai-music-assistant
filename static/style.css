@@ -698,6 +698,40 @@
       box-shadow: none;
     }
 
+    #anti-algorithm-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      min-height: 2.35rem;
+      padding: 0.48rem 0.78rem;
+      border: 1px solid color-mix(in oklab, var(--mesh-orange) 68%, transparent);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 18% 18%, color-mix(in oklab, var(--mesh-orange) 22%, transparent), transparent 42%),
+        color-mix(in oklab, var(--mesh-red) 9%, transparent);
+      color: color-mix(in oklab, var(--mesh-orange) 78%, white);
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      box-shadow: 0 0 22px -15px var(--mesh-orange);
+      transition: background-color 0.2s, border-color 0.2s, opacity 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+
+    #anti-algorithm-btn:hover:not(:disabled) {
+      border-color: color-mix(in oklab, var(--mesh-orange) 88%, white);
+      box-shadow: 0 0 28px -12px var(--mesh-orange), inset 0 0 18px color-mix(in oklab, var(--mesh-orange) 10%, transparent);
+      transform: translateY(-1px);
+    }
+
+    #anti-algorithm-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
     /* ─── New-chat button ────────────────────────────────────────── */
     #btn-new-chat {
       display: flex;
@@ -784,55 +818,18 @@
       border: 0;
     }
 
-    .liked-track-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.45rem;
-      align-self: flex-start;
-      min-height: 2.55rem;
-      padding: 0.6rem 0.78rem;
-      border: 1px solid color-mix(in oklab, var(--primary) 46%, transparent);
-      border-radius: 0.85rem;
-      background: color-mix(in oklab, var(--primary) 7%, transparent);
-      color: color-mix(in oklab, var(--primary) 88%, white);
-      cursor: pointer;
-      font-size: 0.78rem;
-      font-weight: 700;
-      white-space: nowrap;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, background-color 0.2s, color 0.2s;
-    }
-
-    .liked-track-btn:hover:not(:disabled) {
-      border-color: color-mix(in oklab, var(--primary) 78%, white);
-      box-shadow: 0 0 24px -12px var(--primary);
-      transform: translateY(-1px);
-    }
-
-    .liked-track-btn.is-added {
-      border-color: color-mix(in oklab, #1DB954 72%, white);
-      background-color: color-mix(in oklab, #1DB954 15%, transparent);
-      color: #d7ffe5;
-      box-shadow: 0 0 24px -12px #1DB954;
-    }
-
-    .heart-symbol {
-      font-size: 1.05rem;
-      line-height: 1;
-    }
-
     /* ─── Recommendation feedback ───────────────────────────────── */
     .feedback-controls {
       display: none;
       align-items: center;
       justify-content: flex-start;
-      gap: 0.5rem;
+      gap: 0.65rem;
       margin: 0;
       padding: 0.65rem 0.8rem 0.2rem;
-      border-bottom: 1px solid color-mix(in oklab, var(--primary) 16%, transparent);
+      border-bottom: 1px solid color-mix(in oklab, var(--mesh-orange) 18%, transparent);
       background:
         linear-gradient(90deg,
-          color-mix(in oklab, var(--primary) 8%, transparent),
+          color-mix(in oklab, var(--mesh-orange) 7%, transparent),
           transparent 58%);
     }
 
@@ -854,27 +851,39 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid color-mix(in oklab, var(--primary) 32%, transparent);
+      border: 1px solid color-mix(in oklab, #ff5722 34%, transparent);
       border-radius: 999px;
-      background-color: color-mix(in oklab, var(--primary) 6%, transparent);
+      background-color: color-mix(in oklab, #ff5722 7%, transparent);
+      color: #ff5722;
       cursor: pointer;
-      font-size: 0.95rem;
-      filter: grayscale(0.2);
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, background-color 0.2s, filter 0.2s;
+      filter: drop-shadow(0 0 8px rgba(255, 87, 34, 0.8));
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, background-color 0.2s, color 0.2s, filter 0.2s;
+    }
+
+    .feedback-icon {
+      width: 1rem;
+      height: 1rem;
+      color: currentColor;
+      transition: transform 0.2s, filter 0.2s;
     }
 
     .feedback-btn:hover,
     .feedback-btn.is-active {
-      border-color: color-mix(in oklab, var(--primary) 78%, white);
-      background-color: color-mix(in oklab, var(--primary) 14%, transparent);
-      box-shadow: 0 0 20px -10px var(--primary);
-      filter: grayscale(0);
+      border-color: color-mix(in oklab, #ff5722 86%, white);
+      background-color: color-mix(in oklab, #ff5722 15%, transparent);
+      color: color-mix(in oklab, #ff5722 82%, white);
+      box-shadow: 0 0 22px -9px #ff5722, inset 0 0 14px rgba(255, 87, 34, 0.12);
+      filter: drop-shadow(0 0 11px rgba(255, 87, 34, 0.95));
       transform: translateY(-1px);
     }
 
     .feedback-btn.is-active {
-      color: var(--foreground);
-      box-shadow: 0 0 22px -8px var(--primary), inset 0 0 16px color-mix(in oklab, var(--primary) 10%, transparent);
+      box-shadow: 0 0 30px -4px #ff5722, inset 0 0 20px rgba(255, 87, 34, 0.2);
+      filter: drop-shadow(0 0 16px rgba(255, 87, 34, 1));
+    }
+
+    .feedback-btn.is-active .feedback-icon {
+      transform: scale(1.08);
     }
 
     /* ─── Spotify scroll + login section ────────────────────────── */
