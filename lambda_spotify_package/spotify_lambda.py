@@ -29,28 +29,6 @@ def get_parameter(event, name):
     return None
 
 
-def get_request_property(event, name):
-    properties = (
-        event.get("requestBody", {})
-        .get("content", {})
-        .get("application/json", {})
-        .get("properties", {})
-    )
-
-    if isinstance(properties, list):
-        for prop in properties:
-            if prop.get("name") == name:
-                return prop.get("value")
-
-    if isinstance(properties, dict):
-        value = properties.get(name)
-        if isinstance(value, dict):
-            return value.get("value")
-        return value
-
-    return None
-
-
 def get_spotify_client(event):
     user_token = event.get("sessionAttributes", {}).get("spotify_token")
     if user_token:
@@ -116,13 +94,75 @@ def search_track(sp, event):
     )
 
 
-def save_track(sp, event):
-    track_id = get_request_property(event, "track_id")
-    if not track_id:
-        return "Missing required track_id in request body."
+def search_playlist(sp, event):
+    query = get_parameter(event, "search_query")
+    if not query:
+        return json.dumps({"error": "Missing required search_query parameter"})
 
-    sp.current_user_saved_tracks_add(tracks=[track_id])
-    return f"Track {track_id} was saved successfully to the user's Spotify library."
+    results = sp.search(q=query, type="playlist", limit=1)
+    playlist_items = (results.get("playlists") or {}).get("items") or []
+
+    if not playlist_items:
+        return json.dumps({"error": f"No playlist found for query: {query}"})
+
+    playlist = playlist_items[0] or {}
+    playlist_id = playlist.get("id")
+    if not playlist_id:
+        return json.dumps({"error": f"No playlist ID found for query: {query}"})
+
+    owner = playlist.get("owner") or {}
+
+    return json.dumps(
+        {
+            "playlist_name": playlist.get("name"),
+            "owner": owner.get("display_name"),
+            "playlist_id": playlist_id,
+        }
+    )
+
+
+def search_album(sp, event):
+    query = get_parameter(event, "search_query")
+    if not query:
+        return json.dumps({"error": "Missing required search_query parameter"})
+
+    results = sp.search(q=query, type="album", limit=1)
+    albums = results.get("albums", {}).get("items", [])
+
+    if not albums:
+        return json.dumps({"error": f"No album found for query: {query}"})
+
+    album = albums[0]
+    artist = album.get("artists", [{}])[0].get("name")
+
+    return json.dumps(
+        {
+            "album_name": album.get("name"),
+            "artist": artist,
+            "album_id": album.get("id"),
+        }
+    )
+
+
+def search_artist(sp, event):
+    query = get_parameter(event, "search_query")
+    if not query:
+        return json.dumps({"error": "Missing required search_query parameter"})
+
+    results = sp.search(q=query, type="artist", limit=1)
+    artists = results.get("artists", {}).get("items", [])
+
+    if not artists:
+        return json.dumps({"error": f"No artist found for query: {query}"})
+
+    artist = artists[0]
+
+    return json.dumps(
+        {
+            "artist_name": artist.get("name"),
+            "artist_id": artist.get("id"),
+        }
+    )
 
 
 def lambda_handler(event, context):
@@ -139,11 +179,12 @@ def lambda_handler(event, context):
                 result = get_user_taste(sp)
         elif api_path == "/search_track" and http_method == "GET":
             result = search_track(sp, event)
-        elif api_path == "/save_track" and http_method == "POST":
-            if not user_token:
-                result = "Error: Guest users cannot save tracks. Tell them to log in."
-            else:
-                result = save_track(sp, event)
+        elif api_path == "/search_playlist" and http_method == "GET":
+            result = search_playlist(sp, event)
+        elif api_path == "/search_album" and http_method == "GET":
+            result = search_album(sp, event)
+        elif api_path == "/search_artist" and http_method == "GET":
+            result = search_artist(sp, event)
         else:
             result = f"Unsupported route: {http_method} {api_path}"
     except Exception as error:

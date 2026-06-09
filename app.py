@@ -93,11 +93,7 @@ def get_valid_spotify_token():
     return token_info.get("access_token")
 
 
-def query_bedrock(question):
-    if "session_id" not in session:
-        session["session_id"] = str(uuid.uuid4())
-        session.modified = True
-
+def query_bedrock(question, chat_id=None):
     client = boto3.client("bedrock-agent-runtime", region_name=AWS_REGION)
     spotify_access_token = get_valid_spotify_token()
 
@@ -108,7 +104,7 @@ def query_bedrock(question):
     response = client.invoke_agent(
         agentId=BEDROCK_AGENT_ID,
         agentAliasId=BEDROCK_AGENT_ALIAS_ID,
-        sessionId=session["session_id"],
+        sessionId=chat_id if chat_id else str(uuid.uuid4()),
         inputText=question,
         sessionState={
             "sessionAttributes": session_attributes
@@ -122,6 +118,18 @@ def query_bedrock(question):
             final_text += chunk.decode("utf-8")
 
     return final_text
+
+
+def parse_chat_payload():
+    data = request.get_json(silent=True) or {}
+    question = (
+        data.get("user_query")
+        or data.get("question")
+        or data.get("message")
+        or ""
+    ).strip()
+    chat_id = (data.get("chat_id") or "").strip()
+    return question, chat_id
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -203,25 +211,9 @@ def auth_status():
     )
 
 
-@app.route("/api/save_track", methods=["POST"])
-def save_track():
-    data = request.get_json(silent=True) or {}
-    track_id = data.get("track_id")
-
-    access_token = get_valid_spotify_token()
-    if access_token is None:
-        return jsonify({"success": False, "error": "Not logged in"}), 401
-
-    sp = spotipy.Spotify(auth=access_token)
-    sp.current_user_saved_tracks_add(tracks=[track_id])
-
-    return jsonify({"success": True})
-
-
 @app.route("/ask", methods=["POST"])
 def ask():
-    data = request.get_json(silent=True) or {}
-    question = (data.get("question") or data.get("message") or "").strip()
+    question, chat_id = parse_chat_payload()
 
     if not question:
         return jsonify({"error": "Question is required."}), 400
@@ -240,7 +232,29 @@ def ask():
         )
 
     try:
-        answer = query_bedrock(question)
+        answer = query_bedrock(question, chat_id=chat_id)
+    except (BotoCoreError, ClientError) as error:
+        return jsonify({"error": f"Bedrock request failed: {error}"}), 500
+
+    return jsonify({"response": answer, "answer": answer})
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json(silent=True) or {}
+    question = (
+        data.get("user_query")
+        or data.get("question")
+        or data.get("message")
+        or ""
+    ).strip()
+    chat_id = data.get("chat_id")
+
+    if not question:
+        return jsonify({"error": "Question is required."}), 400
+
+    try:
+        answer = query_bedrock(question, chat_id=chat_id)
     except (BotoCoreError, ClientError) as error:
         return jsonify({"error": f"Bedrock request failed: {error}"}), 500
 

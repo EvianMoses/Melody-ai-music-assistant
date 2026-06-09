@@ -166,15 +166,31 @@
             <form method="POST" action="/" onsubmit="handleSubmit(); return false;">
               <div id="prompt-box">
                 <div id="feedback-controls" class="feedback-controls" aria-label="Recommendation feedback">
-                  <span class="feedback-label">How was the last recommendation?</span>
-                  <button class="feedback-btn" type="button" data-feedback="Loved it" aria-label="Loved it">👍</button>
-                  <button class="feedback-btn" type="button" data-feedback="Not for me" aria-label="Not for me">👎</button>
+                  <span class="feedback-label" dir="auto">Want a better recommendation? Click 👍 or 👎 with your next message.</span>
+                  <button class="feedback-btn" type="button" data-feedback="Loved it" aria-label="Loved it">
+                    <svg class="feedback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M7 10v12" />
+                      <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
+                    </svg>
+                  </button>
+                  <button class="feedback-btn" type="button" data-feedback="Not for me" aria-label="Not for me">
+                    <svg class="feedback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M17 14V2" />
+                      <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+                    </svg>
+                  </button>
                 </div>
                 <textarea id="message-input" name="user_query" rows="2"
                   placeholder="Ask Melody about any sound, mood, or artist…"
                   style="min-height:60px;max-height:200px;" onkeydown="handleKeyDown(event)"
                   oninput="autoResize(this)"></textarea>
-                <div class="flex items-center justify-end px-3 pb-3">
+                <div class="flex items-center justify-between gap-3 px-3 pb-3">
+                  <button id="anti-algorithm-btn" type="button" onclick="handleAntiAlgorithm()">
+                    <span aria-hidden="true">🎲</span>
+                    Break the Algorithm
+                  </button>
                   <button id="submit-btn" type="submit">
                     <!-- Paper-plane send icon -->
                     <svg id="send-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -234,12 +250,14 @@
     const INITIAL_QUESTION = {{ question|default('', true)|tojson }};
     const INITIAL_ANSWER = {{ response|default(answer|default('', true), true)|tojson }};
     const INITIAL_ERROR = {{ error|default('', true)|tojson }};
+    const ANTI_ALGORITHM_SUFFIX = "IGNORE MY SPOTIFY TASTE COMPLETELY. Recommend a completely unexpected, obscure, or avant-garde track related to this request. Surprise me and explain why!";
     let currentThreadId = null;
     let currentMessages = [];
     let isLoading = false;
     let activeFeedback = null;
     let renderedMessageCount = 0;
     let loadingNode = null;
+    const chatId = crypto.randomUUID();
 
     /* ── localStorage helpers ───────────────────────────────────── */
     function loadThreads() {
@@ -419,7 +437,7 @@
             <div class="melody-markdown" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
               ${marked.parse(parsed.text)}
             </div>
-            ${renderTrackEnhancement(parsed)}
+            ${renderSpotifyEmbed(parsed)}
           </div>
         </div>
       </div>`;
@@ -427,25 +445,33 @@
 
     function parseAgentResponse(content) {
       const raw = String(content || '');
-      const trackMatch = raw.match(/\[TRACK_ID:\s*([^\]]+)\]/i);
-      const trackId = trackMatch ? trackMatch[1].trim() : null;
+      const embedTypes = [
+        { tag: 'TRACK_ID', type: 'track' },
+        { tag: 'PLAYLIST_ID', type: 'playlist' },
+        { tag: 'ALBUM_ID', type: 'album' },
+        { tag: 'ARTIST_ID', type: 'artist' },
+      ];
+      const embed = embedTypes.reduce((found, candidate) => {
+        if (found) return found;
+        const match = raw.match(new RegExp(`\\[${candidate.tag}:\\s*([^\\]]+)\\]`, 'i'));
+        return match ? { type: candidate.type, id: match[1].trim() } : null;
+      }, null);
       const text = raw
-        .replace(/\[TRACK_ID:\s*[^\]]+\]/gi, '')
+        .replace(/\[(TRACK|PLAYLIST|ALBUM|ARTIST)_ID:\s*[^\]]+\]/gi, '')
         .trim();
-      return { text, trackId };
+      return { text, embed };
     }
 
-    function renderTrackEnhancement({ trackId }) {
-      if (!trackId) return '';
+    function renderSpotifyEmbed({ embed }) {
+      if (!embed || !embed.id) return '';
+      const dimensions = embed.type === 'track'
+        ? { height: 152 }
+        : { height: 352 };
       return `
-      <div class="track-enhancement" data-track-id="${esc(trackId)}">
+      <div class="track-enhancement" data-spotify-type="${esc(embed.type)}" data-spotify-id="${esc(embed.id)}">
         <div class="spotify-embed-wrap">
-          <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/${esc(trackId)}" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+          <iframe style="border-radius:12px" src="https://open.spotify.com/embed/${esc(embed.type)}/${esc(embed.id)}?utm_source=generator" width="100%" height="${dimensions.height}" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
         </div>
-        <button class="liked-track-btn" type="button" onclick="saveRecommendedTrack(this, '${esc(trackId)}')">
-          <span class="heart-symbol">♡</span>
-          <span class="liked-track-label">Add to your liked songs</span>
-        </button>
       </div>`;
     }
 
@@ -542,16 +568,8 @@
     }
 
     /* ── Chat submission ────────────────────────────────────────── */
-    async function handleSubmit() {
-      const input = document.getElementById('message-input');
-      const text = input.value.trim();
-      if (!text || isLoading) return;
-      const outboundText = activeFeedback
-        ? `[User rated previous recommendation: ${activeFeedback}] ${text}`
-        : text;
-
-      input.value = '';
-      input.style.height = '';
+    async function sendChatMessage(displayText, outboundText) {
+      if (!displayText || !outboundText || isLoading) return;
 
       if (!currentThreadId) {
         const t = createThreadObj();
@@ -559,17 +577,17 @@
         currentThreadId = t.id;
       }
 
-      currentMessages.push({ role: 'user', content: text });
+      currentMessages.push({ role: 'user', content: displayText });
       resetFeedback();
       isLoading = true;
       setSubmitState(true);
       renderMessages();
 
       try {
-        const res = await fetch('/ask', {
+        const res = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: outboundText }),
+          body: JSON.stringify({ question: outboundText, chat_id: chatId }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -596,36 +614,40 @@
       }
     }
 
+    async function handleSubmit() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text || isLoading) return;
+      const outboundText = activeFeedback
+        ? `[User rated previous recommendation: ${activeFeedback}] ${text}`
+        : text;
+
+      input.value = '';
+      input.style.height = '';
+
+      await sendChatMessage(text, outboundText);
+    }
+
+    async function handleAntiAlgorithm() {
+      if (isLoading) return;
+      const input = document.getElementById('message-input');
+      const text = (input?.value || '').trim();
+      const displayText = text ? `${text} 🎲 (Anti-Algorithm Mode)` : '🎲 Break my algorithm!';
+      const outboundText = `${text || 'Break my algorithm!'} -> ${ANTI_ALGORITHM_SUFFIX}`;
+
+      if (input) {
+        input.value = '';
+        input.style.height = '';
+      }
+
+      await sendChatMessage(displayText, outboundText);
+    }
+
     function handleSuggestion(text) {
       if (isLoading) return;
       const input = document.getElementById('message-input');
       if (input) { input.value = text; autoResize(input); }
       handleSubmit();
-    }
-
-    async function saveRecommendedTrack(button, trackId) {
-      if (!trackId || button.disabled) return;
-      const label = button.querySelector('.liked-track-label');
-      const heart = button.querySelector('.heart-symbol');
-      button.disabled = true;
-
-      try {
-        const res = await fetch('/api/save_track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ track_id: trackId }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Could not save track.');
-        }
-        button.classList.add('is-added');
-        if (heart) heart.textContent = '♥';
-        if (label) label.textContent = 'Added to your Liked Songs';
-      } catch (error) {
-        button.disabled = false;
-        if (label) label.textContent = error.message || 'Log in to save this track';
-      }
     }
 
     function setupSuggestionButtons() {
@@ -718,9 +740,13 @@
 
     function setSubmitState(loading) {
       const btn = document.getElementById('submit-btn');
+      const antiAlgorithmBtn = document.getElementById('anti-algorithm-btn');
+      const input = document.getElementById('message-input');
       const icon = document.getElementById('send-icon');
       if (!btn) return;
       btn.disabled = loading;
+      if (antiAlgorithmBtn) antiAlgorithmBtn.disabled = loading;
+      if (input) input.disabled = loading;
       if (loading) {
         icon.innerHTML =
           '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" fill="none" opacity="0.3"/>' +
