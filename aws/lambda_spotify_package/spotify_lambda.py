@@ -31,9 +31,40 @@ def get_parameter(event, name):
 
 def get_spotify_client(event):
     user_token = event.get("sessionAttributes", {}).get("spotify_token")
+    session_state = event.get("sessionState", {}) or {}
+    nested_session_attributes = session_state.get("sessionAttributes", {}) or {}
+    print(
+        "[DEBUG - LAMBDA SESSION] Spotify client selection state:",
+        {
+            "apiPath": event.get("apiPath"),
+            "httpMethod": event.get("httpMethod"),
+            "event_keys": list(event.keys()),
+            "top_level_session_attribute_keys": list((event.get("sessionAttributes") or {}).keys()),
+            "nested_session_attribute_keys": list(nested_session_attributes.keys()),
+            "has_top_level_spotify_token": bool(user_token),
+            "top_level_spotify_token_length": len(user_token) if user_token else 0,
+            "has_nested_spotify_token": bool(nested_session_attributes.get("spotify_token")),
+            "nested_spotify_token_length": len(nested_session_attributes.get("spotify_token", "")),
+        },
+    )
     if user_token:
+        print(
+            "[DEBUG - LAMBDA SESSION] Using user Spotify token from Bedrock sessionAttributes:",
+            {
+                "apiPath": event.get("apiPath"),
+                "token_length": len(user_token),
+            },
+        )
         return spotipy.Spotify(auth=user_token), user_token
 
+    print(
+        "[DEBUG - LAMBDA SESSION] No user Spotify token found; using SpotifyClientCredentials fallback:",
+        {
+            "apiPath": event.get("apiPath"),
+            "has_client_id_env": bool(os.environ.get("SPOTIPY_CLIENT_ID")),
+            "has_client_secret_env": bool(os.environ.get("SPOTIPY_CLIENT_SECRET")),
+        },
+    )
     auth_manager = SpotifyClientCredentials(
         client_id=os.environ["SPOTIPY_CLIENT_ID"],
         client_secret=os.environ["SPOTIPY_CLIENT_SECRET"],
@@ -166,10 +197,30 @@ def search_artist(sp, event):
 
 
 def lambda_handler(event, context):
+    print(
+        "[DEBUG - LAMBDA SESSION] Lambda handler received event:",
+        {
+            "apiPath": event.get("apiPath"),
+            "httpMethod": event.get("httpMethod"),
+            "actionGroup": event.get("actionGroup"),
+            "event_keys": list(event.keys()),
+            "parameters": event.get("parameters", []),
+            "has_top_level_sessionAttributes": bool(event.get("sessionAttributes")),
+            "has_sessionState": bool(event.get("sessionState")),
+        },
+    )
     sp, user_token = get_spotify_client(event)
 
     api_path = event.get("apiPath")
     http_method = event.get("httpMethod")
+    print(
+        "[DEBUG - LAMBDA SESSION] Route dispatch state:",
+        {
+            "apiPath": api_path,
+            "httpMethod": http_method,
+            "is_authenticated_user_flow": bool(user_token),
+        },
+    )
 
     try:
         if api_path == "/get_user_taste" and http_method == "GET":
