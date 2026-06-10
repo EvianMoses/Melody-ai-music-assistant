@@ -259,14 +259,13 @@
     let activeFeedback = null;
     let renderedMessageCount = 0;
     let loadingNode = null;
-    function generateUUID() {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
-        const random = Math.floor(Math.random() * 16);
-        const value = char === 'x' ? random : (random & 0x3) | 0x8;
-        return value.toString(16);
-      });
-    }
-    const chatId = generateUUID();
+    let backendSessionId = null;
+    let authStatusPromise = null;
+    console.log('[DEBUG - FRONTEND STATE] Waiting for backend Flask session_id from /api/auth_status:', {
+      hasInitialQuestion: Boolean(INITIAL_QUESTION),
+      hasInitialAnswer: Boolean(INITIAL_ANSWER),
+      hasInitialError: Boolean(INITIAL_ERROR),
+    });
 
     /* ── localStorage helpers ───────────────────────────────────── */
     function loadThreads() {
@@ -300,6 +299,45 @@
       if (!first) return 'New chat';
       const s = first.content.slice(0, 44);
       return s.length < first.content.length ? s + '…' : s;
+    }
+
+    function setBackendSessionId(sessionId, source) {
+      if (!sessionId) {
+        console.log('[DEBUG - FRONTEND STATE] No backend sessionId available to store:', {
+          source,
+          previousBackendSessionId: backendSessionId,
+        });
+        return;
+      }
+
+      const previousBackendSessionId = backendSessionId;
+      backendSessionId = sessionId;
+      console.log('[DEBUG - FRONTEND STATE] Stored backend Flask sessionId:', {
+        source,
+        backendSessionId,
+        previousBackendSessionId,
+        changed: Boolean(previousBackendSessionId && previousBackendSessionId !== backendSessionId),
+      });
+    }
+
+    async function ensureBackendSessionId() {
+      if (backendSessionId) return backendSessionId;
+
+      console.log('[DEBUG - FRONTEND STATE] Waiting for backend sessionId before request:', {
+        currentThreadId,
+        hasAuthStatusPromise: Boolean(authStatusPromise),
+      });
+
+      const auth = authStatusPromise
+        ? await authStatusPromise
+        : await updateAuthStatus();
+      setBackendSessionId(auth?.session_id, 'ensureBackendSessionId');
+
+      if (!backendSessionId) {
+        throw new Error('Missing backend session id from /api/auth_status.');
+      }
+
+      return backendSessionId;
     }
 
     /* ── Sidebar ────────────────────────────────────────────────── */
@@ -605,17 +643,47 @@
       renderMessages();
 
       try {
+        const stableSessionId = await ensureBackendSessionId();
+        const chatPayload = {
+          question: outboundText,
+          session_id: stableSessionId,
+          chat_id: stableSessionId,
+        };
+        console.log('[DEBUG - FRONTEND STATE] Sending /chat request:', {
+          backendSessionId,
+          stableSessionId,
+          currentThreadId,
+          displayTextLength: displayText.length,
+          outboundTextLength: outboundText.length,
+          activeFeedback,
+          messageCountBeforeRequest: currentMessages.length,
+          payloadKeys: Object.keys(chatPayload),
+        });
         const res = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: outboundText, chat_id: chatId }),
+          body: JSON.stringify(chatPayload),
         });
         const data = await res.json();
+        console.log('[DEBUG - FRONTEND STATE] Received /chat response:', {
+          backendSessionId,
+          currentThreadId,
+          ok: res.ok,
+          status: res.status,
+          responseKeys: Object.keys(data || {}),
+          responseLength: (data.response || data.answer || '').length,
+          hasError: Boolean(data.error),
+        });
         if (!res.ok) {
           throw new Error(data.error || 'Request failed.');
         }
         currentMessages.push({ role: 'assistant', content: data.response || data.answer || 'No answer returned.' });
       } catch (error) {
+        console.log('[DEBUG - FRONTEND STATE] /chat request failed:', {
+          backendSessionId,
+          currentThreadId,
+          error: error.message || String(error),
+        });
         currentMessages.push({
           role: 'assistant',
           content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
@@ -706,13 +774,32 @@
 
     async function updateAuthStatus() {
       const widget = document.getElementById('spotify-auth-widget');
-      if (!widget) return;
+      if (!widget) return null;
 
       try {
+        console.log('[DEBUG - FRONTEND STATE] Requesting /api/auth_status:', {
+          backendSessionId,
+          currentThreadId,
+        });
         const res = await fetch('/api/auth_status');
         const auth = await res.json();
+        setBackendSessionId(auth.session_id, 'updateAuthStatus');
+        console.log('[DEBUG - FRONTEND STATE] Received /api/auth_status response:', {
+          ok: res.ok,
+          status: res.status,
+          loggedIn: Boolean(auth.logged_in),
+          sessionId: auth.session_id,
+          backendSessionId,
+          displayName: auth.display_name,
+          hasProfileImage: Boolean(auth.profile_image_url),
+          responseKeys: Object.keys(auth || {}),
+        });
 
         if (!auth.logged_in) {
+          console.log('[DEBUG - FRONTEND STATE] Rendering guest Spotify state:', {
+            backendSessionId,
+            sessionId: auth.session_id,
+          });
           widget.innerHTML = `
             <a class="spotify-auth-button" href="/login">
               <span class="spotify-icon" aria-hidden="true">
@@ -722,13 +809,19 @@
               </span>
               <span>Connect Spotify</span>
             </a>`;
-          return;
+          return auth;
         }
 
         const avatar = auth.profile_image_url
           ? `<img class="spotify-profile-avatar" src="${esc(auth.profile_image_url)}" alt="">`
           : `<span class="spotify-profile-avatar spotify-profile-fallback">${esc((auth.display_name || 'M').slice(0, 1))}</span>`;
 
+        console.log('[DEBUG - FRONTEND STATE] Rendering logged-in Spotify state:', {
+          backendSessionId,
+          sessionId: auth.session_id,
+          displayName: auth.display_name,
+          hasProfileImage: Boolean(auth.profile_image_url),
+        });
         widget.innerHTML = `
           <div class="spotify-profile-widget">
             ${avatar}
@@ -737,7 +830,13 @@
               <a class="spotify-logout-link" href="/logout">Logout</a>
             </div>
           </div>`;
+        return auth;
       } catch (error) {
+        console.log('[DEBUG - FRONTEND STATE] /api/auth_status failed; rendering guest fallback:', {
+          backendSessionId,
+          currentThreadId,
+          error: error.message || String(error),
+        });
         widget.innerHTML = `
           <a class="spotify-auth-button" href="/login">
             <span class="spotify-icon" aria-hidden="true">
@@ -747,7 +846,23 @@
             </span>
             <span>Connect Spotify</span>
           </a>`;
+        return null;
       }
+    }
+
+    function setupDiagnosticLibraryClickLogging() {
+      document.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-save-track], [data-track-id], .save-track-btn, .add-to-library-btn');
+        if (!target) return;
+
+        console.log('[DEBUG - FRONTEND STATE] Add-to-library click observed:', {
+          backendSessionId,
+          currentThreadId,
+          dataset: { ...target.dataset },
+          buttonText: target.textContent.trim(),
+          isLoggedInWidgetVisible: Boolean(document.querySelector('.spotify-profile-widget')),
+        });
+      });
     }
 
     function handleKeyDown(e) {
@@ -796,9 +911,17 @@
 
     /* ── Init ───────────────────────────────────────────────────── */
     function init() {
+      console.log('[DEBUG - FRONTEND STATE] Initializing app state:', {
+        backendSessionId,
+        storedThreadCount: loadThreads().length,
+        hasInitialQuestion: Boolean(INITIAL_QUESTION),
+        hasInitialAnswer: Boolean(INITIAL_ANSWER),
+        hasInitialError: Boolean(INITIAL_ERROR),
+      });
       setupSuggestionButtons();
       setupFeedbackButtons();
-      updateAuthStatus();
+      setupDiagnosticLibraryClickLogging();
+      authStatusPromise = updateAuthStatus();
       if (INITIAL_QUESTION && (INITIAL_ANSWER || INITIAL_ERROR)) {
         currentMessages = [
           { role: 'user', content: INITIAL_QUESTION },
