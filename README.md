@@ -11,8 +11,8 @@ The application combines a polished Flask web experience with **Amazon Bedrock K
 <details>
   <summary>📸 <b>Click here to view App Screenshots</b></summary>
   <br>
-<img src="https://github.com/user-attachments/assets/398a4ccf-b39d-46ae-bc7e-fb559d99bf3f" />
-<img width="758" height="461" alt="Screenshot 2026-06-10 023922" src="https://github.com/user-attachments/assets/c146ff9f-ab8a-46e2-81a1-9973cbe3ffcc" />
+
+<img src="https://github.com/user-attachments/assets/c146ff9f-ab8a-46e2-81a1-9973cbe3ffcc" />
 
 <img src="https://github.com/user-attachments/assets/52c9c86f-a757-4bea-983d-461b4cf8ce65" />
 <img src="https://github.com/user-attachments/assets/a1a1d305-aecb-4811-af7b-cbbec29bda3c" />
