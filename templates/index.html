@@ -37,8 +37,8 @@
     </defs>
   </svg>
 
-  <button id="mobile-menu-btn" class="md:hidden" type="button" aria-label="Open menu" aria-controls="app-sidebar"
-    aria-expanded="false" onclick="openMobileSidebar()">
+  <button id="mobile-menu-btn" class="md:hidden" type="button" aria-label="Toggle menu" aria-controls="app-sidebar"
+    aria-expanded="false" onclick="toggleMobileSidebar()">
     <span aria-hidden="true">☰</span>
   </button>
   <div id="mobile-sidebar-backdrop" class="md:hidden" onclick="closeMobileSidebar()" aria-hidden="true"></div>
@@ -156,9 +156,9 @@
         <div id="messages-container" class="flex-1 overflow-y-auto relative" style="z-index:1;">
           <div id="messages-inner" class="mx-auto w-full max-w-3xl px-4 py-8 space-y-6">
             {% if response %}
-            <div class="flex items-start gap-3 fade-in-up">
+            <div class="flex items-start gap-3 fade-in-up" dir="auto">
               <div class="flex-1 min-w-0 pt-1">
-                <div class="ai-bubble">
+                <div class="ai-bubble" dir="auto">
                   <div class="melody-markdown" dir="auto"
                     style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
                     {{ response }}
@@ -196,8 +196,8 @@
                     </svg>
                   </button>
                 </div>
-                <textarea id="message-input" name="user_query" rows="2"
-                  placeholder="Ask Melody about any sound, mood, or artist…" style="min-height:60px;max-height:200px;"
+                <textarea id="message-input" name="user_query" rows="1" dir="auto"
+                  placeholder="Ask Melody about any sound, mood, or artist…" style="min-height:44px;max-height:200px;"
                   onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
                 <div class="flex items-center justify-between gap-3 px-3 pb-3">
                   <button id="anti-algorithm-btn" type="button" onclick="handleAntiAlgorithm()">
@@ -399,7 +399,7 @@
       closeMobileSidebar();
       renderMessages();
       renderSidebar();
-      document.getElementById('message-input')?.focus();
+      focusChatInputOnDesktop();
     }
 
     function newThread() {
@@ -429,6 +429,14 @@
     function closeMobileSidebar() {
       document.body.classList.remove('mobile-sidebar-open');
       document.getElementById('mobile-menu-btn')?.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleMobileSidebar() {
+      if (document.body.classList.contains('mobile-sidebar-open')) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
     }
 
     /* ── Message rendering ──────────────────────────────────────── */
@@ -482,17 +490,17 @@
     function renderMsg(m) {
       if (m.role === 'user') {
         return `
-        <div class="flex justify-end fade-in-up">
+        <div class="flex justify-end fade-in-up" dir="auto">
           <div class="user-bubble" dir="auto">${esc(m.content)}</div>
         </div>`;
       }
       const parsed = parseAgentResponse(m.content);
       return `
-      <div class="flex items-start gap-3 fade-in-up">
+      <div class="flex items-start gap-3 fade-in-up" dir="auto">
         ${avatarHTML(32)}
         <div class="flex-1 min-w-0 pt-1">
           <div class="mb-1 text-xs font-medium tracking-wide" style="color:color-mix(in oklab,var(--primary) 80%,transparent);">Melody</div>
-          <div class="ai-bubble">
+          <div class="ai-bubble" dir="auto">
             <div class="melody-markdown" dir="auto" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
               ${marked.parse(parsed.text)}
             </div>
@@ -699,6 +707,17 @@
         });
         renderMessages();
         renderSidebar();
+        focusChatInputOnDesktop();
+      }
+    }
+
+    function blurChatInput() {
+      document.activeElement?.blur?.();
+      document.getElementById('message-input')?.blur();
+    }
+
+    function focusChatInputOnDesktop() {
+      if (window.matchMedia('(min-width: 768px) and (pointer: fine)').matches) {
         document.getElementById('message-input')?.focus();
       }
     }
@@ -713,6 +732,7 @@
 
       input.value = '';
       input.style.height = '';
+      blurChatInput();
 
       await sendChatMessage(text, outboundText);
     }
@@ -728,6 +748,7 @@
         input.value = '';
         input.style.height = '';
       }
+      blurChatInput();
 
       await sendChatMessage(displayText, outboundText);
     }
@@ -930,7 +951,7 @@
       }
       renderSidebar();
       renderMessages();
-      document.getElementById('message-input')?.focus();
+      focusChatInputOnDesktop();
     }
 
     init();
