@@ -1,6 +1,8 @@
-import json
+import os
 
 import requests
+
+LASTFM_API_URL = "http://ws.audioscrobbler.com/2.0/"
 
 
 def get_parameter(event, name):
@@ -10,14 +12,14 @@ def get_parameter(event, name):
     return None
 
 
-def build_response(event, body):
+def build_response(event, body, status_code=200):
     return {
         "messageVersion": "1.0",
         "response": {
             "actionGroup": event.get("actionGroup"),
             "apiPath": event.get("apiPath"),
             "httpMethod": event.get("httpMethod"),
-            "httpStatusCode": 200,
+            "httpStatusCode": status_code,
             "responseBody": {
                 "application/json": {
                     "body": body,
@@ -27,66 +29,80 @@ def build_response(event, body):
     }
 
 
+def format_artist_info(data):
+    artist = data.get("artist", {})
+    name = artist.get("name", "Unknown artist")
+
+    bio = artist.get("bio", {}).get("summary", "").strip()
+    if not bio:
+        bio = "No biography available."
+
+    tags = [
+        tag.get("name")
+        for tag in artist.get("tags", {}).get("tag", [])
+        if tag.get("name")
+    ][:3]
+    tags_text = ", ".join(tags) if tags else "None listed"
+
+    similar = [
+        similar_artist.get("name")
+        for similar_artist in artist.get("similar", {}).get("artist", [])
+        if similar_artist.get("name")
+    ][:3]
+    similar_text = ", ".join(similar) if similar else "None listed"
+
+    return (
+        f"Artist: {name}\n"
+        f"Bio: {bio}\n"
+        f"Top tags: {tags_text}\n"
+        f"Similar artists: {similar_text}"
+    )
+
+
 def get_artist_info(event):
     artist_name = get_parameter(event, "artist_name")
     if not artist_name:
         return "No artist_name parameter provided."
 
-    url = "https://en.wikipedia.org/w/api.php"
+    api_key = os.environ.get("LASTFM_API_KEY")
+    if not api_key:
+        return "Error: LASTFM_API_KEY is not configured."
+
     params = {
-        "action": "query",
-        "prop": "extracts",
-        "exintro": 1,
-        "explaintext": 1,
-        "titles": artist_name,
+        "method": "artist.getinfo",
+        "artist": artist_name,
+        "api_key": api_key,
         "format": "json",
     }
 
     try:
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(LASTFM_API_URL, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
-        pages = data.get("query", {}).get("pages", {})
-        first_page = next(iter(pages.values()), {})
-        return first_page.get("extract") or "No Wikipedia info found for this artist."
-    except (requests.RequestException, ValueError, StopIteration):
-        return "No Wikipedia info found for this artist."
 
+        if "error" in data:
+            message = data.get("message", "Unknown Last.fm error")
+            return f"Error: Could not find info for '{artist_name}'. {message}"
 
-def get_global_charts(event):
-    url = "https://itunes.apple.com/us/rss/topsongs/limit=10/json"
+        if not data.get("artist"):
+            return f"Error: No artist information found for '{artist_name}'."
 
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        entries = data.get("feed", {}).get("entry", [])
-
-        if not entries:
-            return "Global charts data is currently unavailable."
-
-        chart_lines = []
-        for index, entry in enumerate(entries[:10], start=1):
-            title = entry.get("title", {}).get("label", "Unknown")
-            chart_lines.append(f"{index}. {title}")
-
-        return (
-            "Global Top 10 Trending Songs right now: "
-            + ", ".join(chart_lines)
-            + "."
-        )
-    except (requests.RequestException, ValueError, TypeError):
-        return "Global charts data is currently unavailable."
+        return format_artist_info(data)
+    except requests.RequestException as error:
+        return f"Error: Failed to reach Last.fm API for '{artist_name}'. {error}"
+    except ValueError as error:
+        return f"Error: Could not parse Last.fm response for '{artist_name}'. {error}"
 
 
 def lambda_handler(event, context):
     api_path = event.get("apiPath")
 
-    if api_path == "/get_artist_info":
-        result = get_artist_info(event)
-    elif api_path == "/get_global_charts":
-        result = get_global_charts(event)
-    else:
-        result = f"Unsupported apiPath: {api_path}"
+    try:
+        if api_path == "/get-artist-info":
+            result = get_artist_info(event)
+        else:
+            result = f"Unsupported apiPath: {api_path}"
+    except Exception as error:
+        result = f"Action failed: {error}"
 
     return build_response(event, result)
