@@ -23,7 +23,8 @@ import requests
 from spotipy.cache_handler import CacheFileHandler, CacheHandler
 from spotipy.exceptions import SpotifyOauthError, SpotifyStateError
 from spotipy.util import (CLIENT_CREDS_ENV_VARS, REQUESTS_SESSION,
-                          get_host_port, normalize_scope)
+                          get_host_port, normalize_scope,
+                          redact_for_log, redact_headers_for_log)
 
 logger = logging.getLogger(__name__)
 
@@ -219,8 +220,12 @@ class SpotifyClientCredentials(SpotifyAuthBase):
             self.client_id, self.client_secret
         )
 
-        logger.debug(f"Sending POST request to {self.OAUTH_TOKEN_URL} with Headers: "
-                     f"{headers} and Body: {payload}")
+        logger.debug(
+            "Sending POST request to %s with Headers: %s and Body: %s",
+            self.OAUTH_TOKEN_URL,
+            redact_headers_for_log(headers),
+            redact_for_log(payload),
+        )
 
         try:
             response = self._session.post(
@@ -520,8 +525,12 @@ class SpotifyOAuth(SpotifyAuthBase):
 
         headers = self._make_authorization_headers()
 
-        logger.debug(f"Sending POST request to {self.OAUTH_TOKEN_URL} with Headers: "
-                     f"{headers} and Body: {payload}")
+        logger.debug(
+            "Sending POST request to %s with Headers: %s and Body: %s",
+            self.OAUTH_TOKEN_URL,
+            redact_headers_for_log(headers),
+            redact_for_log(payload),
+        )
 
         try:
             response = self._session.post(
@@ -548,8 +557,12 @@ class SpotifyOAuth(SpotifyAuthBase):
 
         headers = self._make_authorization_headers()
 
-        logger.debug(f"Sending POST request to {self.OAUTH_TOKEN_URL} with Headers: "
-                     f"{headers} and Body: {payload}")
+        logger.debug(
+            "Sending POST request to %s with Headers: %s and Body: %s",
+            self.OAUTH_TOKEN_URL,
+            redact_headers_for_log(headers),
+            redact_for_log(payload),
+        )
 
         try:
             response = self._session.post(
@@ -886,8 +899,12 @@ class SpotifyPKCE(SpotifyAuthBase):
 
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-        logger.debug(f"Sending POST request to {self.OAUTH_TOKEN_URL} with Headers: "
-                     f"{headers} and Body: {payload}")
+        logger.debug(
+            "Sending POST request to %s with Headers: %s and Body: %s",
+            self.OAUTH_TOKEN_URL,
+            redact_headers_for_log(headers),
+            redact_for_log(payload),
+        )
 
         try:
             response = self._session.post(
@@ -915,8 +932,12 @@ class SpotifyPKCE(SpotifyAuthBase):
 
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-        logger.debug(f"Sending POST request to {self.OAUTH_TOKEN_URL} with Headers: "
-                     f"{headers} and Body: {payload}")
+        logger.debug(
+            "Sending POST request to %s with Headers: %s and Body: %s",
+            self.OAUTH_TOKEN_URL,
+            redact_headers_for_log(headers),
+            redact_for_log(payload),
+        )
 
         try:
             response = self._session.post(

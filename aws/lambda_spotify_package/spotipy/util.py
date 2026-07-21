@@ -6,6 +6,7 @@ __all__ = ["CLIENT_CREDS_ENV_VARS", "prompt_for_user_token"]
 
 import logging
 import os
+import re
 import warnings
 from types import TracebackType
 
@@ -25,6 +26,62 @@ CLIENT_CREDS_ENV_VARS = {
 
 # workaround for garbage collection
 REQUESTS_SESSION = requests.Session
+
+_SENSITIVE_LOG_KEYS = frozenset(
+    {
+        "access_token",
+        "refresh_token",
+        "spotify_token",
+        "token",
+        "authorization",
+        "client_secret",
+        "client_id",
+        "api_key",
+        "password",
+        "secret",
+    }
+)
+_BEARER_PATTERN = re.compile(r"Bearer\s+\S+", re.IGNORECASE)
+_BASIC_PATTERN = re.compile(r"Basic\s+\S+", re.IGNORECASE)
+
+
+def _is_sensitive_log_key(key):
+    lower = str(key).lower()
+    if lower in _SENSITIVE_LOG_KEYS:
+        return True
+    return any(
+        marker in lower
+        for marker in ("token", "secret", "password", "api_key", "authorization")
+    )
+
+
+def redact_for_log(value):
+    if isinstance(value, dict):
+        return {
+            key: "[REDACTED]"
+            if _is_sensitive_log_key(key)
+            else redact_for_log(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_for_log(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_for_log(item) for item in value)
+    if isinstance(value, str):
+        redacted = _BEARER_PATTERN.sub("Bearer [REDACTED]", value)
+        return _BASIC_PATTERN.sub("Basic [REDACTED]", redacted)
+    return value
+
+
+def redact_headers_for_log(headers):
+    if not headers:
+        return {}
+    return {
+        key: "[REDACTED]"
+        if _is_sensitive_log_key(key)
+        else redact_for_log(value)
+        for key, value in headers.items()
+    }
 
 
 def prompt_for_user_token(

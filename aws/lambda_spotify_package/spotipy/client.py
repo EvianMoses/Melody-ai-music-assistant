@@ -11,7 +11,7 @@ from collections import defaultdict
 import requests
 
 from spotipy.exceptions import SpotifyException
-from spotipy.util import REQUESTS_SESSION, Retry
+from spotipy.util import REQUESTS_SESSION, Retry, redact_for_log, redact_headers_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -259,8 +259,14 @@ class Spotify:
         if self.language is not None:
             headers["Accept-Language"] = self.language
 
-        logger.debug(f"Sending {method} to {url} with Params: "
-                     f"{args.get('params')} Headers: {headers} and Body: {args.get('data')!r}")
+        logger.debug(
+            "Sending %s to %s with Params: %s Headers: %s and Body: %r",
+            method,
+            url,
+            args.get("params"),
+            redact_headers_for_log(headers),
+            args.get("data"),
+        )
 
         try:
             response = self._session.request(
@@ -311,7 +317,7 @@ class Spotify:
         except ValueError:
             results = None
 
-        logger.debug(f'RESULTS: {results}')
+        logger.debug("RESULTS: %s", redact_for_log(results))
         return results
 
     def _get(self, url, args=None, payload=None, **kwargs):

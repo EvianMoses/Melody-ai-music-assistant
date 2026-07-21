@@ -3,6 +3,7 @@ __pycache__/
 venv/
 .venv/
 .env
+prep_files/.spotify_refresh_token
 *.zip
 .DS_Store
 .cursor/
