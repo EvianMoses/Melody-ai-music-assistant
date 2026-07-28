@@ -82,7 +82,21 @@ AUDIO_CONFIDENCE_THRESHOLD = 0.6
 VALID_DISCOVERY_MODES = ("safe", "balanced", "adventurous")
 DEFAULT_DISCOVERY_MODE = "balanced"
 
-# Deterministic per-mode retrieval knobs consumed by the retrieval nodes.
+# Deterministic per-mode retrieval knobs.
+#
+# ⚠️ **`candidate_pool` and `genre_expansion` currently reach NOTHING**, and that
+# was discovered on 2026-07-28 while chasing latency. `rag_client.retrieve`
+# sends only `{query, top_k, filters}`; rag-service computes its own pool as
+# `max(top_k, 20)`; and a repository-wide search finds no consumer of
+# `genre_expansion` outside the relaxation logic that sets it. Only `diversity`
+# has a consumer (`apply_diversity_constraints`).
+#
+# They are left in place rather than deleted because §4.4 intends them as real
+# discovery-mode levers and wiring them through is a behaviour change that wants
+# §3.8's evaluation set to validate. What has changed is that nothing now
+# *pretends* they work -- see `plan_query_relaxation`.
+#
+# Values restored to their originals: raising an unread number is cargo cult.
 DISCOVERY_PARAMS: dict[str, dict[str, Any]] = {
     "safe": {"genre_expansion": False, "diversity": 0.2, "candidate_pool": 20},
     "balanced": {"genre_expansion": True, "diversity": 0.5, "candidate_pool": 20},
@@ -671,39 +685,84 @@ def evaluate_retrieval_confidence(state: RecommendationState) -> dict[str, Any]:
     }
 
 
+def plan_query_relaxation(
+    retrieval_query: dict[str, Any]
+) -> Optional[tuple[dict[str, Any], str]]:
+    """Work out what a rewrite would change, WITHOUT applying it (§4.5).
+
+    Returns ``(new_retrieval_query, reason)``, or **None** when nothing can be
+    relaxed. Pulled out of ``rewrite_query`` so the router in graph.py can ask
+    the question before committing to a second retrieval pass.
+
+    ⚠️ **Only one relaxation remains, and removing the other two is the actual
+    latency fix (2026-07-28).**
+
+    The original three were: drop the year range -> widen the candidate pool ->
+    enable genre expansion. Measured, the rewrite fired on 100% of requests and
+    took the "widened candidate pool" branch every time. Chasing that revealed
+    why it was harmless-looking and expensive:
+
+        `rag_client.retrieve` sends only {query, top_k, filters}. Neither
+        `candidate_pool` nor `genre_expansion` is sent, and neither has any
+        consumer in this repository. Widening the pool changed a number that
+        nothing reads.
+
+    So the second retrieval pass was issuing a **byte-identical request** to
+    rag-service and, by construction, could not produce a different result. That
+    is ~8 seconds of an ~18 second request spent guaranteeing the same answer.
+
+    Dropping the year range is different in kind: `year_from`/`year_to` really
+    are sent, inside `filters`, so relaxing them really does widen what
+    retrieval can return. It is also the only one of the three that is a genuine
+    *semantic* relaxation -- it changes what the user asked for -- which is what
+    §4.5's "constraint relaxation" means and why it is worth a second pass.
+
+    The inert knobs are not deleted (§4.4 intends them as real discovery-mode
+    levers) but they no longer count as relaxations, so they can no longer buy a
+    retrieval pass with a promise they do not keep. Wiring them through for real
+    is a behaviour change and wants §3.8's evaluation set behind it.
+    """
+    retrieval_query = dict(retrieval_query or {})
+    positive = dict(retrieval_query.get("positive_constraints") or {})
+
+    if "year_from" in positive or "year_to" in positive:
+        positive.pop("year_from", None)
+        positive.pop("year_to", None)
+        retrieval_query["positive_constraints"] = positive
+        return retrieval_query, "relaxed year range constraint"
+
+    return None
+
+
 def rewrite_query(state: RecommendationState) -> dict[str, Any]:
     """11. ONE deterministic, rule-based constraint relaxation (§4.5).
 
     Deliberately rule-based rather than an LLM call, so node 17 remains the
     only heavy-model call site for this phase of work (confirmed decision —
     a documented narrowing of ADR-006's literal text, flagged for later ADR
-    reconciliation). Priority order: drop the year range -> widen the
-    candidate pool -> enable genre expansion. Increments ``rewrite_count``;
-    the router in graph.py guarantees this node runs at most once per request.
+    reconciliation). Priority order lives in ``plan_query_relaxation``, which
+    the router consults first so this node is only reached when a relaxation
+    genuinely exists. Increments ``rewrite_count``; the router in graph.py
+    guarantees this node runs at most once per request.
     """
     started = _triggered("rewrite_query")
-    retrieval_query = dict(state.get("retrieval_query") or {})
-    positive = dict(retrieval_query.get("positive_constraints") or {})
-    discovery_params = dict(retrieval_query.get("discovery_params") or {})
+    plan = plan_query_relaxation(state.get("retrieval_query") or {})
 
-    if "year_from" in positive or "year_to" in positive:
-        positive.pop("year_from", None)
-        positive.pop("year_to", None)
-        retrieval_query["positive_constraints"] = positive
-        reason = "relaxed year range constraint"
-    elif discovery_params.get("candidate_pool", 20) < 40:
-        discovery_params["candidate_pool"] = min(
-            40, int(discovery_params.get("candidate_pool", 20) * 1.5)
-        )
-        retrieval_query["discovery_params"] = discovery_params
-        reason = "widened candidate pool"
-    elif not discovery_params.get("genre_expansion", False):
-        discovery_params["genre_expansion"] = True
-        retrieval_query["discovery_params"] = discovery_params
-        reason = "enabled genre expansion"
-    else:
-        reason = "no further constraint available to relax"
+    if plan is None:
+        # Defensive: the router should not route here at all in this case. If
+        # it ever does, do NOT increment rewrite_count into a second retrieval
+        # pass that cannot change anything -- report and continue.
+        return {
+            "rewrite_reason": "no further constraint available to relax",
+            **_metrics(
+                "rewrite_query",
+                started,
+                status="skipped",
+                detail="no further constraint available to relax",
+            ),
+        }
 
+    retrieval_query, reason = plan
     return {
         "rewrite_count": int(state.get("rewrite_count", 0)) + 1,
         "rewrite_reason": reason,

@@ -204,30 +204,59 @@ def test_rewrite_query_drops_year_range_first():
     assert "relaxed year range" in result["rewrite_reason"]
 
 
-def test_rewrite_query_widens_pool_when_no_year_constraint():
+# ~~test_rewrite_query_widens_pool_when_no_year_constraint~~ and
+# ~~test_rewrite_query_enables_genre_expansion_last~~ were REPLACED on
+# 2026-07-28, not deleted for convenience. They asserted the two relaxation
+# branches that were removed because neither one reached anything:
+# `rag_client.retrieve` sends only {query, top_k, filters}, so widening
+# `candidate_pool` and flipping `genre_expansion` changed values with no
+# consumer -- and each bought a full second retrieval pass that was, by
+# construction, byte-identical to the first.
+#
+# The tests below assert the corrected contract: with no year constraint there
+# is NO relaxation available, so no second pass is bought.
+
+
+def test_no_relaxation_available_without_a_year_constraint():
+    """The load-bearing case, and the whole latency fix.
+
+    Retrieval confidence is near zero for ordinary phrasing, so this is the
+    state most real requests are in. If a relaxation were still offered here,
+    every one of them would pay for a duplicate retrieval pass.
+    """
+    query = {
+        "positive_constraints": {},
+        "discovery_params": {"candidate_pool": 20, "genre_expansion": False},
+    }
+    assert nodes.plan_query_relaxation(query) is None
+
+
+def test_relaxation_available_only_for_a_year_constraint():
+    """Dropping the year range is the one relaxation that reaches retrieval:
+    year_from/year_to really are sent, inside `filters`."""
+    query = {
+        "positive_constraints": {"year_from": 2015, "year_to": 2020},
+        "discovery_params": {"candidate_pool": 20, "genre_expansion": False},
+    }
+    plan = nodes.plan_query_relaxation(query)
+    assert plan is not None
+    relaxed, reason = plan
+    assert "year_from" not in relaxed["positive_constraints"]
+    assert "year_to" not in relaxed["positive_constraints"]
+    assert "relaxed year range" in reason
+
+
+def test_rewrite_query_is_a_no_op_when_nothing_can_be_relaxed():
+    """Belt and braces: the router should never route here in this state, but
+    if it did, the node must not increment rewrite_count into a second pass
+    that cannot change anything."""
     state = {
-        "retrieval_query": {
-            "positive_constraints": {},
-            "discovery_params": {"candidate_pool": 20, "genre_expansion": False},
-        },
+        "retrieval_query": {"positive_constraints": {}, "discovery_params": {}},
         "rewrite_count": 0,
     }
     result = nodes.rewrite_query(state)
-    assert result["retrieval_query"]["discovery_params"]["candidate_pool"] == 30
-    assert "widened candidate pool" in result["rewrite_reason"]
-
-
-def test_rewrite_query_enables_genre_expansion_last():
-    state = {
-        "retrieval_query": {
-            "positive_constraints": {},
-            "discovery_params": {"candidate_pool": 40, "genre_expansion": False},
-        },
-        "rewrite_count": 0,
-    }
-    result = nodes.rewrite_query(state)
-    assert result["retrieval_query"]["discovery_params"]["genre_expansion"] is True
-    assert "enabled genre expansion" in result["rewrite_reason"]
+    assert "rewrite_count" not in result
+    assert result["node_metrics"]["rewrite_query"]["status"] == "skipped"
 
 
 # ---------------------------------------------------------------------------
@@ -665,15 +694,61 @@ def test_graph_end_to_end_happy_path(monkeypatch):
 
 
 def test_graph_end_to_end_forced_rewrite_runs_exactly_once(monkeypatch):
+    """§4.3's hard guarantee: rewrite_count can never exceed 1.
+
+    Updated 2026-07-28: low confidence alone no longer routes to the rewrite --
+    a relaxation must also be available -- so this test now supplies a **year
+    constraint**, which is the one relaxation that genuinely reaches retrieval.
+    Without it the graph correctly proceeds forward and rewrite_count stays 0,
+    which is the new behaviour tested separately below.
+
+    The guarantee under test is unchanged and is the reason this test exists:
+    confidence stays low on the second pass too, and the graph must still
+    terminate rather than loop.
+    """
     monkeypatch.setattr(rag_client, "retrieve", _fake_rag_retrieve_low_confidence)
     monkeypatch.setattr(provider_client, "search", _fake_provider_search_ok)
     monkeypatch.setattr(llm_adapter, "generate_curator_explanation", _fake_llm_success)
 
-    final_state = run(recommendation_graph.ainvoke({"user_text": "something nobody has ever heard of"}))
+    final_state = run(
+        recommendation_graph.ainvoke(
+            {
+                "user_text": "something nobody has ever heard of",
+                "explicit_constraints": {"year_from": 2015, "year_to": 2020},
+            }
+        )
+    )
 
     assert final_state["rewrite_count"] == 1
     # The graph must still complete, not loop, even though confidence stayed low.
     assert "retrieve_genres" in final_state["node_metrics"]
+
+
+def test_graph_does_not_rewrite_when_no_relaxation_exists(monkeypatch):
+    """The latency fix, asserted end to end.
+
+    Same low-confidence retrieval as above, but with no year constraint -- the
+    state the overwhelming majority of real requests are in. The graph must run
+    retrieval ONCE and proceed, rather than buying a second identical pass.
+    """
+    calls = {"n": 0}
+
+    async def _counting_retrieve(*args, **kwargs):
+        calls["n"] += 1
+        return await _fake_rag_retrieve_low_confidence(*args, **kwargs)
+
+    monkeypatch.setattr(rag_client, "retrieve", _counting_retrieve)
+    monkeypatch.setattr(provider_client, "search", _fake_provider_search_ok)
+    monkeypatch.setattr(llm_adapter, "generate_curator_explanation", _fake_llm_success)
+
+    final_state = run(
+        recommendation_graph.ainvoke({"user_text": "warm indie folk for a rainy afternoon"})
+    )
+
+    assert final_state.get("rewrite_count", 0) == 0
+    # Two retrieval calls total -- genres and reviews, one pass. Four would mean
+    # the duplicate pass is back.
+    assert calls["n"] == 2
 
 
 # ---------------------------------------------------------------------------

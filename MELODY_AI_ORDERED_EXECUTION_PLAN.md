@@ -569,6 +569,48 @@ Opened at the developer's direction ("continue direct to path 6"). §6.1, §6.2,
 4. The **Phase 5 playable-percentage measurement** (the last Phase 5 gate criterion) and the **`REC-LEG-002` re-run through n8n**, then `REC-LEG-003`.
 5. ⚠️ **Housekeeping the agent could not do:** four `TEST wf010*` workflows remain in the n8n instance — the CLI has no delete command, so they need removing in the editor. They are inactive and were never exported to `workflows/n8n/`, so the repository is clean.
 
+### ▶ Session bookmark — July 28, 2026 (later): datasets out of Git, and the latency fix that needed three attempts
+
+**Developer direction:** remove the datasets from GitHub, then execute latency fixes #1 and #2. Both done. **Median request latency fell from 18.3 s to 8.0 s** and the corpora are gone from every commit.
+
+**1. Datasets removed from Git history, not just from the tree.** History rewritten on **both** branches with `git filter-repo`; repository **76 MB → 27 MB**. Verified: `origin/main` has **zero** commits touching `data/`. What remains tracked is `data/README.md` plus two **synthetic** format samples, so the ingestion code stays readable without shipping the corpora. `.gitignore` blocks `data/**` with narrow exceptions, so re-adding a dataset cannot quietly undo the rewrite.
+
+**Developer's reasoning, recorded because it changes what `RAG-002` is for:** the concern is **not** copyright — the review datasets come from open public sources — it is protecting the **project's own RAG assets**, specifically the tailored genre mappings in `data/genres_knowledge/`. ⚠️ **`RAG-002` is NOT closed by this.** Removing the data settles *redistribution*; it does not record *provenance*, which `DOC-010` still needs. WF-007 continues to report the gap on every run. A full pre-rewrite backup bundle and a local data copy were taken first; all commit SHAs changed, so any second clone must be **re-cloned, not pulled**.
+
+**2. The latency fix — and I got the diagnosis wrong twice before getting it right.** Recording all three attempts, because the two wrong ones are the instructive part.
+
+| Attempt | Belief | Result |
+| --- | --- | --- |
+| 1 | The rewrite re-runs retrieval to widen the candidate pool 20→30; start at 30 instead | **No change (20→21 s).** Raising the pool to 30 left 30 < the 40 cap, so a "relaxation" still appeared available and the rewrite still fired |
+| 2 | Run the two retrieval calls concurrently | **No change.** Measured 8.47 s parallel vs 8.15 s sequential — *slightly worse* |
+| 3 | Actually read what reaches rag-service | ⭐ **The real cause** |
+
+⭐ **The finding: two of the three relaxation branches reach nothing at all.** `rag_client.retrieve` sends only `{query, top_k, filters}`. **`candidate_pool` is never sent** — rag-service computes its own as `max(top_k, 20)` — and **`genre_expansion` has no consumer anywhere in the repository.** So on any request without a year constraint, the second retrieval pass issued a **byte-identical request** and could not, by construction, return anything different. That was ~8 s of an ~18 s request spent guaranteeing the same answer. Only the year-range drop is real, because `year_from`/`year_to` genuinely travel inside `filters`.
+
+**NEW DECISION: `plan_query_relaxation` offers exactly one relaxation — dropping the year range — and the router consults it before routing.** The inert knobs are left in `DISCOVERY_PARAMS` rather than deleted (§4.4 intends them as real discovery-mode levers) but they can no longer buy a retrieval pass with a promise they do not keep. Wiring them through for real is a behaviour change that wants §3.8's evaluation set behind it. **§4.3 is untouched:** the router is now strictly *narrower*, so `rewrite_count` still cannot exceed 1.
+
+⚠️ **Why attempt 2 failed is worth keeping: the work was never waiting on I/O, it was waiting on CPU.** `/rag/retrieve` is query embedding plus a cross-encoder, and `rag-service` was capped at **`cpus: "2.00"` on a 24-core host**, so two concurrent calls just timeshared two cores. Raised to **6.00**, at which point the parallel fan-out finally pays: a single `/rag/retrieve` went **7.0 s → 2.2 s**, and the two domains now complete within 18 ms of each other.
+
+**One supporting change that would otherwise have been a silent bug:** `_retrieval_debug` gained a merge reducer in `graph_state.py`. Both retrieval nodes write that key, and under LangGraph's last-write-wins one domain's entry would have been discarded — leaving node 10 to compute retrieval confidence from half the evidence and report a perfectly plausible number for it. Its old comment (*"last-write-wins is fine"*) was true only while the nodes ran in sequence.
+
+**Measured, end to end through the containerised Flask:**
+
+| | Before | After |
+| --- | --- | --- |
+| Median request | **18.29 s** (p50, 90 requests) | **8.02 s** |
+| p95 | 38.17 s | 9.89 s (max of 6) |
+| `rewrite_query` fired | **100%** of requests | **0 of 8** |
+| Retrieval passes per request | 2 | 1 |
+| `/rag/retrieve` (genre domain) | 7.0 s | **2.2 s** |
+
+**Verified:** 120 offline tests in `recommendation-service` (was 118), rag-service 4, `smoke_test_e2e.py` **12/12**, and six live requests in both languages all returning real tracks.
+
+**Three tests were replaced, not deleted for convenience.** Two asserted the removed branches; the end-to-end forced-rewrite test now supplies a **year constraint** so a relaxation genuinely exists, preserving §4.3's guarantee under test. A new test asserts the fix directly: low confidence with no year constraint must make **exactly two** `rag_client.retrieve` calls, not four.
+
+⚠️ **A "bug" I reported and then disproved, recorded so it is not re-investigated:** Hebrew requests appeared to be refused with `INPUT_REJECTED` / `unsupported_language`. That was **Git Bash mangling UTF-8 in the test command**, not a defect — the same request sent with correct encoding returns `allowed: true, language: "he"`, and both Hebrew requests above returned real tracks. **Lesson: verify the harness before blaming the system.**
+
+**Latency work still open (unchanged recommendation — after Phase 3):** `generate_grounded_explanation` is now the largest single node at ~3.1 s, and streaming it would improve *perceived* latency further. Whether retrieval can go below 2.2 s is a quality question that wants §3.8's evaluation set as a safety net.
+
 <!-- ========================== END RESUME HERE ========================== -->
 
 ✅ **[COMPLETED] Phase 0 update (July 21, 2026): Git state frozen, EC2 baseline updated, all secrets isolated and secured in** `.env`**, the AI recommendation contract frozen (**`contracts/ai_recommendation_schema.json`**), and the MusicAPI proof of concept evaluated and tested (**`poc/test_musicapi.py`**) with a final REJECTED outcome. See Section 5 for the complete Phase 0 record and the closed ADR-002 provider decision.**

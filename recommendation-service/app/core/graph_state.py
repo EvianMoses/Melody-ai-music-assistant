@@ -121,10 +121,19 @@ class RecommendationState(TypedDict, total=False):
     # ------------------------------------------------------------------
     # Internal carrier (not part of the public contract): per-domain
     # {matched_genres, confidence} from nodes 5/6, consumed by nodes 7
-    # (genre expansion) and 10 (confidence gate). Last-write-wins is fine --
-    # a rewrite pass fully recomputes it via nodes 5/6 on the loop-back.
+    # (genre expansion) and 10 (confidence gate).
+    #
+    # ~~Last-write-wins is fine -- a rewrite pass fully recomputes it via
+    # nodes 5/6 on the loop-back.~~ → **NO LONGER TRUE, and it now carries a
+    # reducer.** That reasoning held only while nodes 5 and 6 ran in sequence,
+    # each reading the other's committed value and adding its own key. Now that
+    # they run CONCURRENTLY (§4.6 latency work), both read the same base state
+    # and both return a `_retrieval_debug`, so last-write-wins would silently
+    # discard one domain's entry -- and node 10 computes retrieval confidence
+    # from both. The failure would have been invisible: a plausible confidence
+    # number computed from half the evidence.
     # ------------------------------------------------------------------
-    _retrieval_debug: dict[str, Any]
+    _retrieval_debug: Annotated[dict[str, Any], merge_dicts]
 
     # ------------------------------------------------------------------
     # Cross-cutting bookkeeping (§4.3): accumulate, never overwrite

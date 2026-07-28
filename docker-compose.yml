@@ -196,10 +196,19 @@ services:
       - "${RAG_PORT:-8002}:8000"
     # Local embedding/retrieval (sentence-transformers + torch) needs more RAM
     # than the shared 512M default; override the anchor's deploy limits here.
+    #
+    # ⚠️ CPU raised 2.00 -> 6.00 on 2026-07-28, and it is a measured change.
+    # This service is the latency bottleneck of the whole product: one
+    # /rag/retrieve on the genre domain costs ~7-8 s, all of it CPU (query
+    # embedding with e5-small, then a cross-encoder over ~20 candidates), and
+    # it is called twice per request -- once per domain. Capped at 2 cores those
+    # two calls simply timeshared the same two cores, which is why running them
+    # concurrently first measured *no* improvement at all: the work was never
+    # waiting on I/O, it was waiting on CPU. The host has 24.
     deploy:
       resources:
         limits:
-          cpus: "2.00"
+          cpus: "6.00"
           memory: 3G
     volumes:
       # Persist the downloaded HuggingFace model across runs (HF_HOME=/app/.hf_cache).
