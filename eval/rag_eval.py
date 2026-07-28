@@ -231,10 +231,28 @@ async def generate_answers(results: list[dict[str, Any]]) -> None:
     llm = ChatAnthropic(model=ANTHROPIC_MODEL, temperature=0, max_tokens=400)
     for r in results:
         context = "\n\n---\n\n".join(r["contexts"][:5])
+        # ⚠️ The two language rules below are not politeness -- they fix a
+        # measured harness defect. The first version of this prompt said only
+        # "answer using ONLY the context; if it does not support an answer, say
+        # so", and on every Hebrew query the model refused with "the question is
+        # in Hebrew and the context is in English" -- even on he-01, where
+        # context_precision and context_recall both scored 1.0, i.e. retrieval
+        # had found exactly the right chunk. he-03 went further and refused while
+        # explicitly noting "the context DOES contain information about Grunge
+        # from the 1990s".
+        #
+        # That drove Hebrew response_relevancy to 0.00 across the board and would
+        # have been reported as a product failure. It was an evaluation failure:
+        # the corpus is entirely English by design, so a cross-language answer is
+        # the normal case, not a missing-context case.
         prompt = (
             "You are a music knowledge assistant. Answer the question using ONLY "
             "the context provided. If the context does not support an answer, say "
             "so plainly rather than inventing one.\n\n"
+            "The knowledge base is written in English. A question asked in another "
+            "language is normal and must still be answered from that English "
+            "context -- a language difference is NOT a reason to refuse. "
+            "Reply in the same language the question was asked in.\n\n"
             f"Context:\n{context}\n\nQuestion: {r['query']}\n\nAnswer:"
         )
         reply = await llm.ainvoke(prompt)
@@ -255,8 +273,14 @@ async def run_ragas(results: list[dict[str, Any]], queries: list[dict[str, Any]]
         ResponseRelevancy,
     )
 
+    # max_tokens=8192, not the obvious 1024. Faithfulness decomposes the answer
+    # into atomic statements and emits a verdict per statement, so its output
+    # grows with answer length -- at 1024 it truncated on 10 of 25 queries and
+    # raised LLMDidNotFinishException. Those were recorded as errors rather than
+    # scored as zero, which is the only reason the resulting 0.62 was visibly a
+    # 15-query average instead of a quietly wrong 25-query one.
     llm = LangchainLLMWrapper(
-        ChatAnthropic(model=ANTHROPIC_MODEL, temperature=0, max_tokens=1024)
+        ChatAnthropic(model=ANTHROPIC_MODEL, temperature=0, max_tokens=8192)
     )
     # Local embeddings for ResponseRelevancy -- the same e5-small the retrieval
     # pipeline uses. Avoids a second paid provider purely to embed a question,

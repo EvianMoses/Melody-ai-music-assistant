@@ -1723,9 +1723,19 @@ Input:
 
 Output:
 
-- [ ] **RAG-RERANK-001 P0:** Benchmark a multilingual local reranker.
-- [ ] **RAG-RERANK-002 P0:** Compare against a no-reranker baseline.
-- [ ] **RAG-RERANK-003 P0:** Keep an API reranker as an optional measured alternative, not an implicit dependency.
+- [x] ✅ **[COMPLETED] RAG-RERANK-001 P0: Benchmark a multilingual local reranker (July 28, 2026).** `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` measured against the §3.8 golden set and **adopted as the default**.
+- [x] ✅ **[COMPLETED] RAG-RERANK-002 P0: Compare against a no-reranker baseline (July 28, 2026).** Run via `RERANKER_ENABLED=false`, which keeps RRF order.
+- [x] ✅ **[COMPLETED] RAG-RERANK-003 P0: Keep an API reranker as an optional measured alternative, not an implicit dependency.** Satisfied by construction: `RERANKER_MODEL` / `RERANKER_ENABLED` select the reranker at runtime, so any alternative — including the LLM-as-reranker pattern in the course reference material — is a swap plus an eval run, never a rewrite. **NEW DECISION: no API reranker is adopted.** A hosted reranker would add a third paid provider and a per-request network hop to fix a problem a 118M-parameter local model already solved.
+
+  ⭐ **The measurement, and it overturned an assumption rather than confirming one** (25 golden queries):
+
+  | Reranker | Recall@5 | MRR | nDCG@10 | **HE Recall@5** | median |
+  | --- | --- | --- | --- | --- | --- |
+  | `ms-marco-MiniLM-L-6-v2` (was default, English-only) | 0.409 | 0.458 | 0.410 | 0.125 | 2.29 s |
+  | **none** (RRF order) | 0.424 | 0.480 | 0.426 | 0.125 | **0.13 s** |
+  | **`mmarco-mMiniLMv2-L12` (adopted)** | **0.489** | **0.511** | **0.475** | **0.500** | 2.79 s |
+
+  **Two findings worth carrying forward.** First, the shipped English reranker was **worse than no reranker at all on every metric** while costing 17× the latency — it was actively destroying rankings RRF had already got right, and had been in the request path since Phase 3 opened. Second, **dense retrieval was never the Hebrew problem**: querying pgvector directly showed `multilingual-e5` returning the correct `#grunge` chunk at rank 1 for a Hebrew query, which the English cross-encoder then demoted to Goa trance. Swapping the reranker quadruples Hebrew Recall@5 for +0.5 s.
 
 > **Note:** the current `ms-marco-MiniLM-L-6-v2` reranker is English-optimized; RAG-RERANK-001 (multilingual benchmark) and RAG-RERANK-002 (no-reranker baseline) remain open follow-ups for the Hebrew path.
 
@@ -1761,7 +1771,46 @@ Do not use a local model for deterministic validation, OAuth, database writes, o
 
 ## 3.8 Golden evaluation set
 
-Create at least 25–40 queries covering:
+✅ **[COMPLETED] BUILT AND RUN (July 28, 2026) — `eval/golden_set.json` (25 queries) + `eval/rag_eval.py`, reports in `eval/reports/`.**
+
+**NEW DECISION: 25 queries, not 25–40.** The course lecturer specified **20–30 as sufficient**, and the developer asked to hit that requirement precisely; 25 sits inside both that range and this section's lower bound, so the two are satisfied at once.
+
+**All seven categories below are covered** — mood (5), blended genres (4), exact genre (5), exact artist (2), Hebrew (4), anti-echo-chamber (2), negative constraints (3). **All 65 ground-truth references were verified to exist in the live corpus** before the first run: a golden set that cites chunks which are not there measures typos, not retrieval.
+
+**NEW DECISION: anti-echo-chamber queries are excluded from rank metrics** (`retrieval_scored: false`). They have no single correct answer by construction, and scoring them against a fixed target would penalise exactly the behaviour they exist to test. They are still judged by Ragas, which scores grounding rather than target-matching.
+
+**Ragas is wired in (the course's explicit requirement), with `claude-haiku-4-5` as the evaluator** by developer decision — the key already exists and it is the provider the product itself uses (ADR-006), so evaluation adds no second vendor. Embeddings for `ResponseRelevancy` come from the same local `multilingual-e5-small` the pipeline uses.
+
+**Measured baseline (July 28, 2026), multilingual reranker, 25/25 queries scored with zero judge errors:**
+
+| Layer | Metric | Value |
+| --- | --- | --- |
+| Retrieval | Recall@5 / Recall@10 | 0.489 / 0.489 |
+| Retrieval | MRR / nDCG@10 | 0.511 / 0.475 |
+| Ragas | **faithfulness** | **0.848** |
+| Ragas | **response relevancy** | **0.741** |
+| Ragas | context precision | 0.423 |
+| Ragas | context recall | 0.280 |
+
+**By category, which is where the actionable signal is:**
+
+| Category | faithfulness | relevancy | context precision |
+| --- | --- | --- | --- |
+| exact_genre | 0.95 | 0.89 | **0.90** |
+| exact_artist | 1.00 | 0.88 | 0.50 |
+| anti_echo_chamber | 0.92 | 0.88 | 0.10 |
+| negative_constraint | 0.83 | 0.57 | **0.00** |
+| hebrew | 0.81 | 0.40 | 0.50 |
+| mood | 0.80 | 0.73 | 0.49 |
+| blended_genres | 0.72 | 0.90 | 0.10 |
+
+⚠️ **`negative_constraint` scores 0.00 context precision, and that is a real architectural gap, not noise.** Nothing in the pipeline handles negation: ask for *"rock but nothing metal"* and retrieval cheerfully returns metal, because the embedding of the whole phrase is dominated by its nouns. `normalize_input` already extracts negative constraints into `normalized_constraints["negative"]`, and **they are never applied to retrieval** — only later, to tracks. Recorded here rather than fixed on the spot: it is a design change wanting its own slice.
+
+⚠️ **Hebrew is measurably better and still the weakest language** — Recall@5 0.500 against English 0.487 on this set, but only 2 of its 4 queries retrieve correctly. The two failures are descriptive rather than named (*"quiet sad music for an evening"* returned hardcore techno). Named-genre Hebrew now works end to end, including an answer written in Hebrew.
+
+⚠️ **Two harness defects were found and fixed before any of these numbers were trusted**, and both would otherwise have been reported as product failures. (1) The Ragas judge ran with `max_tokens=1024`, too small for faithfulness's per-statement decomposition, so **10 of 25 queries raised `LLMDidNotFinishException`** — the first reported 0.62 was a 15-query average wearing a 25-query label. It was visible only because the harness records judge errors instead of scoring them zero. (2) The harness's own answer prompt made the model **refuse every Hebrew query** — `he-01` scored context precision *and* recall of 1.0, meaning retrieval had found exactly the right chunk, and the answer still said the context did not contain it. Corpus is English by design, so a cross-language answer is the normal case; the prompt now says so. Fixing both moved faithfulness 0.62 → 0.79 → **0.848** and relevancy 0.61 → **0.741**, with no change to the system under test.
+
+~~Create at least 25–40 queries covering:~~ → **Delivered as 25, per the NEW DECISION above. Original requirement retained for the record:**
 
 - mood-based discovery;
 - blended genres;

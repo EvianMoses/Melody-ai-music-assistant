@@ -400,6 +400,13 @@ def parse_reviews(limit: Optional[int]) -> Optional[ParsedDocument]:
                 "language": "en",
                 "version": DOC_VERSION,
                 "doc_id": f"review:{REVIEW_SOURCE}:{row_id}",
+                # RAG-005: every chunk names the file it came from, so an
+                # answer can be traced back to its source without joining
+                # through knowledge_documents. Added to the genre parser first
+                # and missed here, which an audit caught -- 3,836 review chunks
+                # had no source reference at all.
+                "source_uri": doc.uri,
+                "source_row": row_id or None,
             }
             chunk_meta = {k: v for k, v in chunk_meta.items() if v is not None}
 
