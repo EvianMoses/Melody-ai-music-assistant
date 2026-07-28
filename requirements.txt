@@ -14,3 +14,7 @@ pgvector==0.3.6
 Authlib==1.7.2
 # Fernet encryption for OAuth tokens at rest (AUTH-006, ADR-007).
 cryptography==49.0.0
+# DEP-001 — production WSGI server. The Flask development server is single-
+# threaded and explicitly not for production; it is still what `python app.py`
+# starts for local debugging, but the container never uses it.
+gunicorn==23.0.0

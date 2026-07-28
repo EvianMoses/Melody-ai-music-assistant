@@ -134,13 +134,55 @@ def _normalize_database_url(url: str) -> str:
     return url
 
 
+def _database_url_from_postgres_vars() -> str:
+    """Assemble the URL from POSTGRES_* parts, or "" when they are absent."""
+    user = os.getenv("POSTGRES_USER")
+    password = os.getenv("POSTGRES_PASSWORD")
+    if not (user and password):
+        return ""
+
+    from urllib.parse import quote_plus
+
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    database = os.getenv("POSTGRES_DB", user)
+    return (
+        f"postgresql+psycopg://{quote_plus(user)}:{quote_plus(password)}"
+        f"@{host}:{port}/{database}"
+    )
+
+
+def _resolve_database_url() -> str:
+    """POSTGRES_* when compose sets POSTGRES_HOST, else DATABASE_URL.
+
+    The ordering is deliberate and matches provider-gateway's `app/db.py`.
+    docker-compose.yml loads the whole `.env` into the container -- including a
+    `DATABASE_URL` whose host is `localhost`, correct for a host-run process and
+    useless inside the network -- and then sets `POSTGRES_HOST: postgres` on top.
+    An explicitly set POSTGRES_HOST is therefore the signal that we are running
+    inside the compose network (INF-011) and must build the URL from the parts.
+    Outside a container nothing sets it, so `DATABASE_URL` still wins and
+    `python app.py` behaves exactly as it did before.
+    """
+    if os.getenv("POSTGRES_HOST"):
+        assembled = _database_url_from_postgres_vars()
+        if assembled:
+            return assembled
+
+    explicit = (os.getenv("DATABASE_URL") or "").strip()
+    if explicit:
+        return _normalize_database_url(explicit)
+
+    return _database_url_from_postgres_vars()
+
+
 def get_db_session_factory():
     global _db_engine, _db_session_factory
     if _db_session_factory is None:
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
 
-        database_url = _normalize_database_url(os.getenv("DATABASE_URL", "").strip())
+        database_url = _resolve_database_url()
         if not database_url:
             raise RuntimeError("DATABASE_URL is not configured.")
         _db_engine = create_engine(database_url, future=True, pool_pre_ping=True)

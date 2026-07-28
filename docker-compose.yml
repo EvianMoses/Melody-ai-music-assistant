@@ -79,14 +79,33 @@ services:
   # INF-002 — n8n orchestrator (WF-001), persistent volume + protected editor
   # -------------------------------------------------------------------------
   n8n:
-    image: n8nio/n8n:latest
+    # INF-002a: pinned, not `:latest`. `latest` cannot produce a reproducible
+    # submission (DOC-004, DEP-006) and has already broken this project once —
+    # an image pull moved the Set node from 3.4 to 3.5 and the exported
+    # workflows stopped matching the runtime. This is the version the 12/12
+    # smoke suite actually passes against, so it is the version pinned; do not
+    # bump it without re-running `workflows/n8n/tests/smoke_test_e2e.py`.
+    image: n8nio/n8n:2.31.6
     container_name: melody-n8n
     restart: unless-stopped
     environment:
-      # Protected editor access (INF-002). Credentials come from .env.
-      N8N_BASIC_AUTH_ACTIVE: "true"
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:?set N8N_BASIC_AUTH_USER in .env}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:?set N8N_BASIC_AUTH_PASSWORD in .env}
+      # INF-002b — protected editor access.
+      #
+      # N8N_BASIC_AUTH_ACTIVE / _USER / _PASSWORD were REMOVED here: they have
+      # been inert since n8n 1.0 (this instance runs 2.31.6), so declaring them
+      # advertised a protection that did not exist. Access now rests on the
+      # two mechanisms that are real on a current n8n:
+      #
+      #   1. The built-in owner account. Verified live: every /rest/* call
+      #      without a session cookie returns 401.
+      #   2. Not reaching the editor from outside the host at all — see the
+      #      loopback bind below. On the VPS (DEP-003) n8n publishes no port;
+      #      Flask reaches it as http://n8n:5678 on the private network.
+      #
+      # The public REST API is disabled because it authenticates with a static
+      # API key rather than the owner session, so leaving it on would be a
+      # second door into the same instance that mechanism 1 does not guard.
+      N8N_PUBLIC_API_DISABLED: "true"
       # Encryption key for stored credentials; must stay stable across restarts.
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
       N8N_HOST: ${N8N_HOST:-localhost}
@@ -97,7 +116,11 @@ services:
       # Local dev over http; enable secure cookies behind TLS in production.
       N8N_SECURE_COOKIE: "false"
     ports:
-      - "${N8N_PORT:-5678}:5678"
+      # INF-002b: bound to loopback, not 0.0.0.0. The editor stays reachable at
+      # http://localhost:5678 for development and stops being reachable from
+      # anything else on the network. Set N8N_BIND_ADDRESS= (empty) only if you
+      # deliberately need it exposed; on the VPS, delete this mapping entirely.
+      - "${N8N_BIND_ADDRESS:-127.0.0.1}:${N8N_PORT:-5678}:5678"
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
@@ -240,6 +263,58 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  # -------------------------------------------------------------------------
+  # INF-011 — the Flask web application, behind Gunicorn (DEP-001).
+  #
+  # This is what makes "the whole application starts on one VPS with a single
+  # command" true. Until it was added, `docker compose up -d` brought up the
+  # backend and left the only browser-facing process to be started by hand.
+  # -------------------------------------------------------------------------
+  web:
+    container_name: melody-web
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Same signal the five services use: an explicitly set POSTGRES_HOST means
+      # "you are inside the compose network, assemble the URL from the parts and
+      # ignore the .env DATABASE_URL, whose host is localhost".
+      POSTGRES_HOST: postgres
+      # n8n is a service name here, not localhost. Without this override the
+      # container would post its envelopes to its own port 5678 and every
+      # request would fail with a connection error.
+      N8N_WEBHOOK_URL: ${N8N_INTERNAL_WEBHOOK_URL:-http://n8n:5678/webhook/melody/route}
+      # Audio bytes go straight to audio-service and never through n8n (§8.1).
+      AUDIO_SERVICE_URL: ${AUDIO_SERVICE_INTERNAL_URL:-http://audio-service:8000}
+      # DEP-002: TLS terminates at the reverse proxy, so the app serves plain
+      # HTTP here. Blank rather than unset, so a stale value in .env cannot make
+      # Gunicorn look for certificate files that are not in the image.
+      FLASK_TLS_CERT: ""
+      FLASK_TLS_KEY: ""
+    ports:
+      # Published on loopback by default so `docker compose up -d` gives a
+      # working http://localhost:5000 without exposing the app to the LAN.
+      # On the VPS this becomes the reverse proxy's upstream (DEP-002/DEP-003).
+      - "${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-5000}:5000"
+    networks:
+      - melody-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      n8n:
+        condition: service_healthy
+      audio-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
 
   # -------------------------------------------------------------------------
   # INF-009 (P1) — Redis. Enable only if async-job measurement proves it is

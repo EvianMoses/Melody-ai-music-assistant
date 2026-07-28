@@ -26,8 +26,12 @@ prep_files/
 poc/
 f/
 migrations/
-templates/
-static/
+# ~~templates/~~ and ~~static/~~ were excluded here, which silently broke the
+# web image: its `COPY . .` produced a container with no templates, so the app
+# started and then 500'd on the first page render (INF-011). Every image shares
+# this one file because they all build from the repo root, so the two
+# directories are now included everywhere; they are a few hundred KB and the
+# service images do not notice.
 *.pdf
 *.md
 
