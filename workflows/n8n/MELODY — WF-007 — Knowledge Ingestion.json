@@ -88,7 +88,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ source: \"wf-007-scheduled\", documents: [] }) }}",
+        "jsonBody": "={{ JSON.stringify({ source: \"wf-007-scheduled\", action: \"status\" }) }}",
         "options": {
           "timeout": 120000,
           "response": {
@@ -106,13 +106,13 @@
         260
       ],
       "id": "a1c2f3d4-0007-4a01-9b01-000000000005",
-      "name": "PLACEHOLDER — rag-service staged ingestion (RAG-010)",
-      "notes": "PLACEHOLDER — rag-service. §1.14 compliant: final schema, explicit label, traceable task id (RAG-010), and it declares itself. Steps 4-7 of §1.10 (clean/canonicalize, chunk, embed, upsert) are Phase 3 work: the LOGIC already exists and is proven, in rag-service/scripts/ingest_local_data.py and generate_embeddings.py, which produced the live 24-document / 325-chunk corpus. What does not exist yet is a STAGED, versioned ingestion behind an endpoint, which is exactly what RAG-010 is. /rag/ingest answers 403 without INTERNAL_INGESTION_TOKEN and otherwise returns placeholder:true; this workflow reads that flag rather than assuming success.",
+      "name": "Read Ingestion Version Status",
+      "notes": "RAG-010/RAG-011 (2026-07-29): this was the last labelled placeholder in the exported workflow set. /rag/ingest is now a real lifecycle endpoint -- status / publish / rollback -- and this node reads which version is active and which are staged.\n\nBulk document loading is deliberately NOT here: the corpus is loaded by scripts/ingest_local_data.py --stage, which reads files under data/ that rag-service's image does not contain. What n8n owns is the decision -- validate, then promote or discard.",
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "// Read what the ingestion endpoint actually said, including whether it admitted\n// to being a placeholder. §8.5's NEW DECISION applies in reverse here: because\n// `placeholder` is a claim about the response, a caller is entitled to trust it\n// -- so this workflow refuses to report a staged version that was never staged.\nconst res = $input.first().json || {};\nconst status = Number(res.statusCode || 0);\nconst body = res.body || {};\nconst prior = $('Validate Source and License Metadata').first().json;\n\nconst reachable = status > 0;\nconst accepted = status >= 200 && status < 300;\nconst isPlaceholder = body.placeholder === true;\n\nreturn [{\n  json: {\n    ...prior,\n    ingestion: {\n      status_code: status,\n      reachable: reachable,\n      accepted: accepted,\n      // The honest headline: nothing was actually staged today.\n      staged: accepted && !isPlaceholder,\n      placeholder: isPlaceholder,\n      detail: accepted\n        ? (isPlaceholder\n            ? 'rag-service accepted the call and declared itself a placeholder (RAG-010 outstanding)'\n            : 'staged a new ingestion version')\n        : (status === 403\n            ? 'ingestion refused: INTERNAL_INGESTION_TOKEN is not configured (Section 2.4 keeps this endpoint closed by default)'\n            : status === 422\n              ? 'ingestion request did not match rag-service IngestRequest -- a WF-007 bug, not a service outage'\n              : `ingestion endpoint returned ${status}`),\n    },\n  },\n}];"
+        "jsCode": "// Read the real ingestion-version state (RAG-010).\n//\n// Replaces the placeholder interpretation, which could only ever report that\n// rag-service had declared itself a stub. What matters now is which version is\n// live and whether a staged one is waiting for this workflow's verdict.\nconst res = $input.first().json || {};\nconst status = Number(res.statusCode || 0);\nconst body = res.body || {};\nconst prior = $('Validate Source and License Metadata').first().json;\n\nconst versions = Array.isArray(body.versions) ? body.versions : [];\nconst staged = versions.filter((v) => v.status === 'staged');\n\nreturn [{\n  json: {\n    ...prior,\n    ingestion: {\n      status_code: status,\n      reachable: status > 0,\n      accepted: status >= 200 && status < 300,\n      active_version: body.active_version || null,\n      // The version this run is judging. Newest staged wins; if nothing is\n      // staged there is nothing to publish and the run is a health check of the\n      // live corpus rather than a promotion.\n      candidate_version: staged.length ? staged[0].version : null,\n      staged_count: staged.length,\n      detail: status === 403\n        ? 'ingestion is closed: INTERNAL_INGESTION_TOKEN is not configured'\n        : (staged.length\n            ? `${staged.length} staged version(s); candidate ${staged[0].version}`\n            : 'no staged version -- validating the live corpus only'),\n    },\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -252,29 +252,77 @@
     },
     {
       "parameters": {
-        "jsCode": "// §1.10 step 10 -- the publish branch.\n//\n// STATED PLAINLY: this does not flip a live version pointer, because there is\n// no staged version to promote. Steps 4-7 are still the RAG-010 placeholder, so\n// the only honest thing to publish is the verdict itself: the corpus that is\n// live was checked and is serving queries.\n//\n// The gate around it is real and is the part that carries forward unchanged\n// when RAG-010 lands: a failed smoke query or a missing licence already stops\n// execution reaching this node.\nconst d = $input.first().json;\nreturn [{\n  json: {\n    ...d,\n    outcome: 'published',\n    action_taken: d.ingestion?.staged\n      ? 'promoted the staged ingestion version to active'\n      : 'verified the live corpus; no new version was staged (RAG-010 outstanding)',\n    version_changed: d.ingestion?.staged === true,\n  },\n}];"
+        "method": "POST",
+        "url": "http://rag-service:8000/rag/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "={{ $env.INTERNAL_INGESTION_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source: \"wf-007\", action: \"publish\", version: $json.ingestion.candidate_version, smoke_passed: true, notes: \"published by WF-007 after smoke queries passed\" }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
       "position": [
         1740,
         160
       ],
       "id": "a1c2f3d4-0007-4a01-9b01-000000000012",
-      "name": "Publish Ingestion Version"
+      "name": "Publish Ingestion Version",
+      "notes": "RAG-011. `smoke_passed: true` is only ever sent down this branch, which the IF reaches solely when both gates passed. rag-service refuses to publish without it, so the gate is enforced on BOTH sides -- a caller that forgot to check cannot publish by omission.",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "// §1.10 step 10 -- the rollback branch.\n//\n// Rollback here means REFUSING TO PUBLISH, which is the whole protection the\n// section asks for: \"do not publish a new ingestion version until smoke queries\n// pass.\" The live corpus is left exactly as it was -- untouched is the correct\n// state after a failed validation, and a rollback that mutated anything would\n// be strictly more dangerous than doing nothing.\n//\n// When RAG-010 introduces real staging, this branch gains one more job: delete\n// the staged ingestion_version rows. It cannot do that today because nothing\n// was staged.\nconst d = $input.first().json;\n\nconst reasons = [];\nif (d.smoke_queries_passed !== true) {\n  const failed = (d.smoke_queries || []).filter((q) => !q.passed).map((q) => q.node);\n  reasons.push(`smoke queries failed: ${failed.join(', ') || 'unknown'}`);\n}\nif (d.metadata_valid !== true) {\n  reasons.push(`source metadata incomplete: ${(d.problems || []).map((p) => `${p.source}/${p.issue} (${p.task})`).join('; ')}`);\n}\n\nreturn [{\n  json: {\n    ...d,\n    outcome: 'rolled_back',\n    action_taken: 'refused to publish; the live corpus is unchanged',\n    version_changed: false,\n    rollback_reasons: reasons,\n  },\n}];"
+        "method": "POST",
+        "url": "http://rag-service:8000/rag/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "={{ $env.INTERNAL_INGESTION_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source: \"wf-007\", action: \"rollback\", version: $json.ingestion.candidate_version, notes: \"rolled back by WF-007: validation failed\" }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
       "position": [
         1740,
         380
       ],
       "id": "a1c2f3d4-0007-4a01-9b01-000000000013",
-      "name": "Rollback Staging Version"
+      "name": "Rollback Staging Version",
+      "notes": "Deletes the staged version's chunks. The live corpus is untouched -- it was never replaced, which is the whole point of staging.",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -318,7 +366,7 @@
               "id": "pl",
               "name": "payload",
               "type": "object",
-              "value": "={{ (() => { const d = $('Write Ingestion Report').isExecuted ? null : null; const s = $('Validate Sample Queries').first().json; const pub = (() => { try { return $('Publish Ingestion Version').first().json; } catch (e) { return null; } })(); const rb = (() => { try { return $('Rollback Staging Version').first().json; } catch (e) { return null; } })(); const r = pub || rb || s; return ({ outcome: (r.outcome || 'unknown'), action_taken: (r.action_taken || null), version_changed: (r.version_changed === true), smoke_queries_passed: (s.smoke_queries_passed === true), smoke_queries: s.smoke_queries, totals: s.totals, index: s.index, problems: s.problems, rollback_reasons: (r.rollback_reasons || []), ingestion: s.ingestion }); })() }}"
+              "value": "={{ (() => { const d = $('Write Ingestion Report').isExecuted ? null : null; const s = $('Validate Sample Queries').first().json; const pub = (() => { try { return $('Record Publish Outcome').first().json; } catch (e) { return null; } })(); const rb = (() => { try { return $('Record Rollback Outcome').first().json; } catch (e) { return null; } })(); const r = pub || rb || s; return ({ outcome: (r.outcome || 'unknown'), action_taken: (r.action_taken || null), version_changed: (r.version_changed === true), smoke_queries_passed: (s.smoke_queries_passed === true), smoke_queries: s.smoke_queries, totals: s.totals, index: s.index, problems: s.problems, rollback_reasons: (r.rollback_reasons || []), ingestion: s.ingestion }); })() }}"
             }
           ]
         }
@@ -330,7 +378,34 @@
         260
       ],
       "id": "a1c2f3d4-0007-4a01-9b01-000000000015",
-      "name": "Return Ingestion Report"
+      "name": "Return Ingestion Report",
+      "notes": "Reads the two Record * Outcome nodes, not the HTTP nodes that precede them: an httpRequest node's output is the HTTP envelope, so reading it here would report a status code where the outcome belongs. Same class of mistake as WF-010's Return node, which reported deleted:false about a clip it had really deleted."
+    },
+    {
+      "parameters": {
+        "jsCode": "// A run with NOTHING STAGED is a health check of the live corpus, not a\n// failure. Without this the branch POSTs `version: null`, rag-service answers\n// 400, and an ordinary \"no changes this week\" run is reported as a broken\n// ingestion -- which is exactly the kind of false alarm that trains people to\n// ignore a monitoring workflow.\nconst http = $input.first().json || {};\nconst d = $('Validate Sample Queries').first().json;\nconst candidate = d.ingestion && d.ingestion.candidate_version;\nconst code = Number(http.statusCode || 0);\nconst ok = code >= 200 && code < 300;\n\nreturn [{ json: { ...d,\n  outcome: !candidate ? 'validated_only' : (ok ? 'published' : 'publish_failed'),\n  action_taken: !candidate\n    ? 'no staged version to publish; validated the live corpus'\n    : (ok ? `promoted ${candidate} to active` : `publish refused (HTTP ${code})`),\n  version_changed: ok && !!candidate,\n  http_status: code,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        160
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000A12",
+      "name": "Record Publish Outcome"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A run with NOTHING STAGED is a health check of the live corpus, not a\n// failure. Without this the branch POSTs `version: null`, rag-service answers\n// 400, and an ordinary \"no changes this week\" run is reported as a broken\n// ingestion -- which is exactly the kind of false alarm that trains people to\n// ignore a monitoring workflow.\nconst http = $input.first().json || {};\nconst d = $('Validate Sample Queries').first().json;\nconst candidate = d.ingestion && d.ingestion.candidate_version;\nconst code = Number(http.statusCode || 0);\nconst ok = code >= 200 && code < 300;\n\nconst reasons = [];\nif (d.smoke_queries_passed !== true) {\n  const failed = (d.smoke_queries || []).filter((q) => !q.passed).map((q) => q.node);\n  reasons.push(`smoke queries failed: ${failed.join(', ') || 'unknown'}`);\n}\nif (d.metadata_valid !== true) {\n  reasons.push(`source metadata incomplete: ${(d.problems || []).map((x) => `${x.source}/${x.issue} (${x.task})`).join('; ')}`);\n}\n\nreturn [{ json: { ...d,\n  outcome: !candidate ? 'validated_only' : (ok ? 'rolled_back' : 'rollback_failed'),\n  action_taken: !candidate\n    ? 'refused to publish; nothing was staged, so the live corpus is unchanged'\n    : (ok ? `discarded staged version ${candidate}` : `rollback failed (HTTP ${code})`),\n  version_changed: false,\n  http_status: code,\n  rollback_reasons: reasons,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        380
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000A13",
+      "name": "Record Rollback Outcome"
     }
   ],
   "pinData": {},
@@ -372,18 +447,7 @@
       "main": [
         [
           {
-            "node": "PLACEHOLDER — rag-service staged ingestion (RAG-010)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PLACEHOLDER — rag-service staged ingestion (RAG-010)": {
-      "main": [
-        [
-          {
-            "node": "Interpret Ingestion Result",
+            "node": "Read Ingestion Version Status",
             "type": "main",
             "index": 0
           }
@@ -461,7 +525,7 @@
       "main": [
         [
           {
-            "node": "Write Ingestion Report",
+            "node": "Record Publish Outcome",
             "type": "main",
             "index": 0
           }
@@ -472,7 +536,7 @@
       "main": [
         [
           {
-            "node": "Write Ingestion Report",
+            "node": "Record Rollback Outcome",
             "type": "main",
             "index": 0
           }
@@ -484,6 +548,39 @@
         [
           {
             "node": "Return Ingestion Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Publish Outcome": {
+      "main": [
+        [
+          {
+            "node": "Write Ingestion Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Rollback Outcome": {
+      "main": [
+        [
+          {
+            "node": "Write Ingestion Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Ingestion Version Status": {
+      "main": [
+        [
+          {
+            "node": "Interpret Ingestion Result",
             "type": "main",
             "index": 0
           }

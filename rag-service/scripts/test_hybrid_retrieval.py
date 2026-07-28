@@ -119,6 +119,7 @@ def build_metadata_filters(
     year_to: Optional[int] = None,
     source: Optional[str] = None,
     domain: Optional[str] = None,
+    ingestion_version: Optional[str] = None,
 ) -> list:
     """SQLAlchemy predicates on the JSONB ``metadata`` column (item 3).
 
@@ -131,6 +132,11 @@ def build_metadata_filters(
 
     md = KnowledgeChunk.chunk_metadata
     conditions: list = []
+    # RAG-010: retrieval reads exactly one published corpus version. This is
+    # what makes a staged version invisible to users -- without it, staging
+    # would simply mix an unvalidated corpus into live results.
+    if ingestion_version:
+        conditions.append(KnowledgeChunk.ingestion_version == ingestion_version)
     if source:
         conditions.append(md["source"].astext == source)
     if domain:

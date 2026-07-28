@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import csv
 import re
+from datetime import datetime, timezone
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,6 +52,31 @@ GENRE_DIR = DATA_DIR / "genres_knowledge"
 REVIEWS_CSV = DATA_DIR / "cleaned_large_dataset_t.csv"
 
 INGESTION_VERSION = "v0-text-2026-07"
+
+# RAG-010. `--stage` writes a NEW version alongside the live one instead of
+# replacing it in place, so a bad chunking change is never live before WF-007's
+# smoke queries have judged it. The live corpus keeps serving throughout.
+_STAGED_VERSION: Optional[str] = None
+
+
+def active_ingestion_version() -> str:
+    """The version this run writes to: the staged one if staging, else v0."""
+    return _STAGED_VERSION or INGESTION_VERSION
+
+
+def active_doc_version() -> str:
+    """Document-level version for this run.
+
+    Must move with the ingestion version while staging. `knowledge_documents` is
+    unique on (source, uri, version), and staging deliberately does NOT delete
+    the live document -- so reusing "v0" makes the staged document collide with
+    the one still serving traffic. Found by running it: the first staged run
+    failed on that constraint, which is the safe direction to fail in (the live
+    corpus was untouched) but is still a failure.
+    """
+    return _STAGED_VERSION or DOC_VERSION
+
+
 DOC_VERSION = "v0"
 
 # Large CSV fields (long review descriptions) can exceed the default limit.
@@ -468,10 +494,16 @@ def persist_documents(docs: Iterable[ParsedDocument], database_url: str) -> tupl
                 select(KnowledgeDocument).where(
                     KnowledgeDocument.source == parsed.source,
                     KnowledgeDocument.uri == parsed.uri,
-                    KnowledgeDocument.version == DOC_VERSION,
+                    KnowledgeDocument.version == active_doc_version(),
                 )
             ).all()
             for old in existing:
+                # Replace-in-place is correct for a normal run and WRONG
+                # while staging: deleting the live document would take the
+                # active corpus down before the new one has been validated.
+                # Staged rows are a separate version and coexist with it.
+                if _STAGED_VERSION:
+                    continue
                 session.delete(old)
             session.flush()
 
@@ -479,7 +511,7 @@ def persist_documents(docs: Iterable[ParsedDocument], database_url: str) -> tupl
                 source=parsed.source,
                 title=parsed.title,
                 uri=parsed.uri,
-                version=DOC_VERSION,
+                version=active_doc_version(),
                 doc_metadata=parsed.metadata,
             )
             for parsed_chunk in parsed.chunks:
@@ -488,7 +520,7 @@ def persist_documents(docs: Iterable[ParsedDocument], database_url: str) -> tupl
                         chunk_index=parsed_chunk.chunk_index,
                         chunk_text=parsed_chunk.text,
                         embedding=None,  # real embeddings handled in the next step
-                        ingestion_version=INGESTION_VERSION,
+                        ingestion_version=active_ingestion_version(),
                         chunk_metadata=parsed_chunk.metadata,
                     )
                 )
@@ -515,6 +547,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--reviews", action="store_true", help="Ingest the reviews CSV.")
     parser.add_argument("--all", action="store_true", help="Ingest both domains.")
     parser.add_argument(
+        "--stage",
+        action="store_true",
+        help=(
+            "RAG-010: write a NEW ingestion version alongside the live corpus "
+            "instead of replacing it. The staged version is invisible to "
+            "retrieval until POST /rag/ingest publishes it."
+        ),
+    )
+    parser.add_argument(
+        "--stage-version",
+        default=None,
+        help="Explicit staged version id (default: v<timestamp>-text).",
+    )
+    parser.add_argument(
         "--reviews-limit",
         type=int,
         default=500,
@@ -540,6 +586,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     do_reviews = args.reviews or args.all
     if not (do_genres or do_reviews):
         do_genres = do_reviews = True  # default to everything
+
+    global _STAGED_VERSION
+    if args.stage:
+        _STAGED_VERSION = args.stage_version or (
+            "v" + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + "-text"
+        )
+        print(f"STAGING as ingestion version: {_STAGED_VERSION}")
+        print("  (the live corpus keeps serving until this version is published)")
 
     reviews_limit = None if args.reviews_limit == 0 else args.reviews_limit
 
@@ -579,6 +633,30 @@ def main(argv: Optional[list[str]] = None) -> int:
     doc_count, chunk_count = persist_documents(parsed_docs, database_url)
     print(f"\nDone. Inserted/updated {doc_count} documents and {chunk_count} chunks.")
     print("Embeddings left NULL; content_tsv generated by Postgres.")
+
+    if _STAGED_VERSION:
+        # Register the version so /rag/ingest can publish or roll it back, and
+        # so it is visible in `status` rather than being an orphan set of rows.
+        from sqlalchemy import create_engine as _ce, text as _sql_text
+
+        with _ce(database_url, future=True).begin() as conn:
+            conn.execute(
+                _sql_text(
+                    "INSERT INTO ingestion_versions (version, status, stats, notes) "
+                    "VALUES (:v, 'staged', jsonb_build_object('documents', :d, 'chunks', :c), :n) "
+                    "ON CONFLICT (version) DO UPDATE SET "
+                    "status = 'staged', stats = EXCLUDED.stats, updated_at = now()"
+                ),
+                {
+                    "v": _STAGED_VERSION,
+                    "d": doc_count,
+                    "c": chunk_count,
+                    "n": "Staged by ingest_local_data.py --stage",
+                },
+            )
+        print()
+        print(f"Staged version {_STAGED_VERSION} registered (status=staged).")
+        print("  Next: generate embeddings, then let WF-007 validate and publish it.")
     return 0
 
 
