@@ -206,6 +206,36 @@ async def dispose(audio_job_id: str) -> dict[str, Any]:
     return {"ok": True, "audio_job_id": audio_job_id, "deleted": True}
 
 
+@app.post("/audio/maintenance/sweep")
+async def maintenance_sweep() -> dict[str, Any]:
+    """Expire every clip past its retention window, and report what happened.
+
+    WF-010's scheduled branch calls this. The service already sweeps on its own
+    timer, so this is **not** the only thing standing between a clip and
+    deletion -- and that redundancy is the point: an orchestrated sweep that
+    silently stopped running would otherwise be indistinguishable from one that
+    had nothing to do. Returning the counts is what lets WF-010 record a real
+    number in `audio_jobs`' place rather than an assumption.
+
+    Deliberately idempotent and safe to call at any frequency: a sweep with
+    nothing to remove is a no-op that returns ``removed: 0``.
+
+    It takes no object id, so it cannot be aimed at anything -- the deletion set
+    is defined by expiry, not by the caller (WF-010's "do not accept arbitrary
+    client file paths" rule).
+    """
+    before = jobs.count_stored()
+    removed = await asyncio.to_thread(jobs.sweep_expired)
+    remaining = jobs.count_stored()
+    return {
+        "ok": True,
+        "removed": removed,
+        "stored_before": before,
+        "stored_after": remaining,
+        "retention_minutes": config.RETENTION_MINUTES,
+    }
+
+
 @app.get("/audio/limits")
 async def limits() -> dict[str, Any]:
     """The effective constraints, so the UI can enforce the same numbers."""

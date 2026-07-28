@@ -1,0 +1,597 @@
+{
+  "name": "MELODY — WF-010 — Temporary File Cleanup",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "request_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "audio_job_id",
+              "type": "string"
+            },
+            {
+              "name": "envelope",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        200
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000001",
+      "name": "When Executed by Another Workflow",
+      "notes": "Explicit deletion: WF-003/WF-004 hand back the audio_job_id they finished with."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        460
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000002",
+      "name": "Cleanup Schedule",
+      "notes": "Every 15 minutes, matching AUDIO_RETENTION_MINUTES. The safety net for clips nobody explicitly disposed of -- a crashed request must not leave a recording on disk forever."
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        640
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000003",
+      "name": "Run Cleanup Now"
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.13 step 2 -- work out which object ids this run was asked to delete.\n//\n// The id may arrive at either of two levels depending on the caller, so both\n// are read rather than assuming one shape. This is the same class of defect as\n// the WF-002 envelope bug and the WF-003 `audio_features: $json` bug: a\n// hand-off whose receiver expected a different shape than the sender sent, and\n// which failed silently because nothing raised.\nconst item = $input.first().json || {};\n\nconst candidates = [\n  item.audio_job_id,\n  item.envelope?.body?.audio_job_id,\n  item.envelope?.body?.audio?.audio_job_id,\n  item.envelope?.recommendation_context?.audio_job_id,\n];\n\nconst ids = [...new Set(candidates.filter((v) => typeof v === 'string' && v.length))];\n\nreturn [{\n  json: {\n    request_id: item.request_id || '',\n    requested_ids: ids,\n    // Stated explicitly so the validation node downstream never has to guess\n    // whether \"no ids\" meant \"nothing to do\" or \"the lookup failed\".\n    source: ids.length ? 'explicit' : 'none',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        200
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000004",
+      "name": "Resolve Explicit Temporary Object IDs"
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.13 step 3, and the section's hard rule: \"Do not accept arbitrary client\n// file paths.\"\n//\n// The rule is enforced by GRAMMAR, not by sanitising. An object id is exactly\n// 32 lowercase hex characters -- 128 bits, server-generated, the same grammar\n// audio-service's `storage.path_for` validates before it will touch the disk.\n// Anything else is refused outright rather than cleaned up and passed along:\n// `../../etc/passwd`, an absolute path, a URL, or a plausible-looking id with\n// one stray character all fail the same way.\n//\n// Validating rather than sanitising is the deliberate choice. A sanitiser has\n// to be right about every encoding trick; a grammar only has to be right about\n// what a legitimate id looks like, and this one has exactly one shape.\nconst OBJECT_ID = /^[0-9a-f]{32}$/;\n\nconst data = $input.first().json;\nconst requested = Array.isArray(data.requested_ids) ? data.requested_ids : [];\n\nconst approved = [];\nconst rejected = [];\n\nfor (const id of requested) {\n  if (OBJECT_ID.test(id)) {\n    approved.push(id);\n  } else {\n    // The offending value is NOT echoed back. It is attacker-controlled text,\n    // and reflecting it into a log or an error envelope is how a rejection\n    // turns into a second vulnerability. Length and a hash-free description\n    // are enough to debug with.\n    rejected.push({ reason: 'does not match the approved object-id grammar', length: String(id).length });\n  }\n}\n\nreturn [{\n  json: {\n    request_id: data.request_id || '',\n    approved_ids: approved,\n    rejected_count: rejected.length,\n    rejections: rejected,\n    // A run that was handed only invalid ids is a FAILURE, not a quiet no-op --\n    // something upstream is constructing ids wrongly and should be reported.\n    has_failure: rejected.length > 0,\n    nothing_to_do: approved.length === 0 && rejected.length === 0,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        200
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000005",
+      "name": "Validate Object Is Inside the Approved Temporary Store"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-approved",
+              "leftValue": "={{ $json.approved_ids.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        430,
+        200
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000006",
+      "name": "Anything Approved to Delete?"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=http://audio-service:8000/audio/jobs/{{ $json.approved_ids[0] }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        100
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000007",
+      "name": "Delete Object",
+      "notes": "neverError + fullResponse so a non-2xx is data this workflow can classify, not an exception that loses the status code -- the same lesson WF-006's [[CODE]] work recorded.",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classify the deletion.\n//\n// MEASURED, not assumed: audio-service answers DELETE with 200 for ANY\n// well-formed id, including one that was never issued -- deliberately, so the\n// endpoint cannot be used to test whether a given clip exists. Verified by\n// deleting a fabricated id and getting 200 back.\n//\n// So a 404 branch here would be dead code, and `deleted` cannot mean \"a file\n// was removed\". What it honestly means is the postcondition: THE STORE NO\n// LONGER HOLDS THIS ID. That is the property cleanup actually owes, and it is\n// true whether the clip was deleted just now or had already expired.\nconst res = $input.first().json || {};\nconst status = Number(res.statusCode || 0);\nconst approved = $('Validate Object Is Inside the Approved Temporary Store').first().json;\nconst objectId = (approved.approved_ids || [])[0] || '';\n\nconst deleted = status >= 200 && status < 300;\nconst failed = !deleted;\n\nreturn [{\n  json: {\n    request_id: approved.request_id || '',\n    object_id: objectId,\n    status_code: status,\n    deleted: deleted,\n    has_failure: failed || approved.has_failure === true,\n    failure_reason: failed ? `audio-service returned ${status}` : null,\n    rejected_count: approved.rejected_count || 0,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000008",
+      "name": "Interpret Deletion Result"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- §1.13 step 5. The row is written AT cleanup, not before it.\n--\n-- audio-service deliberately keeps live clip metadata in a sidecar next to the\n-- bytes, not in this table (§6.1), so that a row can never outlive the file it\n-- describes. That decision leaves `audio_jobs` as the right home for exactly\n-- this: the record that survives the clip. A 32-hex object id is a valid UUID\n-- without dashes, so it casts directly and the audit trail keys on the same\n-- identifier the service used.\n--\n-- ON CONFLICT DO UPDATE keeps the workflow idempotent: cleaning an already\n-- cleaned job refreshes the timestamp rather than raising.\nINSERT INTO audio_jobs (id, object_reference, state, cleanup_at)\nVALUES ($1::uuid, $2, 'cleaned', now())\nON CONFLICT (id) DO UPDATE SET\n  state      = 'cleaned',\n  cleanup_at = now(),\n  updated_at = now()\nRETURNING id::text, state;",
+        "options": {
+          "queryReplacement": "={{ [$json.object_id, 'audio://' + $json.object_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1100,
+        100
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000009",
+      "name": "Mark Job Cleaned",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $('Interpret Deletion Result').first().json;\nlet marked = false;\ntry {\n  const rows = $('Mark Job Cleaned').all();\n  marked = rows.length > 0 && rows[0].json && rows[0].json.state === 'cleaned';\n} catch (e) {\n  // The cleanup record is secondary: the clip is already gone from disk, which\n  // is the part that matters for privacy. A failed audit write is reported,\n  // not escalated into a failed cleanup.\n  marked = false;\n}\n\nreturn [{ json: { ...result, mode: 'explicit', marked_cleaned: marked } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000016",
+      "name": "Finalize Explicit Result"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://audio-service:8000/audio/maintenance/sweep",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -20,
+        460
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000010",
+      "name": "Sweep Expired Clips",
+      "notes": "Takes no id, so it cannot be aimed at anything: the deletion set is defined by expiry, not by the caller.",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// The scheduled branch's own result, in the same shape as the explicit branch\n// so `Return Cleanup Result` does not need to know which trigger fired.\nconst res = $input.first().json || {};\nconst status = Number(res.statusCode || 0);\nconst body = res.body || {};\nconst ok = status >= 200 && status < 300;\n\nreturn [{\n  json: {\n    request_id: '',\n    mode: 'scheduled_sweep',\n    removed: Number(body.removed || 0),\n    stored_before: Number(body.stored_before || 0),\n    stored_after: Number(body.stored_after || 0),\n    retention_minutes: Number(body.retention_minutes || 0),\n    status_code: status,\n    has_failure: !ok,\n    failure_reason: ok ? null : `audio-service sweep returned ${status}`,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        460
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000011",
+      "name": "Record Sweep Result"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-failure",
+              "leftValue": "={{ $json.has_failure }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1540,
+        280
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000012",
+      "name": "Cleanup Failed?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "dcHpbw4hOmPAiLsH",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $json.request_id || '' }}",
+            "source": "WF-010",
+            "error_code": "CLEANUP_FAILED",
+            "message": "={{ $json.failure_reason || 'temporary object cleanup did not complete' }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1760,
+        180
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000013",
+      "name": "Report Cleanup Failures to WF-000",
+      "notes": "A clip that will not delete is a privacy problem, not a cosmetic one -- it is someone's recording staying on disk past its stated lifetime. It goes to the common error handler rather than being logged and forgotten.",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "st",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "pl",
+              "name": "payload",
+              "type": "object",
+              "value": "={{ ({ mode: ($json.mode || 'explicit'), object_id: ($json.object_id || null), deleted: ($json.deleted === true), removed: ($json.removed !== undefined ? $json.removed : null), stored_after: ($json.stored_after !== undefined ? $json.stored_after : null), rejected_count: ($json.rejected_count || 0), failed: ($json.has_failure === true), failure_reason: ($json.failure_reason || null) }) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        380
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000014",
+      "name": "Return Cleanup Result",
+      "notes": "$json is safe here only because every node that could sit upstream now preserves the item: the Postgres write is followed by Finalize Explicit Result, and the WF-000 call is fire-and-forget. Two separate bugs were caused by assuming that without checking -- a clip reported as not deleted when it had been, and a failure reported as a success."
+    },
+    {
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "st",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "pl",
+              "name": "payload",
+              "type": "object",
+              "value": "={{ ({ mode: 'explicit', deleted: false, rejected_count: ($json.rejected_count || 0), failed: ($json.has_failure === true), detail: 'no approved object id to delete' }) }}"
+            },
+            {
+              "id": "hf",
+              "name": "has_failure",
+              "type": "boolean",
+              "value": "={{ $json.has_failure === true }}"
+            },
+            {
+              "id": "fr",
+              "name": "failure_reason",
+              "type": "string",
+              "value": "={{ $json.has_failure === true ? 'every supplied object id failed the approved-store grammar' : '' }}"
+            },
+            {
+              "id": "rq",
+              "name": "request_id",
+              "type": "string",
+              "value": "={{ $json.request_id || '' }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        300
+      ],
+      "id": "a1c2f3d4-0010-4a01-9b01-000000000015",
+      "name": "Nothing Approved"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Resolve Explicit Temporary Object IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup Schedule": {
+      "main": [
+        [
+          {
+            "node": "Sweep Expired Clips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Cleanup Now": {
+      "main": [
+        [
+          {
+            "node": "Sweep Expired Clips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Explicit Temporary Object IDs": {
+      "main": [
+        [
+          {
+            "node": "Validate Object Is Inside the Approved Temporary Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Object Is Inside the Approved Temporary Store": {
+      "main": [
+        [
+          {
+            "node": "Anything Approved to Delete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything Approved to Delete?": {
+      "main": [
+        [
+          {
+            "node": "Delete Object",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Object": {
+      "main": [
+        [
+          {
+            "node": "Interpret Deletion Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpret Deletion Result": {
+      "main": [
+        [
+          {
+            "node": "Mark Job Cleaned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Job Cleaned": {
+      "main": [
+        [
+          {
+            "node": "Finalize Explicit Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Explicit Result": {
+      "main": [
+        [
+          {
+            "node": "Cleanup Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nothing Approved": {
+      "main": [
+        [
+          {
+            "node": "Cleanup Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sweep Expired Clips": {
+      "main": [
+        [
+          {
+            "node": "Record Sweep Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Sweep Result": {
+      "main": [
+        [
+          {
+            "node": "Cleanup Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup Failed?": {
+      "main": [
+        [
+          {
+            "node": "Report Cleanup Failures to WF-000",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Cleanup Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Cleanup Failures to WF-000": {
+      "main": [
+        [
+          {
+            "node": "Return Cleanup Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "10a4c73e-9b2f-4d61-8e05-3f7a2c9d4b18",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "cL7nR3wYs5KdVt2B",
+  "tags": []
+}

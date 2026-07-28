@@ -138,6 +138,19 @@ def delete(audio_job_id: str) -> None:
     storage.delete_object(audio_job_id)
 
 
+def count_stored() -> int:
+    """How many clips are currently in the approved temporary store.
+
+    Counted from the sidecars rather than the audio files, so a clip whose
+    bytes are gone but whose metadata lingers is not counted as present. Used by
+    the WF-010 sweep endpoint to report before/after rather than just a delta --
+    "removed 0" means something quite different when 0 remain than when 40 do.
+    """
+    if not config.STORAGE_DIR.is_dir():
+        return 0
+    return sum(1 for _ in config.STORAGE_DIR.glob(f"*{_META_SUFFIX}"))
+
+
 def sweep_expired(now: Optional[float] = None) -> int:
     """Expire clips *and* their sidecars. Returns the number of jobs removed."""
     now = now or time.time()

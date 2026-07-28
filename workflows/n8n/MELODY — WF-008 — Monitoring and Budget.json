@@ -1,0 +1,423 @@
+{
+  "name": "MELODY — WF-008 — Monitoring and Budget",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        300
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000001",
+      "name": "Daily Schedule",
+      "notes": "06:00 UTC daily. GENERIC_TIMEZONE=UTC in docker-compose.yml, so this is not local time."
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        480
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000002",
+      "name": "Run Report Now",
+      "notes": "Same report on demand -- a daily-only workflow is untestable without waiting a day."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- N8N-REAL-004: real rows, not a log scrape.\n-- `model_usage` existed since Phase 2 and had no writer until\n-- recommendation-service's usage_store started filling it; before that this\n-- node could only ever have reported zero.\nSELECT\n  coalesce(sum(estimated_cost) FILTER (WHERE created_at >= now() - interval '24 hours'), 0)::float8   AS cost_24h_usd,\n  coalesce(sum(estimated_cost) FILTER (WHERE created_at >= date_trunc('month', now())), 0)::float8    AS cost_month_usd,\n  count(*) FILTER (WHERE created_at >= now() - interval '24 hours')::int                              AS calls_24h,\n  coalesce(sum(total_tokens) FILTER (WHERE created_at >= now() - interval '24 hours'), 0)::int        AS tokens_24h,\n  coalesce(max(created_at), NULL)                                                                     AS last_call_at\nFROM model_usage;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        20,
+        180
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000003",
+      "name": "Read Model Usage",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Quota is the hard operational limit in this system: 10,000 units/day,\n-- search.list at 100 a call. Until N8N-REAL-004 this existed only as a log line.\n--\n-- CAVEAT recorded rather than hidden: YouTube's quota day resets at midnight\n-- US/Pacific, and this groups by UTC day. The two disagree for 7-8 hours daily,\n-- so `units_today` is an approximation of Google's counter, not a mirror of it.\n-- `units_24h` is exact and is what the budget rules below actually use.\nSELECT\n  coalesce(json_agg(row_to_json(t)), '[]'::json) AS providers\nFROM (\n  SELECT\n    provider,\n    coalesce(sum(units) FILTER (WHERE created_at >= date_trunc('day', now())), 0)::int AS units_utc_today,\n    coalesce(sum(units) FILTER (WHERE created_at >= now() - interval '24 hours'), 0)::int AS units_24h,\n    count(*) FILTER (WHERE created_at >= now() - interval '24 hours')::int AS calls_24h\n  FROM provider_quota_usage\n  GROUP BY provider\n) t;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        20,
+        340
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000004",
+      "name": "Read Provider Quota Usage",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Latency is exact. The error rate is a FLOOR, not a true rate, and the\n-- report says so: WF-001 and WF-002 only insert a recommendation_sessions row\n-- on the success path ('completed'), so a request refused by guardrails or\n-- failed upstream leaves no row to count. Reporting the ratio as if it were\n-- complete would be the kind of confident-but-wrong number this project keeps\n-- finding; recording the limitation is cheaper than a plausible lie.\nSELECT\n  count(*)::int                                                              AS requests_24h,\n  count(*) FILTER (WHERE status <> 'completed')::int                         AS non_completed_24h,\n  coalesce(round(avg(latency_ms))::int, 0)                                   AS avg_latency_ms,\n  coalesce(percentile_disc(0.95) WITHIN GROUP (ORDER BY latency_ms), 0)::int AS p95_latency_ms,\n  count(*) FILTER (WHERE fallback_used)::int                                 AS fallback_used_24h\nFROM recommendation_sessions\nWHERE created_at >= now() - interval '24 hours';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        20,
+        500
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000005",
+      "name": "Read n8n Error Rate and Latency",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Database size and the two tables that grow without bound if cleanup\n-- stops working (audio jobs, guest sessions) -- which is exactly what WF-010\n-- exists to prevent, so this is also WF-010's smoke alarm.\n--\n-- BACKUP: deliberately reported as unconfigured rather than omitted. DEP-007\n-- (encrypted off-host backup + restore drill) is an open P1, and a health\n-- report that simply leaves backup out reads as \"fine\" when the truth is\n-- \"there is no backup\". See the summary's `backup.configured: false`.\nSELECT\n  pg_database_size(current_database())::bigint                                   AS database_bytes,\n  (SELECT count(*) FROM audio_jobs)::int                                         AS audio_jobs_rows,\n  (SELECT count(*) FROM guest_sessions WHERE expires_at < now())::int            AS expired_guest_sessions,\n  (SELECT count(*) FROM knowledge_chunks)::int                                   AS knowledge_chunks,\n  (SELECT count(*) FROM knowledge_chunks WHERE embedding IS NULL)::int           AS chunks_missing_embeddings,\n  (SELECT count(*) FROM playlist_exports WHERE created_at >= now() - interval '24 hours')::int AS exports_24h;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        20,
+        660
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000006",
+      "name": "Read Disk_Database_Backup Health",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.11 step 6 -- turn four independent readings into one budget percentage.\n//\n// Two budgets are tracked because they fail differently:\n//   * MODEL SPEND is money, accrues monthly, and is compared against\n//     MONTHLY_MODEL_BUDGET_USD.\n//   * PROVIDER QUOTA is a daily allowance that RESETS. Spending 95% of it does\n//     not cost anything; it means the next few requests return nothing at all.\n// The headline percent is the WORSE of the two, because either one hitting\n// 100% stops the product working, and averaging them would hide that.\n\nfunction first(nodeName) {\n  try {\n    const items = $(nodeName).all();\n    return items && items.length ? items[0].json : {};\n  } catch (e) {\n    // A failed read is reported as missing, never as zero: \"we spent $0\" and\n    // \"we could not find out what we spent\" must not look identical.\n    return { _unavailable: true, _error: String(e.message || e) };\n  }\n}\n\nconst usage   = first('Read Model Usage');\nconst quota   = first('Read Provider Quota Usage');\nconst errors  = first('Read n8n Error Rate and Latency');\nconst health  = first('Read Disk_Database_Backup Health');\n\n// NEW DECISION: the two budget constants live HERE, in the workflow, not in\n// $env. n8n blocks environment access inside Code nodes by default, and the\n// unblock switch (N8N_BLOCK_ENV_ACCESS_IN_NODE=false) is all-or-nothing -- it\n// would expose the whole .env, including the Anthropic key, the YouTube key and\n// the OAuth token encryption key, to every workflow in the instance. Trading\n// that for two numbers that are neither secret nor volatile is a bad deal, and\n// SEC-101 exists to prevent exactly this shape of leak.\n//\n// Change them here (and re-export the workflow JSON, which is the versioned\n// record). YOUTUBE_DAILY_QUOTA_UNITS mirrors Google's default project quota;\n// raise it only if Google actually granted an increase.\nconst MONTHLY_MODEL_BUDGET_USD = 20;\nconst YOUTUBE_DAILY_QUOTA_UNITS = 10000;\n\nconst monthlyBudget = MONTHLY_MODEL_BUDGET_USD;\nconst dailyQuota    = YOUTUBE_DAILY_QUOTA_UNITS;\n\nconst costMonth = Number(usage.cost_month_usd || 0);\nconst modelPercent = monthlyBudget > 0\n  ? (costMonth / monthlyBudget) * 100\n  : null;\n\nconst providers = Array.isArray(quota.providers) ? quota.providers : [];\nconst youtube = providers.find((p) => p.provider === 'youtube') || {};\nconst units24h = Number(youtube.units_24h || 0);\nconst quotaPercent = dailyQuota > 0 ? (units24h / dailyQuota) * 100 : null;\n\nconst candidates = [modelPercent, quotaPercent].filter((v) => v !== null);\nconst budgetPercent = candidates.length ? Math.max(...candidates) : null;\n\nconst requests = Number(errors.requests_24h || 0);\n\nreturn [{\n  json: {\n    budget_percent: budgetPercent === null ? null : Math.round(budgetPercent * 100) / 100,\n    drivers: {\n      model_spend_percent: modelPercent === null ? null : Math.round(modelPercent * 100) / 100,\n      provider_quota_percent: quotaPercent === null ? null : Math.round(quotaPercent * 100) / 100,\n      // Which of the two produced the headline, so an alert is actionable\n      // rather than just alarming.\n      binding_constraint: budgetPercent === null\n        ? 'unknown'\n        : (modelPercent !== null && modelPercent >= (quotaPercent || 0) ? 'model_spend' : 'provider_quota'),\n    },\n    model_usage: {\n      unavailable: usage._unavailable === true,\n      cost_24h_usd: Number(usage.cost_24h_usd || 0),\n      cost_month_usd: costMonth,\n      monthly_budget_usd: monthlyBudget,\n      calls_24h: Number(usage.calls_24h || 0),\n      tokens_24h: Number(usage.tokens_24h || 0),\n    },\n    provider_quota: {\n      unavailable: quota._unavailable === true,\n      daily_quota_units: dailyQuota,\n      providers: providers,\n      // Stated so nobody reads units_utc_today as Google's own counter.\n      caveat: 'UTC day; YouTube resets at midnight US/Pacific',\n    },\n    reliability: {\n      unavailable: errors._unavailable === true,\n      requests_24h: requests,\n      non_completed_24h: Number(errors.non_completed_24h || 0),\n      avg_latency_ms: Number(errors.avg_latency_ms || 0),\n      p95_latency_ms: Number(errors.p95_latency_ms || 0),\n      fallback_used_24h: Number(errors.fallback_used_24h || 0),\n      // Not called \"error_rate\": only successful requests are recorded today.\n      completeness: 'only completed requests are recorded; refusals and upstream failures are not counted',\n    },\n    health: {\n      unavailable: health._unavailable === true,\n      database_bytes: Number(health.database_bytes || 0),\n      database_mb: Math.round((Number(health.database_bytes || 0) / 1048576) * 100) / 100,\n      audio_jobs_rows: Number(health.audio_jobs_rows || 0),\n      expired_guest_sessions: Number(health.expired_guest_sessions || 0),\n      knowledge_chunks: Number(health.knowledge_chunks || 0),\n      chunks_missing_embeddings: Number(health.chunks_missing_embeddings || 0),\n      exports_24h: Number(health.exports_24h || 0),\n      backup: {\n        configured: false,\n        detail: 'DEP-007 (encrypted off-host backup + restore drill) is not implemented',\n      },\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        420
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000007",
+      "name": "Calculate Budget Percent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.11 step 7 -- the 50/75/90/95 rules, and step 7's hard instruction:\n// \"At 95% of the monthly budget, disable optional expensive paths, not the\n// deterministic core.\"\n//\n// The thresholds are named rather than inlined at the comparison so the report\n// and the alert cannot drift apart from the rule that produced them.\nconst THRESHOLDS = [\n  { at: 95, level: 'emergency' },\n  { at: 90, level: 'critical' },\n  { at: 75, level: 'warning' },\n  { at: 50, level: 'notice' },\n];\n\nconst data = $input.first().json;\nconst percent = data.budget_percent;\n\nlet level = 'ok';\nif (percent === null || percent === undefined) {\n  // Unknown is NOT ok. A monitoring workflow that cannot read its own inputs\n  // must say so, or a silent outage reads exactly like a quiet day.\n  level = 'unknown';\n} else {\n  for (const t of THRESHOLDS) {\n    if (percent >= t.at) { level = t.level; break; }\n  }\n}\n\n// What to actually do, per level. These are recommendations, not automatic\n// mutations: n8n does not rewrite the environment, and a workflow that silently\n// turned features off would violate the plan's own \"never switch silently\" rule\n// (Section 2.3). ENABLE_EXPENSIVE_MODEL_PATHS and ENABLE_CLAP already exist as\n// flags for exactly this moment.\nconst ACTIONS = {\n  ok: [],\n  unknown: ['investigate why the monitoring reads returned nothing'],\n  notice: ['no action; half the budget is a normal mid-period position'],\n  warning: ['review the cost driver named in drivers.binding_constraint'],\n  critical: [\n    'reduce MAX_SEARCH_INTENTS (each intent costs 100 quota units)',\n    'confirm the provider result cache is being hit',\n  ],\n  emergency: [\n    'set ENABLE_EXPENSIVE_MODEL_PATHS=false -- optional expensive paths only',\n    'set ENABLE_CLAP=false',\n    'DO NOT disable the deterministic core: retrieval, ranking and sequencing stay on',\n  ],\n};\n\nconst alertRequired = level !== 'ok' && level !== 'notice';\n\nreturn [{\n  json: {\n    ...data,\n    alert_level: level,\n    alert_required: alertRequired,\n    recommended_actions: ACTIONS[level] || [],\n    thresholds: THRESHOLDS,\n    summary_date: new Date().toISOString().slice(0, 10),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        420
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000008",
+      "name": "Apply 50_75_90_95 Percent Rules"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "alert-required",
+              "leftValue": "={{ $json.alert_required }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        700,
+        420
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000009",
+      "name": "Alert Required?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- NEW DECISION: the alert is RECORDED durably rather than emailed.\n-- There is no outbound mail or chat channel configured in this project, and a\n-- node that pretends to send one would be a placeholder wearing an alert's\n-- clothes -- the exact failure §8.5's audit went looking for. audit_events is\n-- the existing durable, queryable home for \"something happened that a human\n-- should know about\", and the daily summary row carries the same level.\n--\n-- Parameterized, per WF-005's SQL-injection fix: none of these values are\n-- user-supplied today, but the next person to add a field should not have to\n-- notice that.\nINSERT INTO audit_events (action, resource, context)\nSELECT 'budget_alert', 'wf-008', $1::jsonb\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ alert_level: $json.alert_level, budget_percent: $json.budget_percent, drivers: $json.drivers, recommended_actions: $json.recommended_actions, summary_date: $json.summary_date }) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        920,
+        300
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000010",
+      "name": "Send Alert if Needed",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- One row per UTC day, upserted. The unique constraint on summary_date is\n-- what makes a re-run correct rather than duplicative: the daily schedule is\n-- retryable, and two rows disagreeing about whether a threshold was crossed\n-- would make the history useless.\n--\n-- `alert_sent` records what actually happened, not what was intended -- it is\n-- true only on the branch that really wrote the audit row.\nINSERT INTO ops_daily_summary (summary_date, metrics, budget_percent, alert_level, alert_sent)\nVALUES (date_trunc('day', now()), $1::jsonb, $2::float8, $3, $4::boolean)\nON CONFLICT (summary_date) DO UPDATE SET\n  metrics        = EXCLUDED.metrics,\n  budget_percent = EXCLUDED.budget_percent,\n  alert_level    = EXCLUDED.alert_level,\n  alert_sent     = ops_daily_summary.alert_sent OR EXCLUDED.alert_sent,\n  updated_at     = now()\nRETURNING id::text, alert_level, budget_percent;",
+        "options": {
+          "queryReplacement": "={{ (() => {\n  const d = $('Apply 50_75_90_95 Percent Rules').item.json;\n  return [\n    JSON.stringify({\n      model_usage: d.model_usage,\n      provider_quota: d.provider_quota,\n      reliability: d.reliability,\n      health: d.health,\n      drivers: d.drivers,\n      recommended_actions: d.recommended_actions,\n      thresholds: d.thresholds,\n    }),\n    (d.budget_percent === null || d.budget_percent === undefined ? 0 : d.budget_percent),\n    d.alert_level,\n    // True only if this execution came through the alert branch. `$runIndex`\n    // is not usable here; the branch identity is, because the false branch\n    // reaches this node without the alert node ever running.\n    (() => { try { return $('Send Alert if Needed').all().length > 0; } catch (e) { return false; } })(),\n  ];\n})() }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1160,
+        420
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000011",
+      "name": "Store Daily Summary",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "st",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "pl",
+              "name": "payload",
+              "type": "object",
+              "value": "={{ ({ summary_date: $('Apply 50_75_90_95 Percent Rules').item.json.summary_date, alert_level: $('Apply 50_75_90_95 Percent Rules').item.json.alert_level, budget_percent: $('Apply 50_75_90_95 Percent Rules').item.json.budget_percent, drivers: $('Apply 50_75_90_95 Percent Rules').item.json.drivers, recommended_actions: $('Apply 50_75_90_95 Percent Rules').item.json.recommended_actions, stored: true }) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1380,
+        420
+      ],
+      "id": "a1c2f3d4-0008-4a01-9b01-000000000012",
+      "name": "Return Monitoring Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Model Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Provider Quota Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read n8n Error Rate and Latency",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Disk_Database_Backup Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Report Now": {
+      "main": [
+        [
+          {
+            "node": "Read Model Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Provider Quota Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read n8n Error Rate and Latency",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Disk_Database_Backup Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Disk_Database_Backup Health": {
+      "main": [
+        [
+          {
+            "node": "Calculate Budget Percent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Budget Percent": {
+      "main": [
+        [
+          {
+            "node": "Apply 50_75_90_95 Percent Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply 50_75_90_95 Percent Rules": {
+      "main": [
+        [
+          {
+            "node": "Alert Required?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Required?": {
+      "main": [
+        [
+          {
+            "node": "Send Alert if Needed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Store Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Alert if Needed": {
+      "main": [
+        [
+          {
+            "node": "Store Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Daily Summary": {
+      "main": [
+        [
+          {
+            "node": "Return Monitoring Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "8a1f0c62-4d7e-4b19-9f30-6c2b7e5a1d84",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "mB8kQ2vTz9LpXr4A",
+  "tags": []
+}

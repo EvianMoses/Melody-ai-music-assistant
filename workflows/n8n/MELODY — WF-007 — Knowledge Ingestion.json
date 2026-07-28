@@ -1,0 +1,508 @@
+{
+  "name": "MELODY — WF-007 — Knowledge Ingestion",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        300
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000001",
+      "name": "Run Ingestion Now",
+      "notes": "Ingestion is operator-initiated by default. Corpus changes are deliberate acts, not events -- nobody edits the genre corpus by accident."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtHour": 4
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -260,
+        480
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000002",
+      "name": "Weekly Ingestion Check",
+      "notes": "Weekly, and it is a CHECK: with no changed sources it stops at 'nothing to do' without touching the live corpus."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- §1.10 step 2. Real: the live corpus is the source of truth for what is\n-- already ingested, so \"changed\" is answered against rows rather than guessed.\nSELECT\n  coalesce(json_agg(row_to_json(t) ORDER BY t.source, t.version), '[]'::json) AS sources\nFROM (\n  SELECT\n    d.source,\n    d.version,\n    count(DISTINCT d.id)::int                                          AS documents,\n    count(c.id)::int                                                   AS chunks,\n    count(c.id) FILTER (WHERE c.embedding IS NULL)::int                AS chunks_missing_embeddings,\n    -- RAG-002: licence and source provenance are supposed to live in the\n    -- document's metadata. Counting what is MISSING is the point of this node:\n    -- an unlicensed corpus must be visible here, not discovered at submission.\n    count(DISTINCT d.id) FILTER (WHERE d.metadata->>'license' IS NULL)::int AS documents_missing_license,\n    count(DISTINCT d.id) FILTER (WHERE d.metadata->>'source_url' IS NULL\n                                   AND d.uri IS NULL)::int                  AS documents_missing_provenance,\n    max(d.updated_at)                                                  AS last_updated_at\n  FROM knowledge_documents d\n  LEFT JOIN knowledge_chunks c ON c.document_id = d.id\n  GROUP BY d.source, d.version\n) t;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -30,
+        380
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000003",
+      "name": "Discover Changed Sources",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.10 step 3. A gate, not a formality.\n//\n// The plan's own RAG-002 has been open since Phase 3 precisely because the\n// licence status of one corpus was never recorded. This node makes that\n// condition MACHINE-VISIBLE instead of a line in a markdown inventory nobody\n// re-reads: an unlicensed document blocks publication of a new version.\n//\n// It does NOT block the run. Discovering and reporting the problem is useful\n// even when publication is refused -- an operator needs to know what to fix.\nconst row = $input.first().json || {};\nconst sources = Array.isArray(row.sources) ? row.sources : [];\n\nconst problems = [];\nlet totalDocs = 0;\nlet totalChunks = 0;\nlet missingEmbeddings = 0;\n\nfor (const s of sources) {\n  totalDocs += Number(s.documents || 0);\n  totalChunks += Number(s.chunks || 0);\n  missingEmbeddings += Number(s.chunks_missing_embeddings || 0);\n\n  if (Number(s.documents_missing_license || 0) > 0) {\n    problems.push({\n      source: s.source,\n      version: s.version,\n      issue: 'missing_license',\n      count: Number(s.documents_missing_license),\n      task: 'RAG-002',\n    });\n  }\n  if (Number(s.documents_missing_provenance || 0) > 0) {\n    problems.push({\n      source: s.source,\n      version: s.version,\n      issue: 'missing_provenance',\n      count: Number(s.documents_missing_provenance),\n      task: 'RAG-005',\n    });\n  }\n  if (Number(s.chunks_missing_embeddings || 0) > 0) {\n    problems.push({\n      source: s.source,\n      version: s.version,\n      issue: 'chunks_without_embeddings',\n      count: Number(s.chunks_missing_embeddings),\n      task: 'RAG-004',\n    });\n  }\n}\n\nreturn [{\n  json: {\n    sources: sources,\n    totals: { documents: totalDocs, chunks: totalChunks, chunks_missing_embeddings: missingEmbeddings },\n    problems: problems,\n    metadata_valid: problems.length === 0,\n    nothing_to_do: sources.length === 0,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        380
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000004",
+      "name": "Validate Source and License Metadata"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://rag-service:8000/rag/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "={{ $json.internal_token || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source: \"wf-007-scheduled\", documents: [] }) }}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        420,
+        260
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000005",
+      "name": "PLACEHOLDER — rag-service staged ingestion (RAG-010)",
+      "notes": "PLACEHOLDER — rag-service. §1.14 compliant: final schema, explicit label, traceable task id (RAG-010), and it declares itself. Steps 4-7 of §1.10 (clean/canonicalize, chunk, embed, upsert) are Phase 3 work: the LOGIC already exists and is proven, in rag-service/scripts/ingest_local_data.py and generate_embeddings.py, which produced the live 24-document / 325-chunk corpus. What does not exist yet is a STAGED, versioned ingestion behind an endpoint, which is exactly what RAG-010 is. /rag/ingest answers 403 without INTERNAL_INGESTION_TOKEN and otherwise returns placeholder:true; this workflow reads that flag rather than assuming success.",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read what the ingestion endpoint actually said, including whether it admitted\n// to being a placeholder. §8.5's NEW DECISION applies in reverse here: because\n// `placeholder` is a claim about the response, a caller is entitled to trust it\n// -- so this workflow refuses to report a staged version that was never staged.\nconst res = $input.first().json || {};\nconst status = Number(res.statusCode || 0);\nconst body = res.body || {};\nconst prior = $('Validate Source and License Metadata').first().json;\n\nconst reachable = status > 0;\nconst accepted = status >= 200 && status < 300;\nconst isPlaceholder = body.placeholder === true;\n\nreturn [{\n  json: {\n    ...prior,\n    ingestion: {\n      status_code: status,\n      reachable: reachable,\n      accepted: accepted,\n      // The honest headline: nothing was actually staged today.\n      staged: accepted && !isPlaceholder,\n      placeholder: isPlaceholder,\n      detail: accepted\n        ? (isPlaceholder\n            ? 'rag-service accepted the call and declared itself a placeholder (RAG-010 outstanding)'\n            : 'staged a new ingestion version')\n        : (status === 403\n            ? 'ingestion refused: INTERNAL_INGESTION_TOKEN is not configured (Section 2.4 keeps this endpoint closed by default)'\n            : status === 422\n              ? 'ingestion request did not match rag-service IngestRequest -- a WF-007 bug, not a service outage'\n              : `ingestion endpoint returned ${status}`),\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        260
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000006",
+      "name": "Interpret Ingestion Result"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- §1.10 step 8. Real, and smaller than it sounds -- deliberately.\n--\n-- `knowledge_chunks.content_tsv` is a GENERATED column with a GIN index, so\n-- the full-text index maintains itself on every insert; there is no rebuild\n-- step to run and inventing one would be theatre. What a fresh ingestion does\n-- need is refreshed planner statistics, or the first queries after a bulk load\n-- pick bad plans against stale row counts.\nANALYZE knowledge_chunks;\n\nSELECT\n  (SELECT count(*) FROM knowledge_chunks WHERE content_tsv IS NOT NULL)::int AS chunks_indexed,\n  (SELECT count(*) FROM knowledge_chunks WHERE content_tsv IS NULL)::int     AS chunks_unindexed,\n  (SELECT count(*) FROM pg_indexes\n    WHERE tablename = 'knowledge_chunks'\n      AND indexname IN ('ix_knowledge_chunks_content_tsv', 'ix_knowledge_chunks_embedding_hnsw'))::int AS search_indexes_present;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        860,
+        260
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000007",
+      "name": "Build_Update Full-Text Index",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://rag-service:8000/rag/retrieve",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: \"warm indie folk with acoustic instrumentation\", filters: { domain: \"genre\" } }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1080,
+        180
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000008",
+      "name": "Smoke Query (English)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://rag-service:8000/rag/retrieve",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: \"מוזיקה ישראלית קלאסית עם גיטרה אקוסטית\", filters: { domain: \"genre\" } }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1080,
+        360
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000009",
+      "name": "Smoke Query (Hebrew)",
+      "notes": "Bilingual on purpose. The embedding model is multilingual-e5-small and the July 25 comparison already found Hebrew retrieval behaving worse than English -- a smoke set that only asks in English would not notice that regressing further.",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.10 step 9, and the section's hard rule: \"Do not publish a new ingestion\n// version until smoke queries pass.\"\n//\n// A query PASSES when it returns chunks. Retrieval confidence is recorded but\n// deliberately not used as the pass condition -- confidence is a relevance\n// signal, and a version that returns weak-but-real results is a quality problem,\n// whereas one that returns NOTHING is a broken index. This gate exists for the\n// second failure, which is the one that silently destroys the product.\nfunction readQuery(nodeName) {\n  try {\n    const res = $(nodeName).first().json || {};\n    const status = Number(res.statusCode || 0);\n    const body = res.body || {};\n    const chunks = Array.isArray(body.chunks) ? body.chunks : [];\n    return {\n      node: nodeName,\n      status_code: status,\n      ok: status >= 200 && status < 300,\n      chunks: chunks.length,\n      retrieval_confidence: body.retrieval_confidence ?? null,\n      matched_genres: Array.isArray(body.matched_genres) ? body.matched_genres.length : 0,\n      passed: status >= 200 && status < 300 && chunks.length > 0,\n    };\n  } catch (e) {\n    return { node: nodeName, ok: false, chunks: 0, passed: false, error: String(e.message || e) };\n  }\n}\n\nconst prior = $('Build_Update Full-Text Index').first().json;\nconst carried = $('Interpret Ingestion Result').first().json;\n\nconst results = [readQuery('Smoke Query (English)'), readQuery('Smoke Query (Hebrew)')];\nconst allPassed = results.every((r) => r.passed);\n\nreturn [{\n  json: {\n    ...carried,\n    index: {\n      chunks_indexed: Number(prior.chunks_indexed || 0),\n      chunks_unindexed: Number(prior.chunks_unindexed || 0),\n      search_indexes_present: Number(prior.search_indexes_present || 0),\n    },\n    smoke_queries: results,\n    smoke_queries_passed: allPassed,\n    // Publication needs BOTH gates. Metadata problems and a broken index are\n    // different failures and either one is disqualifying.\n    may_publish: allPassed && carried.metadata_valid === true,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        260
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000010",
+      "name": "Validate Sample Queries"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "may-publish",
+              "leftValue": "={{ $json.may_publish }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1520,
+        260
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000011",
+      "name": "Smoke Queries Passed?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.10 step 10 -- the publish branch.\n//\n// STATED PLAINLY: this does not flip a live version pointer, because there is\n// no staged version to promote. Steps 4-7 are still the RAG-010 placeholder, so\n// the only honest thing to publish is the verdict itself: the corpus that is\n// live was checked and is serving queries.\n//\n// The gate around it is real and is the part that carries forward unchanged\n// when RAG-010 lands: a failed smoke query or a missing licence already stops\n// execution reaching this node.\nconst d = $input.first().json;\nreturn [{\n  json: {\n    ...d,\n    outcome: 'published',\n    action_taken: d.ingestion?.staged\n      ? 'promoted the staged ingestion version to active'\n      : 'verified the live corpus; no new version was staged (RAG-010 outstanding)',\n    version_changed: d.ingestion?.staged === true,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        160
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000012",
+      "name": "Publish Ingestion Version"
+    },
+    {
+      "parameters": {
+        "jsCode": "// §1.10 step 10 -- the rollback branch.\n//\n// Rollback here means REFUSING TO PUBLISH, which is the whole protection the\n// section asks for: \"do not publish a new ingestion version until smoke queries\n// pass.\" The live corpus is left exactly as it was -- untouched is the correct\n// state after a failed validation, and a rollback that mutated anything would\n// be strictly more dangerous than doing nothing.\n//\n// When RAG-010 introduces real staging, this branch gains one more job: delete\n// the staged ingestion_version rows. It cannot do that today because nothing\n// was staged.\nconst d = $input.first().json;\n\nconst reasons = [];\nif (d.smoke_queries_passed !== true) {\n  const failed = (d.smoke_queries || []).filter((q) => !q.passed).map((q) => q.node);\n  reasons.push(`smoke queries failed: ${failed.join(', ') || 'unknown'}`);\n}\nif (d.metadata_valid !== true) {\n  reasons.push(`source metadata incomplete: ${(d.problems || []).map((p) => `${p.source}/${p.issue} (${p.task})`).join('; ')}`);\n}\n\nreturn [{\n  json: {\n    ...d,\n    outcome: 'rolled_back',\n    action_taken: 'refused to publish; the live corpus is unchanged',\n    version_changed: false,\n    rollback_reasons: reasons,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        380
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000013",
+      "name": "Rollback Staging Version"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- §1.10 step 11. Durable, queryable, and written on BOTH outcomes --\n-- a refused publication is the more important one to be able to look up later.\nINSERT INTO audit_events (action, resource, context)\nSELECT 'knowledge_ingestion', 'wf-007', $1::jsonb\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ outcome: $json.outcome, action_taken: $json.action_taken, version_changed: $json.version_changed, totals: $json.totals, index: $json.index, smoke_queries: $json.smoke_queries, smoke_queries_passed: $json.smoke_queries_passed, problems: $json.problems, rollback_reasons: ($json.rollback_reasons || []), ingestion: $json.ingestion }) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1980,
+        260
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000014",
+      "name": "Write Ingestion Report",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "st",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "pl",
+              "name": "payload",
+              "type": "object",
+              "value": "={{ (() => { const d = $('Write Ingestion Report').isExecuted ? null : null; const s = $('Validate Sample Queries').first().json; const pub = (() => { try { return $('Publish Ingestion Version').first().json; } catch (e) { return null; } })(); const rb = (() => { try { return $('Rollback Staging Version').first().json; } catch (e) { return null; } })(); const r = pub || rb || s; return ({ outcome: (r.outcome || 'unknown'), action_taken: (r.action_taken || null), version_changed: (r.version_changed === true), smoke_queries_passed: (s.smoke_queries_passed === true), smoke_queries: s.smoke_queries, totals: s.totals, index: s.index, problems: s.problems, rollback_reasons: (r.rollback_reasons || []), ingestion: s.ingestion }); })() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2200,
+        260
+      ],
+      "id": "a1c2f3d4-0007-4a01-9b01-000000000015",
+      "name": "Return Ingestion Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Run Ingestion Now": {
+      "main": [
+        [
+          {
+            "node": "Discover Changed Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Ingestion Check": {
+      "main": [
+        [
+          {
+            "node": "Discover Changed Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discover Changed Sources": {
+      "main": [
+        [
+          {
+            "node": "Validate Source and License Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Source and License Metadata": {
+      "main": [
+        [
+          {
+            "node": "PLACEHOLDER — rag-service staged ingestion (RAG-010)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PLACEHOLDER — rag-service staged ingestion (RAG-010)": {
+      "main": [
+        [
+          {
+            "node": "Interpret Ingestion Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpret Ingestion Result": {
+      "main": [
+        [
+          {
+            "node": "Build_Update Full-Text Index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build_Update Full-Text Index": {
+      "main": [
+        [
+          {
+            "node": "Smoke Query (English)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Smoke Query (Hebrew)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Smoke Query (Hebrew)": {
+      "main": [
+        [
+          {
+            "node": "Validate Sample Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Sample Queries": {
+      "main": [
+        [
+          {
+            "node": "Smoke Queries Passed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Smoke Queries Passed?": {
+      "main": [
+        [
+          {
+            "node": "Publish Ingestion Version",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rollback Staging Version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Ingestion Version": {
+      "main": [
+        [
+          {
+            "node": "Write Ingestion Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rollback Staging Version": {
+      "main": [
+        [
+          {
+            "node": "Write Ingestion Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Ingestion Report": {
+      "main": [
+        [
+          {
+            "node": "Return Ingestion Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "07c1e4b9-2a63-4f80-9d15-8b4e7a2f6c30",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "kN4pT8xJq6HbZm1C",
+  "tags": []
+}
