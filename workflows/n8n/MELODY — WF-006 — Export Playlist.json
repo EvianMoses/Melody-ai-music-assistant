@@ -1,0 +1,170 @@
+{
+  "name": "MELODY — WF-006 — Export Playlist",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "request_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "locale",
+              "type": "string"
+            },
+            {
+              "name": "idempotency_key",
+              "type": "string"
+            },
+            {
+              "name": "envelope",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "413288cd-bdae-411c-b586-f3dfb4cafac4",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://provider-gateway:8000/providers/playlists",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('When Executed by Another Workflow').item.json.request_id, user_id: $('When Executed by Another Workflow').item.json.user_id, idempotency_key: $('When Executed by Another Workflow').item.json.idempotency_key, provider: ($('When Executed by Another Workflow').item.json.envelope?.body?.playlist?.provider || 'youtube'), name: ($('When Executed by Another Workflow').item.json.envelope?.body?.playlist?.name || 'Melody Export'), description: ($('When Executed by Another Workflow').item.json.envelope?.body?.playlist?.description || ''), track_ids: ($('When Executed by Another Workflow').item.json.envelope?.body?.playlist?.track_ids || []) }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a1c2f3d4-0006-4a01-9b01-000000000001",
+      "name": "Create Playlist",
+      "onError": "stopWorkflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF-006 — Interpret Export Result\n// provider-gateway returns a normalized {ok,error:{code,message}}\n// envelope, and the HTTP node above is set never to throw so we can\n// actually read it. Re-throwing with a [[CODE]] marker is what\n// lets WF-001 recover the *specific* code: n8n forwards only an\n// error's message string to the parent workflow, so anything the\n// caller needs has to live inside that message. The marker deliberately\n// avoids a colon: n8n parses 'PREFIX: rest' as an error type and throws\n// the prefix away (observed in execution 404).\nconst item = $input.first().json || {};\nconst statusCode = item.statusCode || 200;\nconst body = item.body || {};\nif (statusCode >= 400 || body.ok === false) {\n  const err = body.error || {};\n  const code = err.code || 'UPSTREAM_ERROR';\n  throw new Error('[[' + code + ']] ' + (err.message || 'Playlist export failed.'));\n}\nreturn [{ json: body }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a1c2f3d4-0006-4a01-9b01-000000000004",
+      "name": "Interpret Export Result"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1c2f3d4-0006-set0-0000-000000000001",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "a1c2f3d4-0006-set0-0000-000000000002",
+              "name": "export",
+              "value": "={{ $('Interpret Export Result').item.json }}",
+              "type": "object"
+            },
+            {
+              "id": "payload",
+              "name": "payload",
+              "value": "={{ ({ export: $('Interpret Export Result').item.json }) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a1c2f3d4-0006-4a01-9b01-000000000003",
+      "name": "Return Export Result"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Create Playlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Playlist": {
+      "main": [
+        [
+          {
+            "node": "Interpret Export Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpret Export Result": {
+      "main": [
+        [
+          {
+            "node": "Return Export Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "e6263a1b-e740-4a98-a97b-5640fa2921b9",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "peo2Mfz0iu4hjsYi",
+  "tags": []
+}

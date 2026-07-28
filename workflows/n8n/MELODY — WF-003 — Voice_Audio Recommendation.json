@@ -1,0 +1,214 @@
+{
+  "name": "MELODY — WF-003 — Voice/Audio Recommendation",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "request_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "locale",
+              "type": "string"
+            },
+            {
+              "name": "idempotency_key",
+              "type": "string"
+            },
+            {
+              "name": "envelope",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3faf58a4-d10a-4cd3-b856-27ab91acf98f",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://audio-service:8000/audio/analyze",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('When Executed by Another Workflow').item.json.request_id, user_id: $('When Executed by Another Workflow').item.json.user_id, guest_id: ($('When Executed by Another Workflow').item.json.envelope?.identity?.guest_id || null), audio_job_id: ($('When Executed by Another Workflow').item.json.envelope?.body?.audio_job_id || null) }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a1c2f3d4-0003-4a01-9b01-000000000001",
+      "name": "Call Audio Analysis Service",
+      "onError": "stopWorkflow",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://recommendation-service:8000/recommendations/run",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('When Executed by Another Workflow').item.json.request_id, user_id: $('When Executed by Another Workflow').item.json.user_id, intent: $('When Executed by Another Workflow').item.json.intent, locale: $('When Executed by Another Workflow').item.json.locale, audio_features: ($json.features || {}), context: $('When Executed by Another Workflow').item.json.envelope }) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a1c2f3d4-0003-4a01-9b01-000000000002",
+      "name": "Call Recommendation Service",
+      "onError": "stopWorkflow",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1c2f3d4-0003-set0-0000-000000000001",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "a1c2f3d4-0003-set0-0000-000000000002",
+              "name": "audio_features",
+              "value": "={{ $('Interpret Audio Analysis Result').item.json }}",
+              "type": "object"
+            },
+            {
+              "id": "a1c2f3d4-0003-set0-0000-000000000003",
+              "name": "recommendations",
+              "value": "={{ $('Call Recommendation Service').item.json }}",
+              "type": "object"
+            },
+            {
+              "id": "payload",
+              "name": "payload",
+              "value": "={{ ({ audio_features: $('Interpret Audio Analysis Result').item.json, recommendations: $('Call Recommendation Service').item.json }) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a1c2f3d4-0003-4a01-9b01-000000000003",
+      "name": "Return Audio-Conditioned Result"
+    },
+    {
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        160
+      ],
+      "id": "a1c2f3d4-0003-4a01-9b01-000000000009",
+      "name": "Interpret Audio Analysis Result",
+      "parameters": {
+        "jsCode": "// WF-003 — Interpret Audio Service Result\n// audio-service returns a normalized {ok,error:{code,message}} envelope, and\n// the HTTP node above is set never to throw so we can actually read it.\n// Re-throwing with a [[CODE]] marker is what lets WF-001 recover the\n// *specific* code: n8n forwards only an error's message string to the parent\n// workflow, so anything the caller needs has to live inside that message.\n// The marker deliberately avoids a colon — n8n parses 'PREFIX: rest' as an\n// error type and throws the prefix away (see WF-006's note).\n//\n// The case this exists for is ordinary, not exceptional: clips expire after\n// AUDIO_RETENTION_MINUTES, so a user who records, gets distracted, and comes\n// back will hit it. Without this they were told 'a downstream service failed',\n// which is both wrong and unactionable — the fix is 'record it again'.\nconst item = $input.first().json || {};\nconst statusCode = item.statusCode || 200;\nconst body = item.body || {};\nif (statusCode >= 400 || body.ok === false) {\n  const err = body.error || {};\n  // A missing clip is not an upstream failure -- it is an expected lifecycle\n  // state with its own user-facing instruction.\n  const code = (statusCode === 404 || err.code === 'NOT_FOUND')\n    ? 'AUDIO_UNAVAILABLE'\n    : (err.code || 'UPSTREAM_ERROR');\n  throw new Error('[[' + code + ']] ' + (err.message || 'The audio could not be processed.'));\n}\nreturn [{ json: body }];\n"
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Call Audio Analysis Service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Audio Analysis Service": {
+      "main": [
+        [
+          {
+            "node": "Interpret Audio Analysis Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Recommendation Service": {
+      "main": [
+        [
+          {
+            "node": "Return Audio-Conditioned Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpret Audio Analysis Result": {
+      "main": [
+        [
+          {
+            "node": "Call Recommendation Service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "b2b97109-456a-485a-9d27-ad496b78d987",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "GXzrMhhny4dIS24a",
+  "tags": []
+}

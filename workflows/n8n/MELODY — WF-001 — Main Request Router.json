@@ -1,0 +1,2045 @@
+{
+  "name": "MELODY — WF-001 — Main Request Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "melody/route",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4e85dbf1-893a-44c0-94af-64c54a2fe336",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        64
+      ],
+      "webhookId": "b6ba4176-0caf-4860-b8f8-4a516519b808"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "reqId",
+              "name": "request_id",
+              "value": "={{ $json.body?.request_id || $json.request_id || $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "execId",
+              "name": "executionId",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "recvAt",
+              "name": "receivedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "startMs",
+              "name": "startedAtMs",
+              "value": "={{ $now.toMillis() }}",
+              "type": "number"
+            },
+            {
+              "id": "src",
+              "name": "source",
+              "value": "webhook",
+              "type": "string"
+            },
+            {
+              "id": "wfVersion",
+              "name": "workflowVersion",
+              "value": "1.0.0",
+              "type": "string"
+            },
+            {
+              "id": "wfName",
+              "name": "workflowName",
+              "value": "={{ $workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "provMode",
+              "name": "providerMode",
+              "value": "direct",
+              "type": "string"
+            },
+            {
+              "id": "engine",
+              "name": "engine",
+              "value": "n8n-router",
+              "type": "string"
+            },
+            {
+              "id": "fallback",
+              "name": "fallbackUsed",
+              "value": "false",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "2a560010-696b-4185-b7d9-733fd410e48a",
+      "name": "Initialize Execution metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF-001 — Validate Request Schema\n// Canonical envelope: contracts/models.py::RequestEnvelope\n// N8N-005: pin the schema and reject unknown values for critical enums.\n// N8N-009 / ARC-003: require an idempotency key for side-effecting intents.\n\nconst ALLOWED_INTENTS = [\n  'text_recommendation',\n  'audio_vibe_recommendation',\n  'audio_identification',\n  'feedback',\n  'playlist_export',\n  'auth_connection_sync',\n];\nconst ALLOWED_LOCALES = ['en', 'he'];\nconst ALLOWED_DISCOVERY = ['safe', 'balanced', 'adventurous'];\n// ARC-003 §4.1 — these intents cause an external or immutable side effect.\nconst IDEMPOTENT_INTENTS = ['feedback', 'playlist_export', 'auth_connection_sync'];\nconst SUPPORTED_API_VERSIONS = ['v1'];\nconst MAX_PROMPT_CHARS = 1000;\n\nconst out = [];\nfor (const item of $input.all()) {\n  const raw = item.json || {};\n  // The Webhook node nests the posted JSON under `body`; the manual test path\n  // (Mock Flask Data) supplies the envelope directly. Accept both rather than\n  // assuming one shape.\n  const env = (raw.body && (raw.body.intent || raw.body.api_version)) ? raw.body : raw;\n  const body = env.body || {};\n  const identity = env.identity || {};\n\n  const apiVersion = (env.api_version || 'v1').toString();\n  if (!SUPPORTED_API_VERSIONS.includes(apiVersion)) {\n    throw new Error('VALIDATION_ERROR: unsupported api_version \"' + apiVersion + '\"');\n  }\n\n  const intent = (env.intent || '').toString().trim().toLowerCase();\n  if (!intent) {\n    throw new Error('VALIDATION_ERROR: intent is required');\n  }\n  if (!ALLOWED_INTENTS.includes(intent)) {\n    throw new Error('VALIDATION_ERROR: unknown intent \"' + intent + '\"');\n  }\n\n  const locale = (env.locale || 'en').toString().trim().toLowerCase();\n  if (!ALLOWED_LOCALES.includes(locale)) {\n    throw new Error('VALIDATION_ERROR: unsupported locale \"' + locale + '\"');\n  }\n\n  const ctx = body.recommendation_context || {};\n  const discoveryMode = (ctx.discovery_mode || 'balanced').toString().trim().toLowerCase();\n  if (!ALLOWED_DISCOVERY.includes(discoveryMode)) {\n    throw new Error('VALIDATION_ERROR: unknown discovery_mode \"' + discoveryMode + '\"');\n  }\n\n  const message = (body.prompt || body.message || '').toString();\n  if (message.length > MAX_PROMPT_CHARS) {\n    throw new Error('VALIDATION_ERROR: prompt exceeds ' + MAX_PROMPT_CHARS + ' characters');\n  }\n  if (!message && intent === 'text_recommendation') {\n    throw new Error('VALIDATION_ERROR: prompt is required for text_recommendation');\n  }\n\n  const idempotencyKey = (env.idempotency_key || '').toString().trim();\n  if (IDEMPOTENT_INTENTS.includes(intent) && !idempotencyKey) {\n    throw new Error('VALIDATION_ERROR: idempotency_key is required for intent \"' + intent + '\"');\n  }\n\n  // N8N-004: request_id is guaranteed present from here on. `Initialize\n  // Execution metadata` already generated one when the client omitted it.\n  const requestId = (\n    env.request_id || raw.request_id || $execution.id\n  ).toString();\n\n  out.push({\n    json: {\n      apiVersion,\n      requestId,\n      intent,\n      locale,\n      discoveryMode,\n      idempotencyKey: idempotencyKey || null,\n      userId: identity.user_id || null,\n      guestId: identity.guest_id || null,\n      sessionId: identity.session_id || null,\n      message,\n      // The full validated envelope travels to the sub-workflow unchanged.\n      envelope: env,\n      valid: true,\n    },\n  });\n}\nreturn out;\n"
+      },
+      "id": "863614ed-ecca-42cf-9d17-cff2c00caa55",
+      "name": "Validate Request Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        64
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://guardrails-service:8000/check/input",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.message, context: { intent: $json.intent, requestId: $json.requestId, userId: $json.userId } }) }}",
+        "options": {
+          "timeout": 3000
+        }
+      },
+      "id": "3067b749-5cf6-42ce-8f38-cc1ca8590da5",
+      "name": "Input Guardrails",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        656,
+        272
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "inAllowed",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e35647ea-aba1-4613-94cf-bb816285afce",
+      "name": "Input Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ye08vB6Qx8wcJ8DQ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ye08vB6Qx8wcJ8DQ",
+          "cachedResultName": "MELODY — WF-009 — Provider Connection Sync"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Validate Request Schema').item.json.requestId }}",
+            "user_id": "={{ $('Validate Request Schema').item.json.userId }}",
+            "intent": "={{ $('Validate Request Schema').item.json.intent }}",
+            "locale": "={{ $('Validate Request Schema').item.json.locale }}",
+            "idempotency_key": "={{ $('Validate Request Schema').item.json.idempotencyKey }}",
+            "envelope": "={{ $('Validate Request Schema').item.json.envelope }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "envelope",
+              "displayName": "envelope",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "31823662-5cd2-4518-b5c3-4ef95cdff8f1",
+      "name": "Load Connection Status",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        64
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "hasIntent",
+              "leftValue": "={{ $(\"Validate Request Schema\").item.json.intent }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "43a381f8-420d-415e-acd6-0cd766f2eb4f",
+      "name": "Explicit Intent Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1568,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Validate Request Schema').item.json.intent }}",
+                    "rightValue": "text_recommendation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3c0f5c18-89b0-4e70-85ff-4b5e4b81e1eb"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text_recommendation"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Validate Request Schema').item.json.intent }}",
+                    "rightValue": "audio_vibe_recommendation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5f6718bd-1099-4e26-894b-81b9a7944eee"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio_vibe_recommendation"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Validate Request Schema').item.json.intent }}",
+                    "rightValue": "audio_identification",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e13ac39c-5097-4b9c-805a-f12967e53812"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio_identification"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Validate Request Schema').item.json.intent }}",
+                    "rightValue": "feedback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "78276d3a-56cf-46e7-a092-9a1220b4136b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "feedback"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Validate Request Schema').item.json.intent }}",
+                    "rightValue": "playlist_export",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3f13937a-2bb3-4da3-88d9-7ba18eacd78d"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "playlist_export"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Validate Request Schema').item.json.intent }}",
+                    "rightValue": "auth_connection_sync",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "296f8672-7942-4114-9c85-9ea324319f90"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "auth_connection_sync"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unmatched"
+        }
+      },
+      "id": "cf9a6eae-bdcb-4806-9a08-dee75d98721b",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2144,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $(\"Validate Request Schema\").item.json.message }}",
+        "options": {
+          "systemMessage": "You classify a user message into exactly one intent label from: faq, billing, technical, account, sales, feedback. Respond with only the single lowercase label."
+        }
+      },
+      "id": "e751ecaf-b517-484e-a9d8-4a2fdc18c313",
+      "name": "Classify Ambiguous Intent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1792,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "23dc2d7d-dc28-4fbb-b0a3-1cf18f026da9",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1872,
+        416
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "n8n credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nStatus",
+              "name": "status",
+              "value": "={{ $json.status || \"ok\" }}",
+              "type": "string"
+            },
+            {
+              "id": "nResult",
+              "name": "result",
+              "value": "={{ $json.payload }}",
+              "type": "object"
+            },
+            {
+              "id": "nIntent",
+              "name": "intent",
+              "value": "={{ $('Validate Request Schema').item.json.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "nReq",
+              "name": "requestId",
+              "value": "={{ $('Validate Request Schema').item.json.requestId }}",
+              "type": "string"
+            },
+            {
+              "id": "nVer",
+              "name": "workflowVersion",
+              "value": "={{ $('Initialize Execution metadata').item.json.workflowVersion }}",
+              "type": "string"
+            },
+            {
+              "id": "nProv",
+              "name": "providerMode",
+              "value": "={{ $('Initialize Execution metadata').item.json.providerMode }}",
+              "type": "string"
+            },
+            {
+              "id": "nEngine",
+              "name": "engine",
+              "value": "={{ $('Initialize Execution metadata').item.json.engine }}",
+              "type": "string"
+            },
+            {
+              "id": "nFallback",
+              "name": "fallbackUsed",
+              "value": "={{ $('Initialize Execution metadata').item.json.fallbackUsed }}",
+              "type": "boolean"
+            },
+            {
+              "id": "nLatency",
+              "name": "latencyMs",
+              "value": "={{ $now.toMillis() - $('Initialize Execution metadata').item.json.startedAtMs }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3ad26b59-87ca-466d-be86-a559362bc300",
+      "name": "Normalize Subworkflow Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2592,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://guardrails-service:8000/check/output",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ payload: $json.result }) }}",
+        "options": {
+          "timeout": 3000
+        }
+      },
+      "id": "a20b42ce-c83a-42a8-9457-9788be683895",
+      "name": "Output Guardrails",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2800,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "outAllowed",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1d6d5f60-0606-4b2b-a493-5c5a93084f3c",
+      "name": "Output Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3040,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ requestId: $(\"Normalize Subworkflow Result\").item.json.requestId, intent: $(\"Normalize Subworkflow Result\").item.json.intent, status: $(\"Normalize Subworkflow Result\").item.json.status, result: $(\"Normalize Subworkflow Result\").item.json.result, meta: { workflowVersion: $(\"Normalize Subworkflow Result\").item.json.workflowVersion, providerMode: $(\"Normalize Subworkflow Result\").item.json.providerMode, engine: $(\"Normalize Subworkflow Result\").item.json.engine, fallbackUsed: $(\"Normalize Subworkflow Result\").item.json.fallbackUsed, latencyMs: $(\"Normalize Subworkflow Result\").item.json.latencyMs } }) }}",
+        "options": {}
+      },
+      "id": "1c71be94-da57-4991-b0dd-cad1a3b62ab8",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3488,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- Resolve the caller's identity (Section 2.3 guest_sessions).\n--\n-- Phase 5 §5.5 fix: this used to INSERT a fresh guest row on *every*\n-- request, which (a) minted a new id per request instead of a stable one\n-- and (b) overwrote the identity of a signed-in user, so playlist export\n-- could never find their oauth_accounts row. Now: an authenticated request\n-- skips the insert and passes its users.id through, and a guest request\n-- upserts on the guest_id Flask already sends -- the same id that\n-- auth_google._link_guest_session() looks up at sign-in, which is what\n-- makes guest->user migration possible at all.\n--\n-- The CTE shape matters: it always returns exactly one row. A bare\n-- conditional INSERT would return zero rows for authenticated users, and\n-- an n8n node that emits no items stops the branch dead.\nWITH input AS (\n  SELECT NULLIF('{{ $('Validate Request Schema').item.json.userId || \"\" }}', '') AS uid,\n         NULLIF('{{ $('Validate Request Schema').item.json.guestId || \"\" }}', '') AS gid\n), upserted AS (\n  INSERT INTO guest_sessions (id, expires_at)\n  SELECT gid::uuid, now() + interval '1 day' FROM input\n  WHERE uid IS NULL AND gid ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'\n  ON CONFLICT (id) DO UPDATE SET expires_at = EXCLUDED.expires_at\n  RETURNING id::text AS resolved\n)\nSELECT COALESCE((SELECT resolved FROM upserted),\n                (SELECT uid FROM input)) AS user_id,\n       (SELECT uid FROM input) IS NOT NULL AS authenticated;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1120,
+        -96
+      ],
+      "id": "dc514308-92cd-4a35-9622-35cbd2bfe6d8",
+      "name": "Resolve User or Guest",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- N8N-008: record engine, provider mode, latency, and fallback state.\nINSERT INTO recommendation_sessions (request_id, intent, request_context, engine_used, fallback_used, status, latency_ms)\nVALUES (\n  '{{ $('Normalize Subworkflow Result').item.json.requestId }}',\n  '{{ $('Normalize Subworkflow Result').item.json.intent }}',\n  '{}'::jsonb,\n  '{{ $('Normalize Subworkflow Result').item.json.engine }}',\n  {{ $('Normalize Subworkflow Result').item.json.fallbackUsed }},\n  'completed',\n  {{ $('Normalize Subworkflow Result').item.json.latencyMs }}\n)\nRETURNING id::text;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3248,
+        16
+      ],
+      "id": "24c9854d-64d5-47b5-9452-4f34c6b4cc16",
+      "name": "Record Request Metrics",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "gXjFEy37IE8fz1H3",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/gXjFEy37IE8fz1H3",
+          "cachedResultName": "MELODY — WF-002 — Text Recommendation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Validate Request Schema').item.json.requestId }}",
+            "user_id": "={{ $('Validate Request Schema').item.json.userId }}",
+            "intent": "={{ $('Validate Request Schema').item.json.intent }}",
+            "locale": "={{ $('Validate Request Schema').item.json.locale }}",
+            "idempotency_key": "={{ $('Validate Request Schema').item.json.idempotencyKey }}",
+            "envelope": "={{ $('Validate Request Schema').item.json.envelope }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "envelope",
+              "displayName": "envelope",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2336,
+        -576
+      ],
+      "id": "f5da1b66-8f01-4138-b3d2-2f6cf6c9c076",
+      "name": "Call 'WF-002 — Text Recommendation'",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GXzrMhhny4dIS24a",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/GXzrMhhny4dIS24a",
+          "cachedResultName": "MELODY — WF-003 — Voice/Audio Recommendation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Validate Request Schema').item.json.requestId }}",
+            "user_id": "={{ $('Validate Request Schema').item.json.userId }}",
+            "intent": "={{ $('Validate Request Schema').item.json.intent }}",
+            "locale": "={{ $('Validate Request Schema').item.json.locale }}",
+            "idempotency_key": "={{ $('Validate Request Schema').item.json.idempotencyKey }}",
+            "envelope": "={{ $('Validate Request Schema').item.json.envelope }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "envelope",
+              "displayName": "envelope",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2368,
+        -384
+      ],
+      "id": "11a3b025-6172-49c0-9e69-386ce7a9aa6b",
+      "name": "Call 'WF-003 — Voice/Audio Recommendation'",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "G0xbtVgpBH19rXMe",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/G0xbtVgpBH19rXMe",
+          "cachedResultName": "MELODY — WF-004 — Identify Track"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Validate Request Schema').item.json.requestId }}",
+            "user_id": "={{ $('Validate Request Schema').item.json.userId }}",
+            "intent": "={{ $('Validate Request Schema').item.json.intent }}",
+            "locale": "={{ $('Validate Request Schema').item.json.locale }}",
+            "idempotency_key": "={{ $('Validate Request Schema').item.json.idempotencyKey }}",
+            "envelope": "={{ $('Validate Request Schema').item.json.envelope }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "envelope",
+              "displayName": "envelope",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2352,
+        -192
+      ],
+      "id": "87abc59b-3715-421a-b03a-daf49265dab8",
+      "name": "Call 'WF-004 — Identify Track'",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "bC0l6kv3G854rE2E",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/bC0l6kv3G854rE2E",
+          "cachedResultName": "MELODY — WF-005 — User Feedback Loop"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Validate Request Schema').item.json.requestId }}",
+            "user_id": "={{ $('Validate Request Schema').item.json.userId }}",
+            "intent": "={{ $('Validate Request Schema').item.json.intent }}",
+            "locale": "={{ $('Validate Request Schema').item.json.locale }}",
+            "idempotency_key": "={{ $('Validate Request Schema').item.json.idempotencyKey }}",
+            "envelope": "={{ $('Validate Request Schema').item.json.envelope }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "envelope",
+              "displayName": "envelope",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2368,
+        16
+      ],
+      "id": "ef602ec1-645a-43f1-8480-dcce981f4e84",
+      "name": "Call 'WF-005 — User Feedback Loop'",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "peo2Mfz0iu4hjsYi",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/peo2Mfz0iu4hjsYi",
+          "cachedResultName": "MELODY — WF-006 — Export Playlist"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Validate Request Schema').item.json.requestId }}",
+            "user_id": "={{ $('Validate Request Schema').item.json.userId }}",
+            "intent": "={{ $('Validate Request Schema').item.json.intent }}",
+            "locale": "={{ $('Validate Request Schema').item.json.locale }}",
+            "idempotency_key": "={{ $('Validate Request Schema').item.json.idempotencyKey }}",
+            "envelope": "={{ $('Validate Request Schema').item.json.envelope }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "envelope",
+              "displayName": "envelope",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2368,
+        208
+      ],
+      "id": "3ab5c921-20c4-44ea-968e-c6668b42f574",
+      "name": "Call 'WF-006 — Export Playlist'",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ye08vB6Qx8wcJ8DQ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ye08vB6Qx8wcJ8DQ",
+          "cachedResultName": "MELODY — WF-009 — Provider Connection Sync"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Validate Request Schema').item.json.requestId }}",
+            "user_id": "={{ $('Validate Request Schema').item.json.userId }}",
+            "intent": "={{ $('Validate Request Schema').item.json.intent }}",
+            "locale": "={{ $('Validate Request Schema').item.json.locale }}",
+            "idempotency_key": "={{ $('Validate Request Schema').item.json.idempotencyKey }}",
+            "envelope": "={{ $('Validate Request Schema').item.json.envelope }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "envelope",
+              "displayName": "envelope",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2368,
+        384
+      ],
+      "id": "33c4b49a-2564-4754-b2ae-2e9da8561881",
+      "name": "Call 'WF-009 — Provider Connection Sync'",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        480
+      ],
+      "id": "b506c796-9215-4705-aca8-720cbbbffe1b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c48940b5-1b15-4b09-892b-fa2a5dfdcbbf",
+              "name": "api_version",
+              "value": "v1",
+              "type": "string"
+            },
+            {
+              "id": "5ce62c2e-8c68-413c-bc6c-ddedf3072d8c",
+              "name": "request_id",
+              "value": "req_test_001",
+              "type": "string"
+            },
+            {
+              "id": "20ca4cf4-0f95-46cf-b380-4b5871b92ad4",
+              "name": "intent",
+              "value": "text_recommendation",
+              "type": "string"
+            },
+            {
+              "id": "20ca4cf4-0f95-46cf-b380-4b5871b92ad5",
+              "name": "locale",
+              "value": "en",
+              "type": "string"
+            },
+            {
+              "id": "20ca4cf4-0f95-46cf-b380-4b5871b92ad6",
+              "name": "identity",
+              "value": "={{ ({ \"type\": \"guest\", \"user_id\": null, \"guest_id\": \"00000000-0000-4000-8000-000000000001\" }) }}",
+              "type": "object"
+            },
+            {
+              "id": "20ca4cf4-0f95-46cf-b380-4b5871b92ad7",
+              "name": "body",
+              "value": "={{ ({ \"prompt\": \"play something like Daft Punk but a bit more mellow\", \"provider\": \"youtube\" }) }}",
+              "type": "object"
+            },
+            {
+              "id": "20ca4cf4-0f95-46cf-b380-4b5871b92ad8",
+              "name": "idempotency_key",
+              "value": "idem_test_001",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -48,
+        368
+      ],
+      "id": "4eda8ff2-53b3-4c9b-8975-6ee0fcef4035",
+      "name": "Mock Flask Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ok",
+              "name": "ok",
+              "value": "false",
+              "type": "boolean"
+            },
+            {
+              "id": "code",
+              "name": "error.code",
+              "value": "INPUT_REJECTED",
+              "type": "string"
+            },
+            {
+              "id": "msg",
+              "name": "error.message",
+              "value": "Your request could not be processed. Please rephrase it as a music request.",
+              "type": "string"
+            },
+            {
+              "id": "rid",
+              "name": "requestId",
+              "value": "={{ $('Validate Request Schema').item.json.requestId }}",
+              "type": "string"
+            },
+            {
+              "id": "lat",
+              "name": "latencyMs",
+              "value": "={{ $now.toMillis() - $('Initialize Execution metadata').item.json.startedAtMs }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        288
+      ],
+      "id": "err-input-rejected",
+      "name": "Input Rejected"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ok",
+              "name": "ok",
+              "value": "false",
+              "type": "boolean"
+            },
+            {
+              "id": "code",
+              "name": "error.code",
+              "value": "VALIDATION_ERROR",
+              "type": "string"
+            },
+            {
+              "id": "msg",
+              "name": "error.message",
+              "value": "The requested action is not supported.",
+              "type": "string"
+            },
+            {
+              "id": "rid",
+              "name": "requestId",
+              "value": "={{ $('Validate Request Schema').item.json.requestId }}",
+              "type": "string"
+            },
+            {
+              "id": "lat",
+              "name": "latencyMs",
+              "value": "={{ $now.toMillis() - $('Initialize Execution metadata').item.json.startedAtMs }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2368,
+        288
+      ],
+      "id": "err-validation-error",
+      "name": "Unroutable Intent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ok",
+              "name": "ok",
+              "value": "false",
+              "type": "boolean"
+            },
+            {
+              "id": "code",
+              "name": "error.code",
+              "value": "OUTPUT_BLOCKED",
+              "type": "string"
+            },
+            {
+              "id": "msg",
+              "name": "error.message",
+              "value": "A response was generated but did not pass safety checks, so it was withheld.",
+              "type": "string"
+            },
+            {
+              "id": "rid",
+              "name": "requestId",
+              "value": "={{ $('Validate Request Schema').item.json.requestId }}",
+              "type": "string"
+            },
+            {
+              "id": "lat",
+              "name": "latencyMs",
+              "value": "={{ $now.toMillis() - $('Initialize Execution metadata').item.json.startedAtMs }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3248,
+        288
+      ],
+      "id": "err-output-blocked",
+      "name": "Output Blocked"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, requestId: $json.requestId, error: { code: $json.error.code, message: $json.error.message }, meta: { workflowVersion: $('Initialize Execution metadata').item.json.workflowVersion, providerMode: $('Initialize Execution metadata').item.json.providerMode, engine: $('Initialize Execution metadata').item.json.engine, latencyMs: $json.latencyMs } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3712,
+        288
+      ],
+      "id": "respond-with-error",
+      "name": "Respond with Error"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ok",
+              "name": "ok",
+              "value": "false",
+              "type": "boolean"
+            },
+            {
+              "id": "code",
+              "name": "error.code",
+              "value": "VALIDATION_ERROR",
+              "type": "string"
+            },
+            {
+              "id": "msg",
+              "name": "error.message",
+              "value": "={{ ($json.error?.message || $json.error || 'Request validation failed.').toString().replace('VALIDATION_ERROR: ', '') }}",
+              "type": "string"
+            },
+            {
+              "id": "rid",
+              "name": "requestId",
+              "value": "={{ $('Initialize Execution metadata').item.json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "lat",
+              "name": "latencyMs",
+              "value": "={{ $now.toMillis() - $('Initialize Execution metadata').item.json.startedAtMs }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        288
+      ],
+      "id": "err-validation-failed",
+      "name": "Validation Failed"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ok",
+              "name": "ok",
+              "value": "false",
+              "type": "boolean"
+            },
+            {
+              "id": "code",
+              "name": "error.code",
+              "value": "={{ (() => { const raw = $json.error; const text = typeof raw === 'string' ? raw : JSON.stringify(raw || ''); const m = String(text).match(/\\[\\[([A-Z_]+)\\]\\]/); const known = {\"AUTHORIZATION_REQUIRED\": \"Please sign in to continue.\", \"REAUTHORIZATION_REQUIRED\": \"Your connection expired. Please reconnect your account.\", \"INSUFFICIENT_SCOPE\": \"Melody needs permission to manage your playlists. Please reconnect and approve playlist access.\", \"QUOTA_EXCEEDED\": \"The provider's daily limit was reached. Please try again tomorrow.\", \"RATE_LIMITED\": \"Too many requests right now. Please try again in a moment.\", \"FEATURE_DISABLED\": \"That feature is not enabled.\", \"MISSING_ITEM\": \"There was nothing to export.\", \"AUDIO_UNAVAILABLE\": \"That audio clip is no longer available — clips are deleted a few minutes after upload. Please record or upload it again.\", \"UNSUPPORTED_MEDIA_TYPE\": \"That file is not an audio format Melody can read.\", \"PAYLOAD_TOO_LARGE\": \"That audio file is too large. Please use a shorter clip.\"}; return (m && known[m[1]]) ? m[1] : null; })() || 'UPSTREAM_ERROR' }}",
+              "type": "string"
+            },
+            {
+              "id": "msg",
+              "name": "error.message",
+              "value": "={{ (() => { const known = {\"AUTHORIZATION_REQUIRED\": \"Please sign in to continue.\", \"REAUTHORIZATION_REQUIRED\": \"Your connection expired. Please reconnect your account.\", \"INSUFFICIENT_SCOPE\": \"Melody needs permission to manage your playlists. Please reconnect and approve playlist access.\", \"QUOTA_EXCEEDED\": \"The provider's daily limit was reached. Please try again tomorrow.\", \"RATE_LIMITED\": \"Too many requests right now. Please try again in a moment.\", \"FEATURE_DISABLED\": \"That feature is not enabled.\", \"MISSING_ITEM\": \"There was nothing to export.\", \"AUDIO_UNAVAILABLE\": \"That audio clip is no longer available — clips are deleted a few minutes after upload. Please record or upload it again.\", \"UNSUPPORTED_MEDIA_TYPE\": \"That file is not an audio format Melody can read.\", \"PAYLOAD_TOO_LARGE\": \"That audio file is too large. Please use a shorter clip.\"}; const code = (() => { const raw = $json.error; const text = typeof raw === 'string' ? raw : JSON.stringify(raw || ''); const m = String(text).match(/\\[\\[([A-Z_]+)\\]\\]/); const known = {\"AUTHORIZATION_REQUIRED\": \"Please sign in to continue.\", \"REAUTHORIZATION_REQUIRED\": \"Your connection expired. Please reconnect your account.\", \"INSUFFICIENT_SCOPE\": \"Melody needs permission to manage your playlists. Please reconnect and approve playlist access.\", \"QUOTA_EXCEEDED\": \"The provider's daily limit was reached. Please try again tomorrow.\", \"RATE_LIMITED\": \"Too many requests right now. Please try again in a moment.\", \"FEATURE_DISABLED\": \"That feature is not enabled.\", \"MISSING_ITEM\": \"There was nothing to export.\", \"AUDIO_UNAVAILABLE\": \"That audio clip is no longer available — clips are deleted a few minutes after upload. Please record or upload it again.\", \"UNSUPPORTED_MEDIA_TYPE\": \"That file is not an audio format Melody can read.\", \"PAYLOAD_TOO_LARGE\": \"That audio file is too large. Please use a shorter clip.\"}; return (m && known[m[1]]) ? m[1] : null; })(); return code ? known[code] : 'The request could not be completed because a downstream service failed.'; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "rid",
+              "name": "requestId",
+              "value": "={{ $('Initialize Execution metadata').item.json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "lat",
+              "name": "latencyMs",
+              "value": "={{ $now.toMillis() - $('Initialize Execution metadata').item.json.startedAtMs }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2688,
+        288
+      ],
+      "id": "err-subworkflow-failed",
+      "name": "Subworkflow Failed"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Initialize Execution metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Execution metadata": {
+      "main": [
+        [
+          {
+            "node": "Validate Request Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Request Schema": {
+      "main": [
+        [
+          {
+            "node": "Input Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Guardrails": {
+      "main": [
+        [
+          {
+            "node": "Input Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Resolve User or Guest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Input Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Connection Status": {
+      "main": [
+        [
+          {
+            "node": "Explicit Intent Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explicit Intent Available?": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Classify Ambiguous Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Call 'WF-002 — Text Recommendation'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'WF-003 — Voice/Audio Recommendation'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'WF-004 — Identify Track'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'WF-005 — User Feedback Loop'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'WF-006 — Export Playlist'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'WF-009 — Provider Connection Sync'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unroutable Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Ambiguous Intent": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify Ambiguous Intent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Subworkflow Result": {
+      "main": [
+        [
+          {
+            "node": "Output Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Guardrails": {
+      "main": [
+        [
+          {
+            "node": "Output Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Record Request Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output Blocked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve User or Guest": {
+      "main": [
+        [
+          {
+            "node": "Load Connection Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Request Metrics": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WF-009 — Provider Connection Sync'": {
+      "main": [
+        [
+          {
+            "node": "Normalize Subworkflow Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subworkflow Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WF-006 — Export Playlist'": {
+      "main": [
+        [
+          {
+            "node": "Normalize Subworkflow Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subworkflow Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WF-005 — User Feedback Loop'": {
+      "main": [
+        [
+          {
+            "node": "Normalize Subworkflow Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subworkflow Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WF-004 — Identify Track'": {
+      "main": [
+        [
+          {
+            "node": "Normalize Subworkflow Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subworkflow Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WF-003 — Voice/Audio Recommendation'": {
+      "main": [
+        [
+          {
+            "node": "Normalize Subworkflow Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subworkflow Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'WF-002 — Text Recommendation'": {
+      "main": [
+        [
+          {
+            "node": "Normalize Subworkflow Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subworkflow Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Mock Flask Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Flask Data": {
+      "main": [
+        [
+          {
+            "node": "Initialize Execution metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Rejected": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unroutable Intent": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Blocked": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation Failed": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subworkflow Failed": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "dcHpbw4hOmPAiLsH",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "7c8e0ee4-a7b9-4005-9a48-5956b2ca2e0e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "gXUukQqoQ3t24ghk",
+  "tags": []
+}

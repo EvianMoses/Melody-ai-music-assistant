@@ -1,0 +1,178 @@
+{
+  "name": "MELODY — WF-002 — Text Recommendation",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "request_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "locale",
+              "type": "string"
+            },
+            {
+              "name": "idempotency_key",
+              "type": "string"
+            },
+            {
+              "name": "envelope",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b1dff138-d482-442a-8b8f-82db81b097b9",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://recommendation-service:8000/recommendations/run",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('When Executed by Another Workflow').item.json.request_id, user_id: $('When Executed by Another Workflow').item.json.user_id, intent: $('When Executed by Another Workflow').item.json.intent, locale: $('When Executed by Another Workflow').item.json.locale, context: $('When Executed by Another Workflow').item.json.envelope }) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a1c2f3d4-0002-4a01-9b01-000000000001",
+      "name": "Call Recommendation Service",
+      "onError": "stopWorkflow",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- Persist the recommendation session (Section 2.3 recommendation_sessions).\nINSERT INTO recommendation_sessions (request_id, intent, request_context, engine_used, fallback_used, status)\nVALUES ('{{ $execution.id }}', 'text', '{}'::jsonb, 'recommendation-service', false, 'completed')\nRETURNING id::text;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a1c2f3d4-0002-4a01-9b01-000000000002",
+      "name": "Persist Session and Candidates",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1c2f3d4-0002-set0-0000-000000000001",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "a1c2f3d4-0002-set0-0000-000000000002",
+              "name": "engine",
+              "value": "recommendation-service",
+              "type": "string"
+            },
+            {
+              "id": "a1c2f3d4-0002-set0-0000-000000000003",
+              "name": "payload",
+              "value": "={{ $('Call Recommendation Service').item.json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a1c2f3d4-0002-4a01-9b01-000000000003",
+      "name": "Return Recommendation Result"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Call Recommendation Service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Recommendation Service": {
+      "main": [
+        [
+          {
+            "node": "Persist Session and Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Session and Candidates": {
+      "main": [
+        [
+          {
+            "node": "Return Recommendation Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "014e0ddd-0773-44f5-ac07-7cf8bcb97e9b",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "gXjFEy37IE8fz1H3",
+  "tags": []
+}

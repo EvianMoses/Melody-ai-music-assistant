@@ -1,0 +1,137 @@
+{
+  "name": "MELODY — WF-009 — Provider Connection Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "request_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "locale",
+              "type": "string"
+            },
+            {
+              "name": "idempotency_key",
+              "type": "string"
+            },
+            {
+              "name": "envelope",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f1d66640-21d6-45ac-a769-7bbef5342f2d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://provider-gateway:8000/providers/connection/status",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: $('When Executed by Another Workflow').item.json.user_id, provider: ($('When Executed by Another Workflow').item.json.envelope?.body?.provider || 'google') }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a1c2f3d4-0009-4a01-9b01-000000000001",
+      "name": "Fetch Connection Status",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "st",
+              "name": "status",
+              "value": "ok",
+              "type": "string"
+            },
+            {
+              "id": "pl",
+              "name": "payload",
+              "type": "object",
+              "value": "={{ ({ provider: ($('Fetch Connection Status').item.json.provider || 'google'), connected: ($('Fetch Connection Status').item.json.connected === true), scopes: ($('Fetch Connection Status').item.json.scopes || []), expires_at: ($('Fetch Connection Status').item.json.expires_at || null), youtube_write_authorized: ($('Fetch Connection Status').item.json.youtube_write_authorized === true), reauthorization_required: ($('Fetch Connection Status').item.json.reauthorization_required === true), user_id: $('When Executed by Another Workflow').item.json.user_id }) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        0
+      ],
+      "id": "66aa7823-be8c-4c42-bc9d-f651d2ec47bb",
+      "name": "Return Connection Status"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Fetch Connection Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Connection Status": {
+      "main": [
+        [
+          {
+            "node": "Return Connection Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "560876fb-1524-4bdd-84b9-54add8afc799",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "ye08vB6Qx8wcJ8DQ",
+  "tags": []
+}

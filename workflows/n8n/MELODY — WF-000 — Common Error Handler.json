@@ -1,0 +1,434 @@
+{
+  "name": "MELODY — WF-000 — Common Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "cb420507-1ab4-492f-864e-f2f078ee4a52",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "497d9880-1aa6-4754-9f5a-f08dd2e0485d",
+      "name": "Merge Error Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "request_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "locale",
+              "type": "string"
+            },
+            {
+              "name": "idempotency_key",
+              "type": "string"
+            },
+            {
+              "name": "envelope",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "id": "c888bcb8-dbfe-47c3-942e-82c1b2fe0078",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of $input.all()) {\n  const data = item.json || {};\n  const execution = data.execution || {};\n  const workflow = data.workflow || {};\n  const err = data.error || execution.error || {};\n  const message = err.message || data.message || 'Unknown error';\n  const name = err.name || 'Error';\n  const stack = err.stack || null;\n  const node = err.node || execution.lastNodeExecuted || null;\n  const nodeName = (node && typeof node === 'object') ? node.name : node;\n  const retryable = /timeout|etimedout|econnreset|econnrefused|network|socket hang up|rate.?limit|throttl|429|502|503|504|temporar/i.test(String(message));\n  out.push({\n    json: {\n      errorName: name,\n      errorMessage: String(message),\n      errorStack: stack,\n      nodeName: nodeName || null,\n      workflowId: workflow.id || null,\n      workflowName: workflow.name || null,\n      executionId: execution.id || null,\n      executionUrl: execution.url || null,\n      mode: execution.mode || null,\n      retryable: retryable,\n      alertRequired: !retryable,\n      receivedAt: new Date().toISOString(),\n      original: data,\n    },\n  });\n}\nreturn out;"
+      },
+      "id": "aba55499-ffe6-45c5-91ea-c93b8ff201be",
+      "name": "Normalize Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function isSensitiveKey(key) {\n  const k = String(key).toLowerCase();\n  return k.includes('token') || k.includes('cookie') || k.includes('secret') || k.includes('password') || k.includes('authorization') || k === 'auth' || k === 'apikey' || k === 'api_key' || k === 'api-key' || k === 'x-api-key' || k === 'bearer' || k === 'session' || k === 'sessionid';\n}\nfunction redact(value) {\n  if (Array.isArray(value)) return value.map(redact);\n  if (value && typeof value === 'object') {\n    const result = {};\n    for (const key of Object.keys(value)) {\n      result[key] = isSensitiveKey(key) ? '[REDACTED]' : redact(value[key]);\n    }\n    return result;\n  }\n  return value;\n}\nreturn $input.all().map((item) => ({ json: redact(item.json) }));"
+      },
+      "id": "54e08cc6-7a10-4949-96c6-c0f1e632fd5a",
+      "name": "Redact Sensitive Values",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "retryable",
+              "leftValue": "={{ $json.retryable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "439b13cd-7cb9-40fa-a796-7fc6e69f37f6",
+      "name": "Is Retryable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "id": "cf291439-a291-4818-97ef-98e470892726",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ],
+      "webhookId": "1a8c4eb4-d3e8-4dc2-bb62-56742549d969"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ye08vB6Qx8wcJ8DQ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ye08vB6Qx8wcJ8DQ",
+          "cachedResultName": "Melody AI — MELODY — WF-009 — Provider Connection Sync"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "25b3e75e-8514-4588-845e-984f499bcee0",
+      "name": "Schedule Retry",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "alert",
+              "leftValue": "={{ $('Redact Sensitive Values').item.json.alertRequired }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d60f5850-6ac9-4fe7-b894-e590d563f402",
+      "name": "Alert Required?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1568,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- Persist a safe, redacted error event (Section 2.3 audit_events).\nINSERT INTO audit_events (action, resource, context)\nVALUES (\n  'workflow_error:{{ $json.errorName || 'Error' }}',\n  '{{ $json.workflowName || $json.workflowId || 'unknown' }}',\n  '{{ JSON.stringify({ message: $json.errorMessage, node: $json.nodeName, executionId: $json.executionId, retryable: $json.retryable }) }}'::jsonb\n)\nRETURNING id::text;",
+        "options": {}
+      },
+      "id": "66129a67-b2cc-459b-8410-2537cc812c87",
+      "name": "Persist Error Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1344,
+        192
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "={{ $('Redact Sensitive Values').item.json.retryable ? 'retry_scheduled' : 'persisted' }}",
+              "type": "string"
+            },
+            {
+              "id": "alerted",
+              "name": "alerted",
+              "value": "={{ $('Redact Sensitive Values').item.json.alertRequired }}",
+              "type": "boolean"
+            },
+            {
+              "id": "errorName",
+              "name": "errorName",
+              "value": "={{ $('Redact Sensitive Values').item.json.errorName }}",
+              "type": "string"
+            },
+            {
+              "id": "errorMessage",
+              "name": "errorMessage",
+              "value": "={{ $('Redact Sensitive Values').item.json.errorMessage }}",
+              "type": "string"
+            },
+            {
+              "id": "workflowId",
+              "name": "workflowId",
+              "value": "={{ $('Redact Sensitive Values').item.json.workflowId }}",
+              "type": "string"
+            },
+            {
+              "id": "workflowName",
+              "name": "workflowName",
+              "value": "={{ $('Redact Sensitive Values').item.json.workflowName }}",
+              "type": "string"
+            },
+            {
+              "id": "executionId",
+              "name": "executionId",
+              "value": "={{ $('Redact Sensitive Values').item.json.executionId }}",
+              "type": "string"
+            },
+            {
+              "id": "retryable",
+              "name": "retryable",
+              "value": "={{ $('Redact Sensitive Values').item.json.retryable }}",
+              "type": "boolean"
+            },
+            {
+              "id": "handledAt",
+              "name": "handledAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "785b5949-02ee-4805-a9f5-057d7896c7a0",
+      "name": "Return Error Envelope",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        96
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge Error Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Error Sources": {
+      "main": [
+        [
+          {
+            "node": "Normalize Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Merge Error Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Normalize Error": {
+      "main": [
+        [
+          {
+            "node": "Redact Sensitive Values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redact Sensitive Values": {
+      "main": [
+        [
+          {
+            "node": "Is Retryable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Retryable?": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Persist Error Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Schedule Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Retry": {
+      "main": [
+        [
+          {
+            "node": "Alert Required?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Required?": {
+      "main": [
+        [
+          {
+            "node": "Return Error Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Error Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Error Event": {
+      "main": [
+        [
+          {
+            "node": "Alert Required?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "80c28983-14cc-4f09-992c-622bf3266e60",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "dcHpbw4hOmPAiLsH",
+  "tags": []
+}

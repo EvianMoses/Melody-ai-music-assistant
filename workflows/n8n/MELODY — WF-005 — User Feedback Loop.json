@@ -1,0 +1,180 @@
+{
+  "name": "MELODY — WF-005 — User Feedback Loop",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "request_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "locale",
+              "type": "string"
+            },
+            {
+              "name": "idempotency_key",
+              "type": "string"
+            },
+            {
+              "name": "envelope",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b0e9c0be-d026-4c1b-a9a3-7d8929f6717c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- PERS-001/002: one immutable row per feedback event.\n--\n-- Parameterized, not interpolated. The previous version built this\n-- statement by pasting `JSON.stringify($json)` between quotes, which\n-- is a SQL injection through any field a user can influence -- and\n-- would have broken on something as ordinary as an apostrophe in a\n-- track title long before anyone attacked it.\n--\n-- PERS-002 deduplication: the idempotency key WF-001 already\n-- requires for this intent is what makes a double-click one event\n-- rather than two. ON CONFLICT DO NOTHING, so a retried request is\n-- harmless and the row that exists is the one that stays -- events\n-- are immutable, so the first write wins by definition.\nINSERT INTO feedback_events (event_type, user_id, guest_session_id, context)\nSELECT $1, $2::uuid, $3::uuid, $4::jsonb\nWHERE NOT EXISTS (\n  SELECT 1 FROM feedback_events\n  WHERE context->>'idempotency_key' = $5\n)\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ (() => {\n  // `identity.guest_id` is Flask's session id, which is a UUID for a\n  // browser but NOT for every caller -- the smoke suite sends\n  // 'guest-smoke-001'. Casting that to ::uuid fails the whole INSERT,\n  // and the feedback intent then reports UPSTREAM_ERROR for what is\n  // really a well-formed request. Non-UUID identities are stored in\n  // the context JSON instead of the typed column, so the event is\n  // still recorded and still attributable.\n  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n  const t = $('When Executed by Another Workflow').item.json;\n  const rawGuest = t.envelope?.identity?.guest_id || null;\n  const guestUuid = rawGuest && uuidRe.test(rawGuest) ? rawGuest : null;\n  const userUuid = t.user_id && uuidRe.test(t.user_id) ? t.user_id : null;\n  const fb = t.envelope?.body?.feedback || {};\n  return [\n    (fb.action || 'like'),\n    userUuid,\n    guestUuid,\n    JSON.stringify(Object.assign({}, fb, {\n      request_id: t.request_id,\n      idempotency_key: t.idempotency_key,\n      guest_id: rawGuest,\n      user_id: t.user_id || null,\n      discovery_mode: (t.envelope?.body?.recommendation_context?.discovery_mode || null),\n    })),\n    (t.idempotency_key || ''),\n  ];\n})() }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a1c2f3d4-0005-4a01-9b01-000000000001",
+      "name": "Insert Immutable Feedback Event",
+      "credentials": {
+        "postgres": {
+          "id": "SW33kJmXDsef1Xwk",
+          "name": "Melody Postgres"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://recommendation-service:8000/profiles/update",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('When Executed by Another Workflow').item.json.request_id, user_id: $('When Executed by Another Workflow').item.json.user_id, guest_id: ($('When Executed by Another Workflow').item.json.envelope?.identity?.guest_id || null), idempotency_key: $('When Executed by Another Workflow').item.json.idempotency_key, signals: Object.assign({}, ($('When Executed by Another Workflow').item.json.envelope?.body?.feedback || {}), { discovery_mode: ($('When Executed by Another Workflow').item.json.envelope?.body?.recommendation_context?.discovery_mode || null) }) }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a1c2f3d4-0005-4a01-9b01-000000000002",
+      "name": "Update Materialized Profile",
+      "onError": "stopWorkflow",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1c2f3d4-0005-set0-0000-000000000001",
+              "name": "status",
+              "value": "recorded",
+              "type": "string"
+            },
+            {
+              "id": "a1c2f3d4-0005-set0-0000-000000000002",
+              "name": "profile",
+              "value": "={{ $('Update Materialized Profile').item.json }}",
+              "type": "object"
+            },
+            {
+              "id": "payload",
+              "name": "payload",
+              "value": "={{ ({ profile: $('Update Materialized Profile').item.json }) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a1c2f3d4-0005-4a01-9b01-000000000003",
+      "name": "Return Current Feedback State"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Insert Immutable Feedback Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Immutable Feedback Event": {
+      "main": [
+        [
+          {
+            "node": "Update Materialized Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Materialized Profile": {
+      "main": [
+        [
+          {
+            "node": "Return Current Feedback State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dcHpbw4hOmPAiLsH"
+  },
+  "versionId": "85d5bdbb-7b00-485c-ba85-479d1043908a",
+  "meta": {
+    "instanceId": "73e8f552a2cf52d330b5ca41eeee6ea4dbbb02332a1f9a92548e33d91c7f9fd4"
+  },
+  "nodeGroups": [],
+  "id": "bC0l6kv3G854rE2E",
+  "tags": []
+}
