@@ -1,0 +1,280 @@
+# Melody AI — Phase 2 foundation stack (Sections 2.1–2.4).
+# All secrets come from .env (see .env.example). No credentials are hardcoded here.
+#
+#   docker compose up -d              # full stack (builds the 5 FastAPI services)
+#   docker compose up -d postgres n8n # infra only
+#
+# The five Python services are real FastAPI skeletons. Each builds from the repo
+# root context (so shared_lib is in scope) using its own <service>/Dockerfile.
+
+name: melody
+
+# Shared config for the FastAPI service skeletons (Section 2.4).
+x-python-service: &python-service
+  restart: unless-stopped
+  networks:
+    - melody-net
+  # Load .env straight into the container so credentials are deterministic and
+  # NOT subject to host-shell overrides during compose ${..} interpolation.
+  env_file:
+    - .env
+  environment:
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # Inside the compose network the DB host is the service name, not localhost.
+    # Scripts build DATABASE_URL from POSTGRES_* + this host (see scripts/_db.py).
+    POSTGRES_HOST: postgres
+  deploy:
+    resources:
+      limits:
+        cpus: "0.50"
+        memory: 512M
+  healthcheck:
+    test:
+      [
+        "CMD",
+        "python",
+        "-c",
+        "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/live',timeout=3).status==200 else 1)",
+      ]
+    interval: 15s
+    timeout: 5s
+    retries: 5
+    start_period: 15s
+
+services:
+  # -------------------------------------------------------------------------
+  # INF-001 — PostgreSQL + pgvector
+  # -------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: melody-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      # Keep server timestamps in UTC (DB-003).
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - melody-net
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+
+  # -------------------------------------------------------------------------
+  # INF-002 — n8n orchestrator (WF-001), persistent volume + protected editor
+  # -------------------------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: melody-n8n
+    restart: unless-stopped
+    environment:
+      # Protected editor access (INF-002). Credentials come from .env.
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:?set N8N_BASIC_AUTH_USER in .env}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:?set N8N_BASIC_AUTH_PASSWORD in .env}
+      # Encryption key for stored credentials; must stay stable across restarts.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${N8N_WEBHOOK_BASE_URL:-http://localhost:5678/}
+      GENERIC_TIMEZONE: UTC
+      # Local dev over http; enable secure cookies behind TLS in production.
+      N8N_SECURE_COOKIE: "false"
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - melody-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:5678/healthz || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+
+  # -------------------------------------------------------------------------
+  # INF-008 — Local model runtime for cheap classification / routing
+  # -------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: melody-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - melody-net
+    healthcheck:
+      test:
+        ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 4G
+
+  # -------------------------------------------------------------------------
+  # INF-003..INF-007 — FastAPI service skeletons (Section 2.4)
+  # Build context is the repo root so shared_lib is available to each image.
+  # -------------------------------------------------------------------------
+  recommendation-service:
+    <<: *python-service
+    container_name: melody-recommendation-service
+    build:
+      context: .
+      dockerfile: recommendation-service/Dockerfile
+    ports:
+      - "${RECOMMENDATION_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rag-service:
+    <<: *python-service
+    container_name: melody-rag-service
+    build:
+      context: .
+      dockerfile: rag-service/Dockerfile
+    ports:
+      - "${RAG_PORT:-8002}:8000"
+    # Local embedding/retrieval (sentence-transformers + torch) needs more RAM
+    # than the shared 512M default; override the anchor's deploy limits here.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 3G
+    volumes:
+      # Persist the downloaded HuggingFace model across runs (HF_HOME=/app/.hf_cache).
+      - hf_cache:/app/.hf_cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+
+  audio-service:
+    <<: *python-service
+    container_name: melody-audio-service
+    build:
+      context: .
+      dockerfile: audio-service/Dockerfile
+    ports:
+      - "${AUDIO_PORT:-8003}:8000"
+    # librosa + torch need more than the shared 512M default, and FFmpeg decode
+    # is CPU-bound — the anchor's 0.5 CPU would make a 30 s clip crawl.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 3G
+    volumes:
+      # AUD-UP-004 — approved temporary storage for uploaded clips. A named
+      # volume rather than a bind mount: clips are transient and must never land
+      # in the working tree, where a stray `git add` could commit someone's
+      # recording. Contents expire on their own (AUDIO_RETENTION_MINUTES).
+      - audio_uploads:/tmp/melody-audio
+      # §6.3 training data (GTZAN, ~1.2 GB). A named volume rather than a host
+      # bind mount: training reads these 1000 files repeatedly, and on Windows a
+      # bind mount crosses the Docker Desktop filesystem bridge on every read.
+      # It also survives image rebuilds, so the download happens once.
+      - gtzan_data:/app/data/gtzan
+      # Trained checkpoints, so a model survives a rebuild and can be inspected
+      # from the host (ML-AUD-007 checkpoint policy).
+      - ./audio-service/ml/checkpoints:/app/ml/checkpoints
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  guardrails-service:
+    <<: *python-service
+    container_name: melody-guardrails-service
+    build:
+      context: .
+      dockerfile: guardrails-service/Dockerfile
+    ports:
+      - "${GUARDRAILS_PORT:-8004}:8000"
+
+  provider-gateway:
+    <<: *python-service
+    container_name: melody-provider-gateway
+    build:
+      context: .
+      dockerfile: provider-gateway/Dockerfile
+    ports:
+      - "${PROVIDER_GATEWAY_PORT:-8005}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # -------------------------------------------------------------------------
+  # INF-009 (P1) — Redis. Enable only if async-job measurement proves it is
+  # needed. Kept disabled behind a profile to avoid unnecessary footprint.
+  # -------------------------------------------------------------------------
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: melody-redis
+  #   restart: unless-stopped
+  #   profiles: ["cache"]
+  #   ports:
+  #     - "${REDIS_PORT:-6379}:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - melody-net
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+networks:
+  melody-net:
+    name: melody-net
+    driver: bridge
+
+volumes:
+  pgdata:
+  n8n_data:
+  ollama_data:
+  hf_cache:
+  # Uploaded audio clips (§6.1). Short-lived by design — the service sweeps
+  # anything past AUDIO_RETENTION_MINUTES, so this volume stays near empty.
+  audio_uploads:
+  # GTZAN (§6.3). Downloaded once by ml/dataset.py; not in the image.
+  gtzan_data:
+  # redis_data:

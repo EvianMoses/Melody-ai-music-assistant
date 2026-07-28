@@ -20,6 +20,17 @@ data_prep/
 genres_knowledge1/
 aws_lambdas/
 
+# Large / non-service assets excluded from the (root) build context.
+aws/
+prep_files/
+poc/
+f/
+migrations/
+templates/
+static/
+*.pdf
+*.md
+
 .git/
 .gitignore
 README.md

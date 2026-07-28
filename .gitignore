@@ -3,6 +3,10 @@ __pycache__/
 venv/
 .venv/
 .env
+# Any local variant (.env.local, .env.backup-*, …) may hold real secrets.
+# The secret-free template is re-included below.
+.env.*
+!.env.example
 prep_files/.spotify_refresh_token
 *.zip
 .DS_Store
@@ -10,3 +14,10 @@ prep_files/.spotify_refresh_token
 .vscode/
 *.cursorrules
 .cache
+# Phase 6 §6.3 — GTZAN training data (~1.2 GB, downloaded by ml/dataset.py).
+data/gtzan/
+
+# Trained model checkpoints. The training run is reproducible from
+# ml/train.py; binaries do not belong in the repository.
+audio-service/ml/checkpoints/*.pt
+audio-service/ml/checkpoints/*.pth
