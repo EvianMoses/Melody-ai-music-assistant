@@ -672,6 +672,69 @@ class ProviderQuotaUsage(Base, CreatedAtMixin):
     )
 
 
+class ConversationTurn(Base, CreatedAtMixin):
+    """One turn of a conversation: what the user said and what Melody replied.
+
+    **Why this exists.** Until now Melody had no conversation at all. Every
+    message was an independent recommendation request, which produced three
+    user-visible failures: a correction ("Coldplay is not a new artist") was
+    embedded as a *search query* and returned more Coldplay; a meta-question
+    ("what was my last question?") matched the word "last" lexically and
+    returned a track called "Last Last"; and there was no way to tell whether
+    memory worked, because there was none.
+
+    **Owner is user OR guest, never both**, mirroring `user_preferences` -- the
+    same pattern, and for the same reason: someone who has not signed in still
+    holds a conversation, and forcing an account before the assistant can
+    remember the previous sentence would make every first session useless. On
+    sign-in the guest's turns are re-pointed at the user, exactly as profiles
+    are merged.
+
+    **Append-only.** A turn is a historical fact; it is never edited. That also
+    makes "what did the assistant actually say?" answerable later, which matters
+    when a user disputes a recommendation.
+
+    **Storage is not the scaling concern -- prompt tokens are.** A turn is ~1.5
+    KB, so a thousand users with twenty turns each is ~30 MB. What costs money is
+    replaying turns into the model on every request, which is why the store keeps
+    everything and the *loader* returns a bounded window.
+    """
+
+    __tablename__ = "conversation_turns"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    guest_session_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("guest_sessions.id", ondelete="CASCADE")
+    )
+    # Monotonic per owner, so ordering survives identical timestamps.
+    turn_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)  # user | assistant
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    # What the assistant did on this turn: tools called, tracks returned, the
+    # request id. Enough to answer "why did it say that?" without replaying it.
+    turn_metadata: Mapped[dict[str, Any]] = mapped_column(
+        "metadata", JSONB, nullable=False, default=dict
+    )
+    request_id: Mapped[Optional[str]] = mapped_column(String(64))
+
+    __table_args__ = (
+        Index("ix_conversation_turns_user_id", "user_id", "turn_index"),
+        Index("ix_conversation_turns_guest_id", "guest_session_id", "turn_index"),
+        Index("ix_conversation_turns_created_at", "created_at"),
+        CheckConstraint(
+            "(user_id IS NOT NULL) <> (guest_session_id IS NOT NULL)",
+            name="ck_conversation_turns_single_owner",
+        ),
+        CheckConstraint(
+            "role IN ('user', 'assistant')",
+            name="ck_conversation_turns_role",
+        ),
+    )
+
+
 class IngestionVersion(Base, TimestampMixin):
     """Staged/active/rolled-back state for a knowledge corpus version (RAG-010).
 

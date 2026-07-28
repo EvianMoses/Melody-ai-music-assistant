@@ -18,7 +18,15 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app import cache, db, google_token, spotify_adapter, youtube_adapter, youtube_playlist
+from app import (
+    cache,
+    db,
+    google_token,
+    lastfm_adapter,
+    spotify_adapter,
+    youtube_adapter,
+    youtube_playlist,
+)
 from contracts.db_models import PlaylistExport
 from shared_lib import AppError, create_app
 
@@ -294,3 +302,69 @@ async def providers_connection_status(request: ConnectionStatusRequest) -> dict[
         return {"connected": False, "provider": request.provider, "reason": "NO_USER"}
     with db.session() as session:
         return google_token.connection_status(session, request.user_id)
+
+
+# ---------------------------------------------------------------------------
+# Music knowledge (Last.fm) -- agent tools for artist info and music history.
+#
+# Lives here rather than in the agent because ADR-001 puts "normalized provider
+# data" in the Provider Adapter Layer: one place owns provider timeouts, the
+# error vocabulary, and the decision about what a missing artist means.
+#
+# These are READ-ONLY and need no user grant, so unlike playlist export they are
+# available to guests -- which matters, because "tell me about this band" is one
+# of the first things someone asks before signing in to anything.
+# ---------------------------------------------------------------------------
+
+
+class ArtistInfoRequest(BaseModel):
+    artist: str = Field(min_length=1, max_length=200)
+
+
+class MusicHistoryRequest(BaseModel):
+    # "subject" rather than "artist": this answers for bands, solo acts, genres
+    # and movements, and naming the field `artist` would quietly discourage the
+    # agent from asking about shoegaze or Motown.
+    subject: str = Field(min_length=1, max_length=200)
+
+
+class SimilarArtistsRequest(BaseModel):
+    artist: str = Field(min_length=1, max_length=200)
+    limit: int = Field(default=8, ge=1, le=20)
+
+
+@app.post("/knowledge/artist")
+async def knowledge_artist(request: ArtistInfoRequest) -> dict[str, Any]:
+    """Biography, tags and similar artists for one artist."""
+    try:
+        return await lastfm_adapter.get_artist_info(request.artist)
+    except youtube_adapter.ProviderError as exc:
+        raise _provider_error_to_app_error(exc) from exc
+
+
+@app.post("/knowledge/history")
+async def knowledge_history(request: MusicHistoryRequest) -> dict[str, Any]:
+    """A grounded timeline for an artist, band, genre or movement.
+
+    Carries a `coverage_note` describing what the data does and does not
+    support, so the agent can be honest about gaps instead of filling them.
+    """
+    try:
+        return await lastfm_adapter.get_music_history(request.subject)
+    except youtube_adapter.ProviderError as exc:
+        raise _provider_error_to_app_error(exc) from exc
+
+
+@app.post("/knowledge/similar")
+async def knowledge_similar(request: SimilarArtistsRequest) -> dict[str, Any]:
+    """Artists Last.fm considers similar, from real listening data.
+
+    Two jobs: answering "who sounds like X?", and turning a vague taste
+    statement into concrete artist names provider search can actually find --
+    which §5.3 identified as the highest-leverage fix for recommendation
+    quality, since YouTube answers genre *descriptions* with genre commentary.
+    """
+    try:
+        return await lastfm_adapter.get_similar_artists(request.artist, request.limit)
+    except youtube_adapter.ProviderError as exc:
+        raise _provider_error_to_app_error(exc) from exc
