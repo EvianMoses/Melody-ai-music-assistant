@@ -32,6 +32,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    text,
     UniqueConstraint,
     func,
 )
@@ -668,6 +669,46 @@ class ProviderQuotaUsage(Base, CreatedAtMixin):
     __table_args__ = (
         Index("ix_provider_quota_usage_created_at", "created_at"),
         Index("ix_provider_quota_usage_provider_method", "provider", "method"),
+    )
+
+
+class IngestionVersion(Base, TimestampMixin):
+    """Staged/active/rolled-back state for a knowledge corpus version (RAG-010).
+
+    §1.10's rule is *"do not publish a new ingestion version until smoke queries
+    pass"*, and that sentence only means something if a version can exist
+    **without being live**. Before this table, ingestion deleted the document and
+    re-inserted it: the corpus was replaced in place, so a bad chunking change
+    was live the instant it was written and the only way back was to re-ingest
+    from the source and hope.
+
+    Exactly one row may be ``active``. Retrieval reads that version and no other,
+    so a staged version is invisible to users until it is published -- which is
+    what makes WF-007's smoke-query gate a gate rather than a report.
+    """
+
+    __tablename__ = "ingestion_versions"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    version: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    # "staged" -> "active" -> "superseded", or "staged" -> "rolled_back".
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="staged")
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # Chunk/document counts and the smoke-query verdict that justified publishing.
+    stats: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+
+    __table_args__ = (
+        Index("ix_ingestion_versions_status", "status"),
+        # At most one active version, enforced by the database rather than by
+        # whichever code path happens to publish. A second active version would
+        # make "what did retrieval search?" unanswerable.
+        Index(
+            "uq_ingestion_versions_single_active",
+            "status",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+        ),
     )
 
 

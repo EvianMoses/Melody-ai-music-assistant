@@ -1,0 +1,51 @@
+{
+  "run_at": "2026-07-28T20:46:54.203660+00:00",
+  "host": {
+    "cpu_count": 24,
+    "note": "measured inside the container the model really runs in"
+  },
+  "models": [
+    {
+      "model": "intfloat/multilingual-e5-small",
+      "role": "query and passage embeddings (rag-service, every request)",
+      "load_seconds": 4.3,
+      "resident_mb_after_load": 791.6,
+      "resident_mb_delta": 324.8,
+      "single_encode_ms_median": 42.1,
+      "single_encode_ms_max": 84.9,
+      "batch64_passages_seconds": 6.47,
+      "throughput_passages_per_s": 9.9,
+      "output_schema": {
+        "expected_dim": 384,
+        "actual_dim": 384,
+        "pass": true
+      },
+      "max_sequence_tokens": 512
+    },
+    {
+      "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+      "role": "cross-encoder reranking (rag-service, every request)",
+      "load_seconds": 1.73,
+      "resident_mb_after_load": 1263.6,
+      "resident_mb_delta": 350.0,
+      "rerank_20_pairs_ms_median": 1876.4,
+      "rerank_20_pairs_ms_max": 1954.0,
+      "per_pair_ms": 93.8,
+      "output_schema": {
+        "expected": "one float score per (query, passage) pair",
+        "pairs_in": 20,
+        "scores_out": 20,
+        "pass": true
+      }
+    },
+    {
+      "model": "melody audio genre CNN (PyTorch, trained on GTZAN)",
+      "role": "audio genre classification (audio-service)",
+      "measured_by": "audio-service/ml/evaluate.py",
+      "model_card": "docs/ml/audio-genre-classifier.md",
+      "held_out_macro_f1": 0.8692,
+      "held_out_accuracy": 0.8733,
+      "note": "Clip-level, on a leakage-free split, against a 0.10 random baseline and a 0.60 ship threshold fixed before training."
+    }
+  ]
+}

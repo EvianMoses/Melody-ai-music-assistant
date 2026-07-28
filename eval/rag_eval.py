@@ -174,6 +174,21 @@ async def run_retrieval(
                 "latency_s": round(genre_ms + review_ms, 3),
                 "contexts": [c.get("chunk_text", "") for c in merged[:top_k]],
             }
+            # The metric that actually tests a negative constraint. Recall@K
+            # against hand-picked positives is the WRONG measure here: for "rock
+            # but nothing metal", heartland rock and rockabilly are correct
+            # answers that no ground-truth list happened to name, so recall
+            # reports a failure while the feature works. What the constraint
+            # promises is an ABSENCE, so absence is what gets measured.
+            if excludes:
+                leaks = [
+                    doc_id
+                    for doc_id in retrieved_ids[:top_k]
+                    if any(t.lower().replace(" ", "_") in doc_id.lower() for t in excludes)
+                ]
+                entry["exclusion_violations"] = len(leaks)
+                entry["exclusion_leaked"] = leaks[:3]
+
             if q["retrieval_scored"] and q["expected_docs"]:
                 entry.update(
                     {
@@ -201,8 +216,14 @@ def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     for r in scored:
         by_language.setdefault(r["language"], []).append(r)
 
+    with_excludes = [r for r in results if "exclusion_violations" in r]
     return {
         "queries_total": len(results),
+        "exclusion": {
+            "queries_with_constraints": len(with_excludes),
+            "total_violations": sum(r["exclusion_violations"] for r in with_excludes),
+            "clean": all(r["exclusion_violations"] == 0 for r in with_excludes),
+        } if with_excludes else None,
         "queries_scored": len(scored),
         "recall@5": mean("recall@5", scored),
         "recall@10": mean("recall@10", scored),
@@ -424,6 +445,13 @@ async def main() -> int:
         )
         for lang, v in agg["by_language"].items():
             print(f"    {lang}: Recall@5={v['recall@5']}  MRR={v['mrr']}  (n={v['n']})")
+        if agg.get("exclusion"):
+            e = agg["exclusion"]
+            print(
+                f"    negative constraints: {e['total_violations']} violations across "
+                f"{e['queries_with_constraints']} queries "
+                f"({'CLEAN' if e['clean'] else 'LEAKING'})"
+            )
 
         ragas_scores = None
         if args.ragas:

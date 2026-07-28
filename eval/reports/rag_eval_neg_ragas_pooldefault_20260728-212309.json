@@ -1,0 +1,1063 @@
+{
+  "run_at": "2026-07-28T21:23:09.737682+00:00",
+  "golden_set": "melody-golden-retrieval-v1",
+  "settings": {
+    "top_k": 5,
+    "candidate_pool": null,
+    "ragas": true
+  },
+  "retrieval": {
+    "queries_total": 25,
+    "queries_scored": 23,
+    "recall@5": 0.4891,
+    "recall@10": 0.4891,
+    "mrr": 0.5109,
+    "ndcg@10": 0.4753,
+    "latency_s_median": 4.503,
+    "latency_s_max": 4.877,
+    "by_category": {
+      "blended_genres": {
+        "n": 4,
+        "recall@5": 0.3125,
+        "mrr": 0.3958
+      },
+      "exact_artist": {
+        "n": 2,
+        "recall@5": 1.0,
+        "mrr": 1.0
+      },
+      "exact_genre": {
+        "n": 5,
+        "recall@5": 0.9,
+        "mrr": 1.0
+      },
+      "hebrew": {
+        "n": 4,
+        "recall@5": 0.5,
+        "mrr": 0.5
+      },
+      "mood": {
+        "n": 5,
+        "recall@5": 0.3,
+        "mrr": 0.2333
+      },
+      "negative_constraint": {
+        "n": 3,
+        "recall@5": 0.0,
+        "mrr": 0.0
+      }
+    },
+    "by_language": {
+      "en": {
+        "n": 19,
+        "recall@5": 0.4868,
+        "mrr": 0.5132
+      },
+      "he": {
+        "n": 4,
+        "recall@5": 0.5,
+        "mrr": 0.5
+      }
+    }
+  },
+  "ragas": {
+    "faithfulness": 0.8513,
+    "response_relevancy": 0.7397,
+    "context_precision": 0.4127,
+    "context_recall": 0.24
+  },
+  "results": [
+    {
+      "id": "mood-01",
+      "category": "mood",
+      "language": "en",
+      "query": "warm acoustic folk music for a rainy afternoon",
+      "retrieval_scored": true,
+      "retrieved": [
+        "review:metacritic:163552",
+        "review:metacritic:10190",
+        "review:metacritic:181805",
+        "genre:rhythm_n_blues_r_b#doo_wop",
+        "genre:edm_dance_trance#ibiza_house_trance_dream_house_trance",
+        "genre:edm_dance_house#ibiza_house_trance_dream_house_trance",
+        "review:metacritic:166925",
+        "genre:edm_dance_drum_n_bass_jungle#intelligent_ambient_drum_n_bass_jazzstep",
+        "genre:downtempo_ambient#bit_music_vgm_chiptune_8_bit",
+        "review:metacritic:131435"
+      ],
+      "genre_confidence": 0.0129,
+      "reviews_confidence": 0.325,
+      "latency_s": 4.59,
+      "contexts": [
+        "Rainy Day Music by The Jayhawks (April 8, 2003) — Metascore 73.0, User score 8.2\n\nThe seventh album for the Minnesota alt-country outfit features a smaller-than-usual lineup of songwriter/vocalist Gary Louris, bassist Marc Perlman and drummer Tim O'Reagan, joined by new guitarist Stephen McCarthy. Matthew Sweet and Jakob Dylan guest.",
+        "Nitetime Rainbows [EP] by A Sunny Day in Glasgow (March 2, 2010) — Metascore 70.0\n\nThe seven-track EP featuring songs from the \"Ashes Grammer\" session includes three new songs, plus three remixes of the title track.",
+        "Driving Rain by Paul McCartney (November 13, 2001) — Metascore 75.0, User score 7.3\n\nThis is the former Beatle's first album of original recordings since 1997's 'Flaming Pie.'",
+        "RHYTHM 'N' BLUES (R&B) > Sub-Genres > DOO WOP\n\n1951\nR & B\nDoo Wop is an often neglected, but familiar and characteristic genre. It’s being performed by girl or boy groups that sing in vocal harmony: one person sings lyrics while the others perform backing vocals in a polyphonic symphony of gibberish and mumbling, humming sounds or onomatopoeias (like “Doo Wop”, hence the name). Sometimes Doo Wop features no instruments at all, it can be purely a cappella; a step further in the already modest instrumentation of Rhythm ‘n’ Blues. But Doo Wop can just as easily feature a supporting band or accompanying instrument on top of its barbershop group. However, this minimal set-up was for most Doo Wop artists not a choice: they were so poor that they couldn’t afford any instruments. And while many of them wandered around in New York city, hoping for a glimpse of fortune and fame, only very few succeeded. The ones that did, had the joy of their success resonating in their music. In its smooth, warm, cheerful sound (a sort of peaceful post-war happiness), one can already distinguish the yet-to-come embrace of Soul. Doo Wop has experienced revivals in subsequent decades and influenced in subtle ways a number of cross-genre songs.",
+        "EDM / DANCE: TRANCE > Sub-Genres > IBIZA HOUSE / TRANCE & DREAM HOUSE / TRANCE\n\n1993\nTRANCEHOUSE\nOn the warm and lush Balearic Islands, mainly Ibiza, lots of DJ’s found an ideal party heaven, far away from dirty cities and oppressing governments. But Ibiza did not become popular in the nineties to party – the island was a refuge for thousands and thousands of worn-out ravers, tired of a music scene spun out of control and too much drug abuse. Alongside the migration of gays, artists and social outcasts to this asylum, these ravers sought a musical healing treatment for after-Rave symptoms and withdrawals, which would ideally be a downtempo fusion of soft House (Eurodance) and Trance.\n\nOne result was an atmospheric genre fitting for the seaside environment. Not heavy at all, but a dreamlike soundscape with nature sounds or gentle piano melodies mixed onto a continuous Trance bass and beat: Dream House/Trance. Remarkably, Dream Trance was conceived as a means to counter the alarming rise of car accidents after raves, with a slow tempo of 130 bpm and the use of strings to keep the driver calm and focused.\n\nAnother result was similar but slightly more energetic, with less complex melodies and added vocals, like an ambient version of Eurodance: Balearic House/Trance or Ibiza House/Trance. Balearic Trance builds further on the local genre of the eighties: Balearic Beat: a summer-infused, ambient type of Eurodisco. Sometimes exotic samples such as Spanish guitars or bandoneons are added, which makes Ibiza even more a sanctuary to forget all troubles - a concept to which the famous Amnesia club owed its name."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "The context provided does not contain information about warm acoustic folk music for a rainy afternoon. While there is an album titled \"Rainy Day Music\" by The Jayhawks listed, the context only describes it as the seventh album by a Minnesota alt-country outfit and does not characterize its sound as warm acoustic folk music or confirm it would be suitable for a rainy afternoon listening experience.",
+      "ragas": {
+        "faithfulness": 0.8571,
+        "response_relevancy": 0.0,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "mood-02",
+      "category": "mood",
+      "language": "en",
+      "query": "dark brooding atmospheric music for a sleepless night",
+      "retrieval_scored": true,
+      "retrieved": [
+        "review:metacritic:102952",
+        "genre:downtempo_ambient#dark_ambient_dark_industrial",
+        "genre:industrial_gothic#dark_ambient_dark_industrial",
+        "genre:downtempo_ambient#ambient_breaks_illbient",
+        "genre:edm_dance_breakbeat#ambient_breaks_illbient",
+        "genre:edm_dance_drum_n_bass_jungle#darkcore_darkstep~1",
+        "review:metacritic:131419",
+        "review:metacritic:171020",
+        "review:metacritic:594",
+        "review:metacritic:106829"
+      ],
+      "genre_confidence": 0.0888,
+      "reviews_confidence": 0.1046,
+      "latency_s": 4.321,
+      "contexts": [
+        "Dark Light Daybreak by Now It's Overhead (September 12, 2006) — Metascore 68.0\n\nThe band's third album finds producer/songwriter Andy LeMaster once again joined by Azure Ray's Orenda Fink and Maria Taylor, plus drummer Clay Leverett.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > DARK AMBIENT / DARK INDUSTRIAL\n\n1984\nINDUSTRIALDOWNTEMPO\nReminiscent of Karlheinz Stockhausen’s epic “Gesang Der Jünglinge”, Dark Industrial can deliver lengthy compositions (some over 20 minutes long). It’s nigh impossible to separate Dark Industrial from related genres Dark Ambient (aka Isolationism) and Ambient Industrial as they all consist of the same eerie atmosphere; sometimes beautiful but often downright frightening and disturbing. A minimal soundscape of the past resurrected with typical industrial sound effects and techniques, in which haunting and gloomy sounds (often repetitive in nature) form the foreground. In the background one regularly finds a stream of heavily distorted noise. The difference with Early Industrial lies in a less noisy/experimental approach and a more ambient/atmospheric one. Dark Ambient is your typical graveyard ruin by night soundtrack, or the sound of a monochrome forest echoing through a picture from the past. It’s no surprise that this genre is often used in horror films or scary game soundtracks. Out of Dark Ambient an important subgenre in the late eighties arises: Ethereal (Dark)wave or Neoclassical Wave. Ethereal Wave becomes a big thing in France, where spooky French hushes or weeping voices are added on top of melodramatic classical music infused with Dark Ambient elements. The result is the ultimate Gothic music and a further strengthening of its relationship with Industrial.",
+        "INDUSTRIAL & GOTHIC > Sub-Genres > DARK AMBIENT /DARK INDUSTRIAL\n\n1984\nINDUSTRIALDOWNTEMPO\nReminiscent of Karlheinz Stockhausen’s epic “Gesang Der Jünglinge”, Dark Industrial can deliver lengthy compositions (some over 20 minutes long). It’s nigh impossible to separate Dark Industrial from related genres Dark Ambient (aka Isolationism) and Ambient Industrial as they all consist of the same eerie atmosphere; sometimes beautiful but often downright frightening and disturbing. A minimal soundscape of the past resurrected with typical industrial sound effects and techniques, in which haunting and gloomy sounds (often repetitive in nature) form the foreground. In the background one regularly finds a stream of heavily distorted noise. The difference with Early Industrial lies in a less noisy/experimental approach and a more ambient/atmospheric one. Dark Ambient is your typical graveyard ruin by night soundtrack, or the sound of a monochrome forest echoing through a picture from the past. It’s no surprise that this genre is often used in horror films or scary game soundtracks. Out of Dark Ambient an important subgenre in the late eighties arises: Ethereal (Dark)wave or Neoclassical Wave. Ethereal Wave becomes a big thing in France, where spooky French hushes or weeping voices are added on top of melodramatic classical music infused with Dark Ambient elements. The result is the ultimate Gothic music and a further strengthening of its relationship with Industrial.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > AMBIENT BREAKS & ILLBIENT\n\n1995\nDOWNTEMPOBREAKBEAT\nThe powerful idea of slowed down Breakbeat/Rap pioneered by Trip Hop, led to more similar experiments: Ambient Breaks, with Illbient as the most deviant and noteworthy example. The experimental and innovative nature of Breakbeat synergizes with that of Downtempo, resulting in a highly fascinating electronic music genre. Ambient Breaks often crosses over to Jazz, which is called Jazz Breaks. Ninja Tune Records was principally responsible for spreading the genre with its legendary Jazz Brakes compilations and later with all kinds of Ambient Breakbeat. Ambient Breaks differs from Trip Hop (albeit sometimes minimally) as it is not Hip Hop music; it is the work of electronic music producers using various samples instead of a movement bridging remote subcultures into one.\n\nWhen Trip Hop arrived in the US (specifically New York), conceptual artists got inspired by the sound but worked the other way around: they laid multiple layers of echoing ambient sounds on top of each other (influenced by Dub) and then added a breakbeat. These soundscapes are often eclectic noisescapes: dark, experimental, and drawing from different genres to create some sort of deep mysterious force. Illbient (= Ill Ambient, in its slang meaning: “this beat is ill”) is not drug music as one might suspect, but an artsy, contemplative soundtrack for an unwritten creepy or deeply psychological film.",
+        "EDM / DANCE: BREAKBEAT > Sub-Genres > AMBIENT BREAKS & ILLBIENT\n\n1995\nDOWNTEMPOBREAKBEAT\nThe powerful idea of slowed down Breakbeat/Rap pioneered by Trip Hop, led to more similar experiments: Ambient Breaks, with Illbient as the most deviant and noteworthy example. The experimental and innovative nature of Breakbeat synergizes with that of Downtempo, resulting in a highly fascinating electronic music genre. Ambient Breaks often crosses over to Jazz, which is called Jazz Breaks. Ninja Tune Records was principally responsible for spreading the genre with its legendary Jazz Brakes compilations and later with all kinds of Ambient Breakbeat. Ambient Breaks differs from Trip Hop (albeit sometimes minimally) as it is not Hip Hop music; it is the work of electronic music producers using various samples instead of a movement bridging remote subcultures into one.\n\nWhen Trip Hop arrived in the US (specifically New York), conceptual artists got inspired by the sound but worked the other way around: they laid multiple layers of echoing ambient sounds on top of each other (influenced by Dub) and then added a breakbeat. These soundscapes are often eclectic noisescapes: dark, experimental, and drawing from different genres to create some sort of deep mysterious force. Illbient (= Ill Ambient, in its slang meaning: “this beat is ill”) is not drug music as one might suspect, but an artsy, contemplative soundtrack for an unwritten creepy or deeply psychological film."
+      ],
+      "recall@5": 0.75,
+      "recall@10": 0.75,
+      "mrr": 0.5,
+      "ndcg@10": 0.6096,
+      "answer": "Based on the context provided, several genres would fit that description:\n\n**Dark Ambient** would be an excellent choice. It's described as \"your typical graveyard ruin by night soundtrack, or the sound of a monochrome forest echoing through a picture from the past\" — consisting of haunting and gloomy sounds (often repetitive) with heavily distorted noise in the background.\n\n**Dark Industrial** is another option, featuring lengthy compositions with eerie atmospheres that can be \"downright frightening and disturbing,\" using minimal soundscapes with haunting, gloomy sounds.\n\n**Illbient** could also work — it's described as \"an artsy, contemplative soundtrack for an unwritten creepy or deeply psychological film,\" created from layered echoing ambient sounds with breakbeats, resulting in dark, experimental soundscapes.\n\nAll three genres are specifically noted in the context as having the kind of dark, brooding, atmospheric qualities suitable for the mood you're describing.",
+      "ragas": {
+        "faithfulness": 0.7143,
+        "response_relevancy": 0.8724,
+        "context_precision": 0.25,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "mood-03",
+      "category": "mood",
+      "language": "en",
+      "query": "upbeat energetic music for a summer party",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:edm_dance_house#moombahton",
+        "genre:pop_music#hi_nrg_eurodisco~1",
+        "genre:edm_dance_trance#ibiza_house_trance_dream_house_trance",
+        "genre:edm_dance_house#ibiza_house_trance_dream_house_trance",
+        "genre:downtempo_ambient#bit_music_vgm_chiptune_8_bit",
+        "review:metacritic:103700",
+        "review:metacritic:121335",
+        "review:metacritic:163310",
+        "review:metacritic:131575",
+        "review:metacritic:162977"
+      ],
+      "genre_confidence": 0.2568,
+      "reviews_confidence": 0.0034,
+      "latency_s": 4.293,
+      "contexts": [
+        "EDM / DANCE: HOUSE > Sub-Genres > MOOMBAHTON\n\n2010\nHOUSE\nIn a time of music genre saturation, new genres are often invented by the unexpected fusion of two remote, distinctive genres. Moombahton is such an example: (Dutch) Electro House meets Reggaetón. Thus Moombahton is actually a form of House music, but slowed down and filled with Reggaetón sounds and rhythms, until it is barely recognizable as such. The name “Moombah” comes from the first conceived track. Moombahton is syncopated beat-heavy club music, with a natural summer feeling. Although the tempo is incredibly low in the world of EDM (100-110BPM), the party doesn’t slow down when Moombahton is around. Moombahton is loved for combining heavy drops, hooks and beats with shrill synths just like you find in Trapstep, Dubstep and Dutch House, but without taking itself seriously. It’s the funny sidekick of contemporary Dance. Songs are often very short, indicating that they are mostly used for a quick taste of the drop and main synth melody, after which another Moombahton track is unleashed. Moombahton’s House/Breakbeat/Jamaican melting pot often crosses over into Dubstep/Drum’n’Bass, creating the subgenre Moombahcore, but particulary into Trapstep, creating Trapahton. These subgenres are good examples of how Trapstep, Post-Dubstep, Electro House and Moombahton (the “heavy drop”-genres) have become so intertwined after 2013-14 that there is actually very few music that belongs strictly to one genre; the majority falls in between.",
+        "POP MUSIC > Sub-Genres > HI-NRG / EURODISCO\n\n1982\nPOP(r & b)\nIt was only a matter of time before the New Wave movement would spin out of control. At the far end of the spectrum (the final stage) was Hi-NRG (= high energy): a type of Disco/Synthpop where there was absolutely no trace of Rock left to find. This was pure Pop music: slickly produced Synthpop melodies driven by the pulsing rhythm of drum machines. Over-the-top, decadent and ecstatic Post-Disco-Proto-House indulged in a world of fashion, discotheques and upper class style and heavily associated with homosexual parties. Hi-NRG, Eurodisco or Electro-Disco is much faster and more high-pitched compared to regular Disco. There’s also very little bass, but a constant repetitive rhythm made futuristic by modulations. The most well-known Eurodisco song is Giorgio Moroder’s “I Feel Love’ (sung by Donna Summer) and it was far ahead of its time. It would take almost five years before the genre would unfold, but Moroder had already sown the seeds of all Dance music to come.\n\nA specific trademark of Hi-NRG was the ‘megamix’: ultralong edits consisting of different songs mixed together to create a non-stop dancing machine. Megamixes were made possible by the introduction of the 12” LP single, allowing longer tracks to be released on single. These mixes showcased producers who became the very first electronic dance DJ’s.",
+        "EDM / DANCE: TRANCE > Sub-Genres > IBIZA HOUSE / TRANCE & DREAM HOUSE / TRANCE\n\n1993\nTRANCEHOUSE\nOn the warm and lush Balearic Islands, mainly Ibiza, lots of DJ’s found an ideal party heaven, far away from dirty cities and oppressing governments. But Ibiza did not become popular in the nineties to party – the island was a refuge for thousands and thousands of worn-out ravers, tired of a music scene spun out of control and too much drug abuse. Alongside the migration of gays, artists and social outcasts to this asylum, these ravers sought a musical healing treatment for after-Rave symptoms and withdrawals, which would ideally be a downtempo fusion of soft House (Eurodance) and Trance.\n\nOne result was an atmospheric genre fitting for the seaside environment. Not heavy at all, but a dreamlike soundscape with nature sounds or gentle piano melodies mixed onto a continuous Trance bass and beat: Dream House/Trance. Remarkably, Dream Trance was conceived as a means to counter the alarming rise of car accidents after raves, with a slow tempo of 130 bpm and the use of strings to keep the driver calm and focused.\n\nAnother result was similar but slightly more energetic, with less complex melodies and added vocals, like an ambient version of Eurodance: Balearic House/Trance or Ibiza House/Trance. Balearic Trance builds further on the local genre of the eighties: Balearic Beat: a summer-infused, ambient type of Eurodisco. Sometimes exotic samples such as Spanish guitars or bandoneons are added, which makes Ibiza even more a sanctuary to forget all troubles - a concept to which the famous Amnesia club owed its name.",
+        "EDM / DANCE: HOUSE > Sub-Genres > IBIZA HOUSE / TRANCE & DREAM HOUSE / TRANCE\n\n1993\nTRANCEHOUSE\nOn the warm and lush Balearic Islands, mainly Ibiza, lots of DJ’s found an ideal party heaven, far away from dirty cities and oppressing governments. But Ibiza did not become popular in the nineties to party – the island was a refuge for thousands and thousands of worn-out ravers, tired of a music scene spun out of control and too much drug abuse. Alongside the migration of gays, artists and social outcasts to this asylum, these ravers sought a musical healing treatment for after-Rave symptoms and withdrawals, which would ideally be a downtempo fusion of soft House (Eurodance) and Trance.\n\nOne result was an atmospheric genre fitting for the seaside environment. Not heavy at all, but a dreamlike soundscape with nature sounds or gentle piano melodies mixed onto a continuous Trance bass and beat: Dream House/Trance. Remarkably, Dream Trance was conceived as a means to counter the alarming rise of car accidents after raves, with a slow tempo of 130 bpm and the use of strings to keep the driver calm and focused.\n\nAnother result was similar but slightly more energetic, with less complex melodies and added vocals, like an ambient version of Eurodance: Balearic House/Trance or Ibiza House/Trance. Balearic Trance builds further on the local genre of the eighties: Balearic Beat: a summer-infused, ambient type of Eurodisco. Sometimes exotic samples such as Spanish guitars or bandoneons are added, which makes Ibiza even more a sanctuary to forget all troubles - a concept to which the famous Amnesia club owed its name.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > BIT MUSIC / VGM (CHIPTUNE & 8-BIT)\n\n1978\nDOWNTEMPO\nWith the arrival of early home computers and the first game consoles, a weird and particular kind of music was born: electronic music made for electronic games. Because of primitive chips and hardware, this music had to be small in data and was therefore by default minimalistic, lo-fi and consisting of recurring parts (loops). Often it was barely more than a catchy, high-frequency melody and a single rhythmic bass chord produced by a small sound chip (like the famous Tetris tune or Pacman sounds). The result is an extremely primitive sound, but that didn’t matter as early computers or arcade consoles had low-quality speakers anyways.\n\nHowever, during the coming decades (and until this very day) countless artists were drawn to the sound and started to make their own game music - without games. At first Video Game Music (or VGM), better known as Bit Music, consisted primarily of two subgenres: very basic 8bit Music aka Chiptune (thus based on 8bit chips) and the slightly more advanced 16bit, which allowed for a richer and more layered sound, though still very rudimentary. One could have expected that the silliness would not stop there: pretty soon Bit Music merged with other genres such as Pop (Bit Pop) and even Hardcore Punk / Metal (Nintendocore). Although this genre might seem like a trivia not worth mentioning, the technology itself brought forth lots of other instruments and influenced other electronic music, while the amount of Bit Music artists is not to be underestimated."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "Based on the context provided, **Moombahton** would be an excellent choice for upbeat energetic music at a summer party.\n\nAccording to the knowledge base, Moombahton is described as \"syncopated beat-heavy club music, with a natural summer feeling.\" Despite having an incredibly low tempo for EDM (100-110 BPM), \"the party doesn't slow down when Moombahton is around.\" It's loved for combining \"heavy drops, hooks and beats with shrill synths\" and is characterized as \"the funny sidekick of contemporary Dance\" that doesn't take itself too seriously.\n\nAdditionally, **Ibiza House/Trance** (also called Balearic House/Trance) could work well, as it's described as \"summer-infused\" and was specifically developed in the party haven of Ibiza, though it tends to be more atmospheric and slightly less energetic than Moombahton.",
+      "ragas": {
+        "faithfulness": 0.7857,
+        "response_relevancy": 0.9449,
+        "context_precision": 1.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "mood-04",
+      "category": "mood",
+      "language": "en",
+      "query": "calm quiet background music for studying and concentration",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:downtempo_ambient#muzak_elevator_music",
+        "genre:downtempo_ambient#bit_music_vgm_chiptune_8_bit",
+        "genre:downtempo_ambient#new_age~2",
+        "review:metacritic:101020",
+        "genre:downtempo_ambient#ambient_house_chill_out",
+        "genre:edm_dance_house#ambient_house_chill_out",
+        "review:metacritic:151775",
+        "review:metacritic:4094",
+        "review:metacritic:188679",
+        "review:metacritic:61034"
+      ],
+      "genre_confidence": 0.1941,
+      "reviews_confidence": 0.0065,
+      "latency_s": 4.795,
+      "contexts": [
+        "DOWNTEMPO / AMBIENT > Sub-Genres > MUZAK / ELEVATOR MUSIC\n\n1962\nDOWNTEMPO\nMuzak mainly consists of simple, lightweight, jazzy melodies with minimal bass or percussion. Since its invention, it has been frequently used as background music for elevators, airports, swimming pools, shopping malls or any other public place where people might get uncomfortable. Because in a way, Muzak can be seen as a preserver of mental wellbeing; “new” music for these new, strange public places, which didn’t exist before the late fifties (Foucault’s heterotopias). Though Muzak itself already existed since the twenties as so called “Furniture Music”, it wasn’t until the early sixties that it broke through. The name Muzak came actually from a company specialized in making taped background music, which they sold to public venues in the sixties and particularly to companies as a tool to motivate their workforce. Early Muzak was strongly influenced by the works of French composer Erik Satie, who inspired the whole of avant-garde Downtempo with his repetitive and minimal arrangements or piano works. By the early sixties, Muzak becomes also popular outside these constrained spheres.\n\nThe difference between the early Easy-Listening genres - Muzak and Lounge - is that Lounge is supposed to be intimate, warm and moody (to enhance a certain setting) where Muzak is extremely functional. It serves either to break any (awkward) silence and mask irritating background noises or to increase working productivity. After the sixties, Muzak became an extremely derogatory term for spineless, idle music. Labeling an artist’s work as “muzak” is considered the most feared coup de grace.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > BIT MUSIC / VGM (CHIPTUNE & 8-BIT)\n\n1978\nDOWNTEMPO\nWith the arrival of early home computers and the first game consoles, a weird and particular kind of music was born: electronic music made for electronic games. Because of primitive chips and hardware, this music had to be small in data and was therefore by default minimalistic, lo-fi and consisting of recurring parts (loops). Often it was barely more than a catchy, high-frequency melody and a single rhythmic bass chord produced by a small sound chip (like the famous Tetris tune or Pacman sounds). The result is an extremely primitive sound, but that didn’t matter as early computers or arcade consoles had low-quality speakers anyways.\n\nHowever, during the coming decades (and until this very day) countless artists were drawn to the sound and started to make their own game music - without games. At first Video Game Music (or VGM), better known as Bit Music, consisted primarily of two subgenres: very basic 8bit Music aka Chiptune (thus based on 8bit chips) and the slightly more advanced 16bit, which allowed for a richer and more layered sound, though still very rudimentary. One could have expected that the silliness would not stop there: pretty soon Bit Music merged with other genres such as Pop (Bit Pop) and even Hardcore Punk / Metal (Nintendocore). Although this genre might seem like a trivia not worth mentioning, the technology itself brought forth lots of other instruments and influenced other electronic music, while the amount of Bit Music artists is not to be underestimated.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > NEW AGE\n\nNew Age is often a careful balance of both acoustic and electronic instruments, which is quite unique among genres. Therefore it can please Rock/Pop and Electronic oriented fans at the same time. Though most New Age is instrumental, soothing voices are not uncommon. The overall tempo is very low (50-60 bpm) and transitions occur gradually and smooth. New Age caresses the mind with trembling timbres and stimulates the body with an inner rhythm.The whole purpose of the music is to relax, which is why some have mockingly called it “Hot Tub music”. But New Age is more than a music genre. The urge for nature-connected, tranquillizing music is intertwined with the birth of an affined spiritual subculture also known as New Age. Not long after, New Age became so popular that anything remotely related got tagged as New Age. There were (and are) New Age compilation albums, New Age record divisions, New Age merchandising , New Age homeopathy, and so on. The term became a cosmetics label, seized by capitalistic record labels and used for daily consumption.",
+        "Calamity by The Curtains (October 24, 2006)\n\n'Calamity' is the first full length for Chris Cohen's new full-time project since leaving experimental rockers Deerhoof.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > AMBIENT HOUSE / CHILL-OUT\n\n1989\nDOWNTEMPO(house)\nAfter a long and explorative journey of Downtempo music, the unsurprising fusion of Dance (early House at first) and Ambient was a fact. More so, it marked a turning point: a new era of Downtempo, where many types of Dance would be refurbished as an ambient genre. Indeed, after Ambient House, Ambient Techno and Ambient Trance emerged. In this era, the liberation of electronic sound reached its climax. No longer would sound be subject to rhythm, form, (non-)structure, melody or lyrics, but the face of the music: the gravitational center point. Ambient House is not meant to dance to, but neither to fade away into the background. It’s a natural, organic soundscape ideal for chill-out zones or club bars, hence its alias Chill-Out. In these zones, dancefloor refugees usually hung out in the early hours to deal with XTC’s harsh comedown effects: the detrimented mind in search for sensation and the hyperfatigued body aching but unable to rest. Ambient House brought solace as musical synesthesia: gentle, tactile sounds sensually touching the mind and mesmerizing melodies massaging mashed muscles, while a steady (subordinate) House beat provides the basic energy to sustain just a little while longer (though sometimes breakbeats are added). During the nineties, Chill-Out rapidly reached a fan base outside its druggy proving grounds, and received a wider definition encompassing all electronic easy-listening music (such as Nu Jazz, Trip hop, Broken Beats, Electronic New Age, Nu Lounge…)."
+      ],
+      "recall@5": 0.5,
+      "recall@10": 0.5,
+      "mrr": 0.3333,
+      "ndcg@10": 0.3462,
+      "answer": "Based on the context provided, several genres would be suitable for calm, quiet background music for studying and concentration:\n\n1. **New Age** - Described as having a very low tempo (50-60 bpm) with smooth transitions and trembling timbres. Its whole purpose is to relax and caress the mind, making it ideal for concentration.\n\n2. **Ambient House / Chill-Out** - Characterized as a \"natural, organic soundscape\" with \"gentle, tactile sounds sensually touching the mind and mesmerizing melodies.\" It's designed to provide a calming atmosphere without demanding active listening.\n\n3. **Muzak** - While primarily functional background music, it consists of \"simple, lightweight, jazzy melodies with minimal bass or percussion\" designed to mask distracting noises and create a comfortable environment.\n\n4. **Bit Music / Chiptune** - Though more minimalistic and lo-fi, its repetitive loops and simple melodies could provide non-intrusive background sound.\n\nOf these, **New Age** and **Ambient House/Chill-Out** would be the most explicitly designed for the relaxation and mental focus needed for studying and concentration.",
+      "ragas": {
+        "faithfulness": 0.7,
+        "response_relevancy": 0.9373,
+        "context_precision": 0.3667,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "mood-05",
+      "category": "mood",
+      "language": "en",
+      "query": "aggressive heavy music to push through a hard workout",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:edm_dance_hardcore_techno#early_gabber~1",
+        "genre:heavy_metal#crossover_thrash",
+        "genre:rock_hardcore_punk#original_hardcore_punk",
+        "genre:edm_dance_hardcore_techno#overview~2",
+        "review:metacritic:86102",
+        "genre:edm_dance_hardcore_techno#hardstyle_jumpstyle",
+        "review:metacritic:10109",
+        "review:metacritic:143352",
+        "review:metacritic:19427",
+        "review:metacritic:121000"
+      ],
+      "genre_confidence": 0.0463,
+      "reviews_confidence": 0.0274,
+      "latency_s": 4.377,
+      "contexts": [
+        "EDM / DANCE: HARDCORE (TECHNO) > Sub-Genres > (EARLY) GABBER\n\n1993\nHARDCORE\nOver the course of time, there have been many music genres to provide after work stress relief in the weekends, by the common principle “work hard play harder”. When you are a dock worker in the cold and industrial harbor city of Rotterdam, that principle can only lead to the hardest music imaginable. Thus in the Netherlands the original link of Hardcore with Industrial (in the form of New Beat) was refreshed by deeply distorting a multitude of industrial-heavy kick drums. Early Rotterdam Gabber and the more well-known exponents immortalized by the famous Thunderdome compilation albums, were relatively slow (150 bpm), but soon these kick beats were accelerated to the fastest tempo in the world of music: above 180 bpm. At first Gabber was simply called Kickhouse or Powerhouse (due to its strong beats) but soon got renamed after one the first Gabber clubs: “De Van Gabberhal”. Gabber is a Dutch word meaning “buddy” and the word stuck, as a fitting reference to the conciliating vibe at such parties. This must come as no surprise, with endless availability of empathic XTC. Consumption even increased and was joined by methamphetamine pills. Loose sportswear, training jackets, short or bald haircuts, and a specific type of ultrafast, feet-pounding dance called “hakken”, showcased the consequences of such high consumption of stimulants. But the essence of Gabber could be seen as the substitute for all these aggressive appearances and heavy drug use.",
+        "HEAVY METAL > Sub-Genres > CROSSOVER THRASH\n\n1983\nHARDCOREMETAL\nOriginal Hardcore rapidly splintered into many important subgenres after its rise: the melodic Melocore, the ruthless Powerviolence, and the Punk fusions Crust-punk and Discore. Hereafter the natural fusion of two heavy guitar genres (Metal & Hardcore) led to a large, hard-to-define family of music, known as Crossover Thrash. Because the word Thrash is also an early synonym for Original Hardcore, Crossover Thrash actually has a two-way interpretation: Hardcore crossing over into Thrash Metal and the other way around. Within this aggressive whirlpool of genres, we find a new one: Thrashcore or Fastcore. Hardcore Punk became even faster, with even shorter songs, forcing the drummer to incorporate a new style of thrashing drumwork to match the insane tempo, called “Blast Beats”. Some Hardcore bands, such as Suicidal Tendencies and Bad Religion, created a faster type of music strongly linked to the Skater subculture. This early form or first wave of Skate Punk shared a lot of similarities with Thrashcore. Because many related bands experiment with all these genres (Skate Punk, Thrashcore, and both Thrash crossovers), their musical crossovers form an interesting, blurry mix of styles conjoined as Crossover Thrash; a noun often forgotten in favor of its more successful successors Grindcore and Metalcore. Crossover Thrash glorifies brevity: there’s not a moment to waste and even band names become abbreviated to signify a concentrated essence of purity and an acronym emanating power.",
+        "ROCK, HARDCORE PUNK > Sub-Genres > ORIGINAL HARDCORE (PUNK)\n\n1980\nHARDCORE\nIf Punk did survive, then it was in the spirit of Hardcore. Only this kind of no-nonsense rock harbored the bursting energy typical of Punk and even took it a step further. Hardcore (Punk) is extremely fast, raw, heavy and explosive. Many hardcore songs are even less than two minutes. It’s just a kick in the head with drums, guitars and shouting, angry vocals. The anarchy and chaos tangible in the music (just like Punk) seems to be the direct opposite of Hardcore’s disciplined lifestyle: Hardcore artists and fans are often known to be puritanical, non-hedonistic, strict and loyal. Some subgroups take this very seriously (almost militant) and have their own subgenres such as Straight-Edge. The reason for this paradox (anarchy versus order) can be explained by the inner core of hardcore, its essence: protest. Hardcore is all about critique on society, government and lifestyle.\n\nOriginal Hardcore rose fast to popularity, leaving a long trail of subgenres in its wake: Straight-Edge (very purist and full of selfrespect), Bent-Edge (more the opposite), Beatdown Hardcore (very heavy and slower, leading to Deathcore), Nardcore (local California scene), and last-but-not-least Melodic Hardcore, which traded some velocity and fierceness for melody. New York was (and still is) one of the most important spawning pools of Hardcore, which led to the term New York Hardcore (N.Y.H.C.), but this is not really a separate subgenre.",
+        "EDM / DANCE: HARDCORE (TECHNO)\n\nA very distinguishable feature of Hardcore is that it is (usually) a lot faster than other Dance music, starting from 150-160 bpm and sometimes even reaching 1000bpm (which results in a single tone). If it’s not particularly fast, like New Beat or the First Wave of Rave, it is definitely much harder and more menacing than other Dance music, favouring sound distortions and very deep bass. Hardcore seldom uses melodies, but relies on a composition of synth stabs to create melodic treble. Similar to Punk’s power chords, synth stabs create a “broken” but more powerful and energetic feel. Uniquely, Hardcore can either have a steady, hyper-fast four-to-the-floor beat, which includes the most well-known genres, or a breakbeat in the form of more obscure fusions with Jungle and Breakbeat.\n\nThe psychoactive effect of XTC on music listening has probably been the main contributor of Hardcore Techno’s entire development. In high dosages, the drug pushes the music more to the background while tightening the senses and thereby creating a craving for more intense and ecstatic music. As the average XTC consumption grew larger and larger (especially in the Netherlands), Hardcore’s sound altered too. Until the tempo and heaviness became too much, and slowly Hardcore geared down again. Despite heavy XTC and amphetamine use, there are a significant amount of drug-free fans, some even straight-edge. For these people, music simply cannot be intense enough and Hardcore provides something no other genre can deliver.",
+        "Going Way Out With Heavy Trash by Heavy Trash (September 4, 2007) — Metascore 69.0\n\nThe follow-up to their self-titled album released in 2005."
+      ],
+      "recall@5": 0.25,
+      "recall@10": 0.25,
+      "mrr": 0.3333,
+      "ndcg@10": 0.1952,
+      "answer": "Based on the context provided, several genres could serve this purpose:\n\n1. **Hardcore (Techno/EDM)** - Described as \"usually a lot faster than other Dance music, starting from 150-160 bpm and sometimes even reaching 1000bpm\" and \"much harder and more menacing than other Dance music.\" It's noted that \"music simply cannot be intense enough and Hardcore provides something no other genre can deliver.\"\n\n2. **Gabber** - An extremely fast subgenre of Hardcore Techno with tempos \"above 180 bpm,\" featuring \"strong beats\" and described as having an intense, high-energy vibe at parties.\n\n3. **Original Hardcore (Punk)** - Described as \"extremely fast, raw, heavy and explosive\" with \"bursting energy\" and \"a kick in the head with drums, guitars and shouting, angry vocals.\"\n\n4. **Crossover Thrash** - A fusion of Hardcore and Thrash Metal featuring aggressive guitar work and fast tempos, with subgenres like Thrashcore/Fastcore that incorporate \"Blast Beats\" drumwork to match \"insane tempo.\"\n\nAny of these would provide the aggressive, intense sound needed to push through a hard workout.",
+      "ragas": {
+        "faithfulness": 0.7647,
+        "response_relevancy": 0.905,
+        "context_precision": 0.75,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "blend-01",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "jazz blended with hip hop production",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:rap_hip_hop_music#jazz_rap_native_tongue",
+        "genre:blue_note_jazz#acid_jazz_jazzdance",
+        "genre:blue_note_jazz#smooth_jazz",
+        "genre:downtempo_ambient#ambient_breaks_illbient",
+        "genre:edm_dance_breakbeat#ambient_breaks_illbient",
+        "review:metacritic:11530",
+        "review:metacritic:35370",
+        "review:metacritic:38275",
+        "review:metacritic:149005",
+        "review:metacritic:15500"
+      ],
+      "genre_confidence": 0.6918,
+      "reviews_confidence": 0.0264,
+      "latency_s": 4.122,
+      "contexts": [
+        "RAP / HIP-HOP MUSIC > Sub-Genres > JAZZ RAP / NATIVE TONGUE\n\n1989\nRAP\nJazz Rap or Jazz-Hop (obviously a fusion of Jazz and Rap) grasped the opportunity of Rap as a typical “black thing” to stress racial issues and raise racial awareness, but in a rather subtle way. Implicitly by incorporating elements from (black) Soul Jazz, the father of Funk and therefore the grandfather of Rap. More explicitly by providing counterweight for the negative publicity of Gangsta Rap. Jazz Rap told sincere, empathic stories of love and everyday life to show that Rap can be filled with positive vibes instead of negative. The combination of warm, soft Jazz tunes and optimistic funky lyrics was a marriage made in heaven: the perfect summer music. Nevertheless, Jazz Rap is not always happy, but can sometimes also be melancholic. Jazz Rap usually has a lower average tempo than other Rap genres. One of the first Jazz Rap posses, strongly stressing the racial issues, was called “Native Tongue”, which eventually became a synonym for racially aware Jazz Rap.",
+        "BLUE NOTE: JAZZ > Sub-Genres > ACID JAZZ / JAZZDANCE\n\n1988\nJAZZ(breakbeat)\nAcid Jazz is a crossover genre gone too far: there is barely any Jazz left in it. There’s actually almost zero ‘acid’ about it as well, except a slight psychedelic sound, placing it high on the chart for poorly chosen genre names. In fact it’s more of the deepest funky Fusion combined with Rap, so Fusion Rap would be more appropriate. But the name is no error: Acid Jazz was a deliberate and firm reaction from the British Soul scene against the fiddling “nonsense” of Acid House. The leading record label – also named Acid Jazz – was determined to compensate Acid House with what they regarded as “quality music”, heavily influenced by Rare Groove records.\n\nA steady Hip-Hop breakbeat, lots of percussion, Jazz harmonies and funky basslines (often with the aid of a synthesizer) are the key flavors of Acid Jazz. These elements blend perfectly until the roots of the genre are no longer traceable. It was a short but popular craze, right before EDM conquered the music scene. Due to its highly danceable nature, a new type of dance, Jazzdance, was invented along with it (which became more or less a synonym of the music itself). It can be hard to separate Acid Jazz from Jazz Funk with heavy breaks, if it wasn’t for the (abundant) use of vocals.",
+        "BLUE NOTE: JAZZ > Sub-Genres > SMOOTH JAZZ\n\n1975\nJAZZ(pop)\nThe Jazz era after Fusion - also known as Post-Fusion, Post-Jazz, or Freebop – had to deal with the growing popularity and commercial approach of R&B, particularly Disco. As such, an offshoot of Fusion known as Smooth Jazz, became the favorite puppet of Jazz-related record companies, more profit-fixated than before. Experimentality became replaced by radio friendly, easy-listening music. Smooth Jazz aka Pop Jazz is supposed to sell - en large - with a slick, heavily produced and of course smooth sound. Jazz’s commercial direction is a striking part of the seventies “me generation”, where capitalist yuppies replaced naïve hippes. Of all different Jazz genres, it’s one of the plainest, with only one or two instruments playing melodies. Often there’s a saxophone, which is characteristic for Smooth Jazz’s (unintentional) erotic connotation: the music genre was a staple in erotic films or scenes during the late seventies and early eighties. After this period, Smooth Jazz also sparked reinterest in soft Pop music and paved the way for New Adult Contemporary (N.A.C). Critics, especially fans of classic and complex Jazz genres like Bop, describe Smooth Jazz as cheesy and predictable. Derogatory genre names like “Fuzak” and “Hot Tub Jazz” (New Age Jazz) reassert their opinions, while also holding a certain ground. After all, Smooth Jazz is often catered as background music for bars or restaurants or just to relax at home. Be that as it may, its overall popularity is still significant, because it delivers exactly what it promises: Easy-Listening.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > AMBIENT BREAKS & ILLBIENT\n\n1995\nDOWNTEMPOBREAKBEAT\nThe powerful idea of slowed down Breakbeat/Rap pioneered by Trip Hop, led to more similar experiments: Ambient Breaks, with Illbient as the most deviant and noteworthy example. The experimental and innovative nature of Breakbeat synergizes with that of Downtempo, resulting in a highly fascinating electronic music genre. Ambient Breaks often crosses over to Jazz, which is called Jazz Breaks. Ninja Tune Records was principally responsible for spreading the genre with its legendary Jazz Brakes compilations and later with all kinds of Ambient Breakbeat. Ambient Breaks differs from Trip Hop (albeit sometimes minimally) as it is not Hip Hop music; it is the work of electronic music producers using various samples instead of a movement bridging remote subcultures into one.\n\nWhen Trip Hop arrived in the US (specifically New York), conceptual artists got inspired by the sound but worked the other way around: they laid multiple layers of echoing ambient sounds on top of each other (influenced by Dub) and then added a breakbeat. These soundscapes are often eclectic noisescapes: dark, experimental, and drawing from different genres to create some sort of deep mysterious force. Illbient (= Ill Ambient, in its slang meaning: “this beat is ill”) is not drug music as one might suspect, but an artsy, contemplative soundtrack for an unwritten creepy or deeply psychological film.",
+        "EDM / DANCE: BREAKBEAT > Sub-Genres > AMBIENT BREAKS & ILLBIENT\n\n1995\nDOWNTEMPOBREAKBEAT\nThe powerful idea of slowed down Breakbeat/Rap pioneered by Trip Hop, led to more similar experiments: Ambient Breaks, with Illbient as the most deviant and noteworthy example. The experimental and innovative nature of Breakbeat synergizes with that of Downtempo, resulting in a highly fascinating electronic music genre. Ambient Breaks often crosses over to Jazz, which is called Jazz Breaks. Ninja Tune Records was principally responsible for spreading the genre with its legendary Jazz Brakes compilations and later with all kinds of Ambient Breakbeat. Ambient Breaks differs from Trip Hop (albeit sometimes minimally) as it is not Hip Hop music; it is the work of electronic music producers using various samples instead of a movement bridging remote subcultures into one.\n\nWhen Trip Hop arrived in the US (specifically New York), conceptual artists got inspired by the sound but worked the other way around: they laid multiple layers of echoing ambient sounds on top of each other (influenced by Dub) and then added a breakbeat. These soundscapes are often eclectic noisescapes: dark, experimental, and drawing from different genres to create some sort of deep mysterious force. Illbient (= Ill Ambient, in its slang meaning: “this beat is ill”) is not drug music as one might suspect, but an artsy, contemplative soundtrack for an unwritten creepy or deeply psychological film."
+      ],
+      "recall@5": 0.6667,
+      "recall@10": 0.6667,
+      "mrr": 1.0,
+      "ndcg@10": 0.7654,
+      "answer": "Based on the context provided, there are several genres that blend jazz with hip hop production:\n\n1. **Jazz Rap / Jazz-Hop** (1989) - A fusion of Jazz and Rap that incorporates elements from Soul Jazz and combines warm, soft Jazz tunes with funky lyrics. It typically has a lower average tempo than other Rap genres.\n\n2. **Acid Jazz** (1988) - Described as \"the deepest funky Fusion combined with Rap,\" featuring a steady Hip-Hop breakbeat, lots of percussion, Jazz harmonies, and funky basslines.\n\n3. **Jazz Breaks** - Ambient Breaks that cross over to Jazz, created by electronic music producers using various samples.\n\nAmong these, **Jazz Rap** appears to be the most direct and straightforward blend of jazz with hip hop production, emphasizing positive storytelling and racial awareness through the combination of jazz instrumentation and rap lyrics.",
+      "ragas": {
+        "faithfulness": 0.9375,
+        "response_relevancy": 0.9229,
+        "context_precision": 0.5,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "blend-02",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "electronic music with heavy rock guitars",
+      "retrieval_scored": true,
+      "retrieved": [
+        "review:metacritic:161704",
+        "genre:blue_note_blues#texas_bluesrock_modern_electric_blues",
+        "genre:pop_music#indietronica_chillwave~2",
+        "genre:rock_rock_n_roll_r_n_r_rock_roll#overview~2",
+        "review:metacritic:182030",
+        "genre:rock_golden_age_classic_rock#heartland_rock_a_o_r_adult_oriented_rock~1",
+        "genre:rock_golden_age_classic_rock#hard_rock",
+        "review:metacritic:193330",
+        "review:metacritic:172645",
+        "review:metacritic:122280"
+      ],
+      "genre_confidence": 0.2494,
+      "reviews_confidence": 0.2837,
+      "latency_s": 4.81,
+      "contexts": [
+        "Fire by Electric Six (May 20, 2003) — Metascore 70.0, User score 8.5\n\nFeaturing guitarists named Rock and Roll Indian and Surge Joebot, the latest indie-rock sensation to come out of Detroit combines punk, new-wave and disco on this debut full-length. Included here is a new version of their hit single \"Danger! High Voltage\" with the White Stripes' Jack White on backing vocals.",
+        "BLUE NOTE: BLUES > Sub-Genres > TEXAS BLUESROCK & MODERN ELECTRIC BLUES\n\n1970\nBLUES\nDesperate times call for desperate measures. The seventies truly was a tragic decade for Blues, losing the majority of its fans to R&B. With a last-resort return to two different but highly popular old Blues genres, the tide could not really be turned but at least total engulfing was avoided. But while black fans fled the Blues scene, more and more white artists started to take an interest in Blues, and handpicked their favorite genres for personal restyling.\n\nTexas Blues, a heavily guitar oriented type of old Country Blues, and Chicago Blues, the golden age of Blues, both became the subject of revivals with strong influences from Rock. These revivals were respectively named Texas Blues Rock and Modern Electric (Blues) aka New Chicago (Blues). Technically both genres involve the introduction of electric guitar and a Rock drum kit, which created a sort of second wave of Blues Rock. This wave happened on a much smaller scale than the first one, but more technically advanced, and with a harder sound. Its strong popularity in southern USA has created a great degree of overlapping with Southern Rock.\n\nTypical for these genres are loud, wailing guitars with sustained high notes, and - despite many middle class white artists - this has given rise to the nickname “Ghetto Blues”. A great emphasis on guitar solos, like cries from the ghetto, and a wilder-than-thou sound provide insight as to why, though it is far more likely to encounter Texas Blues Rock and Modern Electric at desolated truck stop bars than in urban ghettos.",
+        "POP MUSIC > Sub-Genres > INDIETRONICA & CHILLWAVE\n\nA term frequently associated with these latest Rock genres (but obviously applicable to others as well), is “Laptronica”: electronic music performed entirely by simply a laptop. But Laptronica qualifies rather as a derogatory slur from Rock bands and journalists who favor a classic instrumentation (even though Indietronica and exponents often do have one).",
+        "ROCK, ROCK 'N' ROLL (R'N'R) (ROCK & ROLL)\n\nRock ‘n’ Roll introduces the typical Rock instrument set-up, consisting of four to five musicians (though three is possible as well): lead singer, lead guitar, rhythm guitar, drums, and bass (though the singer could also play an instrument). Rock ‘n’ Roll is based on the Jump Blues rhythm, with a heavily accentuated backbeat. Rock ‘n’ Roll is even faster than its direct predecessors Early Rhythm ‘n’ Blues and Jump Blues, with less emphasis on bass and a replacement of the double bass by the electric bass.\n\nThe etymology of “Rock ‘n’ Roll” reveals its subtext: the phrase is old African-American slang for sex. Of course not all Rock ‘n’ Roll songs deal about sex, but many were utterly shocking and hedonist for the conservative fifties and some artists put little effort in concealing their dirty mind. Take Jimmy Lloyd’s “Rocket in my Pocket” for example. Many parents expressed grave concerns and religious figures picked up the chant: Rock ‘n’ Roll was the music of the Devil. But forbidden fruit tastes the sweetest and Rock indulged in its own delicious aura of danger and excitement; an aura that kept lingering long after the era of Rock ‘n’ Roll. Interestingly, the term also refers to the type of dancing couples usually do on R’n’R, for example with the twist: “rocking” (dancing towards each other) and “rolling” (taking distance).",
+        "Get Ready by New Order (October 16, 2001) — Metascore 72.0, User score 8.4\n\nThe band's first album together since 1993's 'Republic' finds the group moving away from electronica and back to guitar rock. The Smashing Pumpkins' Billy Corgan duets with Bernard Sumner on \"Turn My Way\" (and has been touring with the band as an additional guitarist), and Primal Scream's Bobby Gillespie and Innes contribute vocals and guitar to \"Rock The Shack.\" Steve Osborne produced the 10-track album."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "Based on the context provided, the term that describes electronic music with heavy rock guitars would be **Indietronica**.\n\nAccording to the context, Indietronica is listed under \"POP MUSIC > Sub-Genres > INDIETRONICA & CHILLWAVE.\" The passage notes that while \"Laptronica\" (electronic music performed entirely by laptop) is sometimes associated with these rock genres, Indietronica and its exponents \"often do have\" classic instrumentation, which would include rock guitars.\n\nAdditionally, the album \"Get Ready\" by New Order (2001) appears to exemplify this blend, as it describes the band \"moving away from electronica and back to guitar rock,\" suggesting a fusion of electronic and guitar-based rock elements.",
+      "ragas": {
+        "faithfulness": 0.7,
+        "response_relevancy": 0.9288,
+        "context_precision": 0.3333,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "blend-03",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "country music with a rock and roll edge",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:rock_rock_n_roll_r_n_r_rock_roll#rock_n_roll_rockabilly",
+        "genre:country#nashville_countrypolitan",
+        "genre:pop_music#country_pop_country_rock",
+        "genre:country#country_pop_country_rock",
+        "genre:country#bakersfield",
+        "review:metacritic:110999",
+        "review:metacritic:153210",
+        "review:metacritic:82510",
+        "review:metacritic:111424",
+        "review:metacritic:83500"
+      ],
+      "genre_confidence": 0.9036,
+      "reviews_confidence": 0.0204,
+      "latency_s": 4.877,
+      "contexts": [
+        "ROCK, ROCK 'N' ROLL (R'N'R) (ROCK & ROLL) > Sub-Genres > ROCK 'N ROLL & ROCKABILLY\n\n1953\nROCK 'N' ROLL(country)\nRock ‘n’ Roll was musically speaking not a great step forward; its origins in Boogie Woogie and R&B were obvious. It was mainly a racial thing: young, attractive, white singers bringing black music into the living rooms of white people (especially girls), and turning heads by shaking their pelvis and/or standing on pianos. At the same time, Hillbilly Country musicians became influenced by early Country Blues and created uptempo Country with a strong beat, slapped upright bass, and stuttering vocals: Rockabilly. Both genres, as well as some Country music, originated on the famous Sun Records label in Memphis. Rock ‘n’ Roll often overlaps with Rockabilly’s simple, uptempo blues with three chords, a boogie back beat, and the holy instrument trinity of rock: drums, guitar and bass. As one can see, early Rock ‘n’ Roll was difficult to separate from early Rhythm ‘n’ Blues. However, the often overlooked effect of amphetamine (used heavily by many Rock ‘n’ Roll stars) changed the sound into the sociocultural revolution that it was: with their trembling voices, exuberant behavior, unbridled energy, and sexual innuendo, they introduced something new, something unheard of and “bad to the bone”. The later “mod” subculture of the fifties (sometimes mistaken for a music genre), were also very drawn into a similar world of bikes, speed, and rock ‘n’ roll. White teens went crazy around the world and soon Rock ‘n’ Roll became so popular that the term was used for anything rebellious, and often Rock music in general.",
+        "COUNTRY > Sub-Genres > NASHVILLE / COUNTRYPOLITAN\n\n1957\nCOUNTRY\nCountry expands drastically after WW II, thanks to a heightened sense of nationalism, a larger export market (babyboomers), an exponential increase in Country radio stations, and a bigger target audience due to the appeal of electric instruments. The Rock ‘n’ Roll revolution however, threatened Country’s prosperous expansion. Country revolted with a commercialized version of Honky Tonk, a genre that was content-wise quite the opposite of R&R. Honky Tonk had to lose its hardcore edge in order to become more popular. This resulted in a smooth, softer Pop-like Country, with more emphasis on strings and textured instruments. Its name came from the town where most of its slick producers intended to regain the influence back that R&R had stolen from them: Nashville, Tennessee. It was also the town where a lot of huge barn dances with Nashville country were being held, such as the legendary Grand Ole Opry.\n\nEventually Nashville became even more polished in the form of mainstream Countrypolitan, though these genres may be regarded as synonyms. Countrypolitan experienced accusations of being too superficial and profit-oriented, with “Teflon”-singers in their western suits showing their snowwhite slick smiles and brilliantine haircuts. Nashville was crowned “Cashville”: an easy way to raise some bucks by cashing in on the Country cow.",
+        "POP MUSIC > Sub-Genres > COUNTRY POP & COUNTRY ROCK\n\n1968\nCOUNTRYPOP\nAt the end of the nineties, Rock crosses over into two different directions: harder Blues Rock/Metal versus Country. What started as typical Folk Rock of the sixties, gradually got mixed up with Country and becomes Country Rock. This explains a great deal of overlapping between both genres. But via Folk Rock, Country Rock also reaches back to the fifties; to the pre-Merseybeat period. And this is its cardinal feature: Country Rock is specifically made for those who grew up with Rock ‘n’ Roll, but felt little connection with British or experimental Rock of the sixties. Most well-known artists have a pure Country background and are more interested in using the popularity of Rock to their advantage than the other way around. Strummed acoustic guitars (often 12-string), subtle drums and polyphonic vocals help combine the rebellious spirit of Rock ‘n’ Roll with the customs and arrangements of Country. Eventually Country Rock shakes off its rough feathers to breed Country Pop, though these genres are marginally different.\n\nA lesser used term associated with Country Rock, is West Coast Rock: a loose affiliation of California based Country/Folk/Rock artists of the sixties and seventies. Another term, used as a radio format category, is “Middle of the Road” or MOR., because the music is a middle ground between Rock and Country. Although many MOR radio stations preferred all kinds of Country Pop & Rock, in strict terms it refers only to music before the age of Rock ‘n’ Roll.",
+        "COUNTRY > Sub-Genres > COUNTRY POP & COUNTRY ROCK\n\n1968\nCOUNTRYPOP\nAt the end of the nineties, Rock crosses over into two different directions: harder Blues Rock/Metal versus Country. What started as typical Folk Rock of the sixties, gradually got mixed up with Country and becomes Country Rock. This explains a great deal of overlapping between both genres. But via Folk Rock, Country Rock also reaches back to the fifties; to the pre-Merseybeat period. And this is its cardinal feature: Country Rock is specifically made for those who grew up with Rock ‘n’ Roll, but felt little connection with British or experimental Rock of the sixties. Most well-known artists have a pure Country background and are more interested in using the popularity of Rock to their advantage than the other way around. Strummed acoustic guitars (often 12-string), subtle drums and polyphonic vocals help combine the rebellious spirit of Rock ‘n’ Roll with the customs and arrangements of Country. Eventually Country Rock shakes off its rough feathers to breed Country Pop, though these genres are marginally different.\n\nA lesser used term associated with Country Rock, is West Coast Rock: a loose affiliation of California based Country/Folk/Rock artists of the sixties and seventies. Another term, used as a radio format category, is “Middle of the Road” or MOR., because the music is a middle ground between Rock and Country. Although many MOR radio stations preferred all kinds of Country Pop & Rock, in strict terms it refers only to music before the age of Rock ‘n’ Roll.",
+        "COUNTRY > Sub-Genres > BAKERSFIELD\n\n1954\nCOUNTRY\nBakersfield (Sound) is a lesser known type of Country, named after the place where it originated: the city of Bakersfield, California, so it could as well be called West Coast Country. Roots Country musicians came from the midwest to southern California where they brew up a melting pot of Honky Tonk with a pinch of Rock ‘n’ Roll and Western Swing.\n\nImmediately after the rise of Rock ‘n’ Roll, Country started to incorporate Rock ‘n’ Roll elements, but Bakersfield remained a rather traditional type of Country, honoring its Honky Tonk heritage. Typical Bakersfield instruments include Fiddle, Steel Guitar, Drums and Telecaster. This would make it seem that Rock ‘n’ Roll was only a small influence for Bakersfield. However, most instruments were electrified like Rock, and a pronounced backbeat showcased a large difference with its contemporary rival, Nashville Country (which actually was a backlash against Bakersfield’s Rock allures)."
+      ],
+      "recall@5": 0.25,
+      "recall@10": 0.25,
+      "mrr": 0.25,
+      "ndcg@10": 0.1681,
+      "answer": "Based on the context provided, there are several country music styles with a rock and roll edge:\n\n1. **Bakersfield (Sound)** - A country style from Bakersfield, California that blends Honky Tonk with a pinch of Rock 'n' Roll and Western Swing. It features electrified instruments like Fiddle, Steel Guitar, Drums and Telecaster, with a pronounced backbeat that gave it a rock influence.\n\n2. **Country Rock** - Evolved from Folk Rock in the sixties and gradually mixed with Country. It's specifically designed for those who grew up with Rock 'n' Roll and combines \"the rebellious spirit of Rock 'n' Roll with the customs and arrangements of Country\" using strummed acoustic guitars, subtle drums, and polyphonic vocals.\n\n3. **Rockabilly** - Created by Hillbilly Country musicians influenced by early Country Blues, featuring uptempo Country with a strong beat, slapped upright bass, and stuttering vocals.\n\nThe context notes that Nashville Country actually developed as a backlash against Bakersfield's rock influences, suggesting that Bakersfield was particularly known for maintaining that rock and roll edge within country music.",
+      "ragas": {
+        "faithfulness": 0.9333,
+        "response_relevancy": 0.9299,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "blend-04",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "soul music with modern electronic production",
+      "retrieval_scored": true,
+      "retrieved": [
+        "review:metacritic:189060",
+        "genre:blue_note_jazz#nu_jazz_electro_jazz",
+        "genre:rhythm_n_blues_r_b#nu_disco_funktronica",
+        "genre:edm_dance_house#nu_disco_funktronica",
+        "genre:downtempo_ambient#bit_music_vgm_chiptune_8_bit",
+        "genre:industrial_gothic#electronic_body_music_ebm",
+        "review:metacritic:186915",
+        "review:metacritic:121664",
+        "review:metacritic:65839",
+        "review:metacritic:141589"
+      ],
+      "genre_confidence": 0.1986,
+      "reviews_confidence": 0.32,
+      "latency_s": 4.322,
+      "contexts": [
+        "Folktronic by Momus (February 27, 2001)\n\nScotland's Nicholas Currie (aka Momus) returns with an usual album that combines (fake) traditional folk tunes with modern electronica.",
+        "BLUE NOTE: JAZZ > Sub-Genres > NU JAZZ / ELECTRO JAZZ\n\n1995\nJAZZ(downtempo)\nDuring summer afternoons or evenings, in picturesque metropolitan suburbs (such as Saint-Germain, Paris), Nu-Jazz would be the ideal background music for any café terrace or coffee bar. It is electronic, melodic, playful Jazz with lots of soothing, ambient sound effects that wash over the gentle Jazz percussion like a warm summer breeze. Being made entirely electronic, it marked the end of the traditional Jazz band. All Jazz music from Nu-Jazz and forward – dominantly electronic and often home produced like EDM – is conjoined under the portmanteau “Future Jazz”. Future Jazz succeeded where contemporary Blues failed: renewing Jazz in the 21st century.\n\nNu Jazz, also known as Jazztronica, Phusion or Electro Jazz, can have a broad range of influences, such as deep basses from Ambient House or Deep House, groovy drum rhythms from Breakbeat, and exotic percussion from Latin genres. This makes Nu-Jazz a core genre (or the) of the second or electronic wave of Lounge, and it’s easily mistaken for Broken Beats or other Lounge genres. But these influences are subtle enough to not masquerade the fact that it truly is Jazz. Nevertheless, Nu-Jazz differs radically from older Jazz genres in means of production (solo and recorded versus live and in band) and its electronic sound. Hence, most Jazz enthusiasts regard Nu-Jazz rather as a rupture instead of a continuation within Jazz and encourage its classification among non-Jazz genres (Lounge, House, Breakbeat, Downtempo…). But in the realm of music, tradition is a bad advisor for survival.",
+        "RHYTHM 'N' BLUES (R&B) > Sub-Genres > NU-DISCO & FUNKTRONICA\n\n2007\nR & BHOUSE\nNu-Disco focuses specifically on (Post-)Disco of the late seventies and Eurodisco of the early eighties. This is Disco semi-detached from Soul, while harboring a stronger beat, which makes it more accessible for the modern public. Just like Electroclash brought back Synthpop to an EDM-fatigued audience, so reinstalls Nu-Disco (Euro-)Disco with similar success. Nu-Disco recreates these “old” genres by using the latest equipment and technologies. This allows razor-sharp productions and crystal clear sounds (especially Electro and Boogie sounds). Apart from this updated sound though, the difference with the original era is minimal. A point that is further being stressed by the use of “edits”: rereleases of old songs without any alterations.\n\nFunktronica emerges around the same time, and might be more or less interpreted as a Boogie Revival; a return of Synth Funk in the 21st century. Because Funktronica is influenced by Italo-Disco too, it shares much resemblance with Nu-Disco. Both genres signify a magical junction right in the center between Eurodisco, Chicago House and Electro Funk. After a long era of “cold” and “heartless” Electro-House, Nu-Disco and Funktronica become welcomed with open hands. From the moment the genre appeared on the website Beatport, along with its unknown DJ exponents, popularity kept increasing drastically: a possible omen that R&B’s Golden Age could return with a vengeance.",
+        "EDM / DANCE: HOUSE > Sub-Genres > NU DISCO & FUNKTRONICA\n\n2007\nR & BHOUSE\nNu-Disco focuses specifically on (Post-)Disco of the late seventies and Eurodisco of the early eighties. This is Disco semi-detached from Soul, while harboring a stronger beat, which makes it more accessible for the modern public. Just like Electroclash brought back Synthpop to an EDM-fatigued audience, so reinstalls Nu-Disco (Euro-)Disco with similar success. Nu-Disco recreates these “old” genres by using the latest equipment and technologies. This allows razor-sharp productions and crystal clear sounds (especially Electro and Boogie sounds). Apart from this updated sound though, the difference with the original era is minimal. A point that is further being stressed by the use of “edits”: rereleases of old songs without any alterations.\n\nFunktronica emerges around the same time, and might be more or less interpreted as a Boogie Revival; a return of Synth Funk in the 21st century. Because Funktronica is influenced by Italo-Disco too, it shares much resemblance with Nu-Disco. Both genres signify a magical junction right in the center between Eurodisco, Chicago House and Electro Funk. After a long era of “cold” and “heartless” Electro-House, Nu-Disco and Funktronica become welcomed with open hands. From the moment the genre appeared on the website Beatport, along with its unknown DJ exponents, popularity kept increasing drastically: a possible omen that R&B’s Golden Age could return with a vengeance.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > BIT MUSIC / VGM (CHIPTUNE & 8-BIT)\n\n1978\nDOWNTEMPO\nWith the arrival of early home computers and the first game consoles, a weird and particular kind of music was born: electronic music made for electronic games. Because of primitive chips and hardware, this music had to be small in data and was therefore by default minimalistic, lo-fi and consisting of recurring parts (loops). Often it was barely more than a catchy, high-frequency melody and a single rhythmic bass chord produced by a small sound chip (like the famous Tetris tune or Pacman sounds). The result is an extremely primitive sound, but that didn’t matter as early computers or arcade consoles had low-quality speakers anyways.\n\nHowever, during the coming decades (and until this very day) countless artists were drawn to the sound and started to make their own game music - without games. At first Video Game Music (or VGM), better known as Bit Music, consisted primarily of two subgenres: very basic 8bit Music aka Chiptune (thus based on 8bit chips) and the slightly more advanced 16bit, which allowed for a richer and more layered sound, though still very rudimentary. One could have expected that the silliness would not stop there: pretty soon Bit Music merged with other genres such as Pop (Bit Pop) and even Hardcore Punk / Metal (Nintendocore). Although this genre might seem like a trivia not worth mentioning, the technology itself brought forth lots of other instruments and influenced other electronic music, while the amount of Bit Music artists is not to be underestimated."
+      ],
+      "recall@5": 0.3333,
+      "recall@10": 0.3333,
+      "mrr": 0.3333,
+      "ndcg@10": 0.2346,
+      "answer": "Based on the context provided, the answer would be **Nu-Disco**.\n\nAccording to the context, Nu-Disco \"focuses specifically on (Post-)Disco of the late seventies and Eurodisco of the early eighties. This is Disco semi-detached from Soul, while harboring a stronger beat, which makes it more accessible for the modern public.\" It \"recreates these 'old' genres by using the latest equipment and technologies. This allows razor-sharp productions and crystal clear sounds.\"\n\nSo Nu-Disco represents soul-influenced music (Disco semi-detached from Soul) combined with modern electronic production and equipment.",
+      "ragas": {
+        "faithfulness": 0.75,
+        "response_relevancy": 0.825,
+        "context_precision": 0.4167,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "genre-01",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "deep house",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:edm_dance_house#deep_house",
+        "review:metacritic:48935",
+        "genre:edm_dance_house#french_house_funky_house",
+        "review:metacritic:134785",
+        "genre:edm_dance_techno#tech_house",
+        "genre:edm_dance_house#tech_house",
+        "genre:edm_dance_house#overview~4",
+        "review:metacritic:181802",
+        "review:metacritic:91109",
+        "review:metacritic:101740"
+      ],
+      "genre_confidence": 0.9997,
+      "reviews_confidence": 0.7956,
+      "latency_s": 4.167,
+      "contexts": [
+        "EDM / DANCE: HOUSE > Sub-Genres > DEEP HOUSE\n\n1993\nHOUSE\nA strong and undefeated house within the family line of House is Deep House, the somewhat opposite counterweight for Eurodance. Deep House has an endless appeal by going back to the primary Roots of House: Philly Soul. Fusion instruments (Hammond organs, electric pianos) give Deep House a funky, warm sound, while Philly Soul and Garage House arrangements provide a steady dance rhythm. That’s why Deep House is sometimes referred to as Jazz House. The most typical characteristic of Deep House is a total absence of climax and classic song structure; the music is one long mix of groovy House beats. After Deep House, the closely related genre Funky House emerged; a more Funk than Soul oriented variant. Deep House forms the opposing pole of a polarized House universe: ambient and soulful versus hard and sharp, which has turned both sides into love-it-or-hate-it styles. Deep House's average tempo is slightly slower than Chicago’s (120bpm) and often features downtuned or downsampled sounds, which sound like they are heard underwater. As such, Deep House submerges the listener in the groovy waves of soulful House. It is not there to blast relentlessly impulses into the brain; it is there to party all night long without excesses.",
+        "Whisper House by Duncan Sheik (January 27, 2009) — Metascore 71.0\n\nThe Tony-winning composer Duncan Sheik returns with a concept album for a musical he hopes to make.",
+        "EDM / DANCE: HOUSE > Sub-Genres > FRENCH HOUSE & FUNKY HOUSE\n\n1998\nHOUSE\nFrench House started almost simultaneously with its sibling Funk House genres, Deep and Funky House, in the late eighties. It wasn’t until the late nineties though, that many French House producers broke through internationally. Being much less ambient and soulful than Deep House, French House was more attracted to the futuristic visions of P-Funk. But more important was Eurodisco, which had a lasting impact in France on Dance music thanks to the regional subgenre Space-Disco. Ever since Eurodisco arrived in France (around 1987), the build-up to French House was already tangible, but to people abroad the music felt revolutionary. This means spacey Synthpop sounds, a highly danceable nature, and “Electro” effects (such as robotic filter and phaser melodies; the trademark of French House). French House uses many references in song names or artwork to science-fiction and space. Funky House and French House share a great deal of overlapping. Around 2000, Funky House becomes more popular but both remain well liked among many. French House is another example of popular music’s continuous return to its own history, using the past to shape the future.",
+        "Outside Closer by Hood (February 8, 2005) — Metascore 80.0, User score 8.6\n\nThe Leeds, England band follow their acclaimed 2001 release 'Cold House' with this 10-track effort which, like its predecessor, combines acoustic guitars and some glitchy electronica elements into moody indie rock.",
+        "EDM / DANCE: TECHNO > Sub-Genres > TECH HOUSE\n\n1996\nTECHNOHOUSE\nTech House is exactly what you would expect: a go-between of House and Techno. The sound of Chicago/Deep House is remixed on top of a minimal Techno beat in hyperclean, digital productions. Tech House has no famous hits or anthems: it is a massive abundance of DJ-targeted records specifically made for mixing. This is because it’s the safest Dance music any DJ can play as it never strays too far into one category or another. It’s not too melodic, catchy or ecstatic to be straight House so it can be easily mixed and dissolve as a continuous beat in the background. Neither is it too rhythmical or minimal to be pure Techno. Tech House features more distortion (often on the kicks), shorter sounds, more pronounced snares, and less warm/more digital synth melodies than regular House. It is however more structured than Techno and often features vocal samples or more eclectic influences."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "# Deep House\n\nBased on the context provided, here's what Deep House is:\n\n**Origins & Characteristics:**\nDeep House emerged in 1993 as a strong subgenre within the House family, drawing from the primary roots of House music: Philly Soul. It's sometimes referred to as Jazz House.\n\n**Sound:**\n- Features fusion instruments like Hammond organs and electric pianos that give it a funky, warm sound\n- Incorporates Philly Soul and Garage House arrangements with steady dance rhythms\n- Often uses downtuned or downsampled sounds that create an \"underwater\" effect\n- Average tempo is slightly slower than Chicago House (around 120bpm)\n\n**Musical Structure:**\n- Characterized by a total absence of climax and classic song structure\n- Music is one long mix of groovy House beats designed for continuous dancing\n\n**Philosophy:**\nDeep House is ambient and soulful rather than hard and sharp. It's designed to submerge the listener in groovy waves of soulful House music—meant for partying all night long without excesses, rather than blasting relentless impulses into the brain.\n\n**Position in House Music:**\nDeep House forms the opposing pole of a polarized House universe, contrasting with harder, sharper styles. It has an endless appeal but is considered a \"love-it-or-hate-it\" style.",
+      "ragas": {
+        "faithfulness": 0.95,
+        "response_relevancy": 0.8873,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "genre-02",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "shoegaze and dream pop",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:pop_music#dream_pop_shoegaze~1",
+        "genre:rock_alternative_rock_indie#dream_pop_shoegaze~1",
+        "genre:pop_music#dream_pop_shoegaze~2",
+        "genre:rock_alternative_rock_indie#dream_pop_shoegaze~2",
+        "genre:pop_music#indietronica_chillwave~1",
+        "review:metacritic:111330",
+        "review:metacritic:166769",
+        "review:metacritic:167469",
+        "review:metacritic:140177",
+        "review:metacritic:14104"
+      ],
+      "genre_confidence": 0.9999,
+      "reviews_confidence": 0.0187,
+      "latency_s": 4.537,
+      "contexts": [
+        "POP MUSIC > Sub-Genres > DREAM POP & SHOEGAZE\n\n1988\nALTERNATIVEPOP\nFrom the mid-eighties till the early nineties a large psychedelic-alternative Rock scene blossomed out of the more obscure Paisley Underground movement. Just like the Paisley Underground, this Psychedelic Rock revival - known as Neo-Psy - was based on sixties’ jangly guitars and many sound effects. Around 1982-’83, Dream Pop branches off from Neo-Psy: a softer, more ambient version and in fact a kind of Proto-Post-Rock. Later, a part of Neo-Psy evolved into a new kind of “Acid Indie Rock”, called Shoegaze or Shoegazing, but sometimes Dream Pop and Shoegaze are used as interchangeable terms. Shoegaze is filled with layered, heavily distorted guitars (with feedback), washing over each other to create a spacy, atmospheric, textured sound, which is sometimes referred to as a “wall of noise”. Yet this music is (just like Stoner Rock) not really noise, just very droning, loud and psychedelic. The name Shoegaze was derived from the fact that some artists actually stared at their shoes while performing. Neo-Psy, including Dream Pop and Shoegaze, continues in the nineties, forming a parallel stream next to other Alternative Rock.",
+        "Rock, ALTERNATIVE ROCK / INDIE > Sub-Genres > DREAM POP & SHOEGAZE\n\n1988\nALTERNATIVEPOP\nFrom the mid-eighties till the early nineties a large psychedelic-alternative Rock scene blossomed out of the more obscure Paisley Underground movement. Just like the Paisley Underground, this Psychedelic Rock revival - known as Neo-Psy - was based on sixties’ jangly guitars and many sound effects. Around 1982-’83, Dream Pop branches off from Neo-Psy: a softer, more ambient version and in fact a kind of Proto-Post-Rock. Later, a part of Neo-Psy evolved into a new kind of “Acid Indie Rock”, called Shoegaze or Shoegazing, but sometimes Dream Pop and Shoegaze are used as interchangeable terms. Shoegaze is filled with layered, heavily distorted guitars (with feedback), washing over each other to create a spacy, atmospheric, textured sound, which is sometimes referred to as a “wall of noise”. Yet this music is (just like Stoner Rock) not really noise, just very droning, loud and psychedelic. The name Shoegaze was derived from the fact that some artists actually stared at their shoes while performing. Neo-Psy, including Dream Pop and Shoegaze, continues in the nineties, forming a parallel stream next to other Alternative Rock.",
+        "POP MUSIC > Sub-Genres > DREAM POP & SHOEGAZE\n\nIn Manchester, an influential nightlife scene evolved around Shoegaze. This scene was dubbed “Madchester” or “Baggy” (because of the artists their baggy trousers), where Indie and Acid Rock played alongside (Acid) House, bridging two separate party worlds within sacred dance temples of drugs and ecstasy (such as the legendary Hacienda club). Madchester is a genre more defined by its geographical origin and its leading label Factory Records than anything else, but extremely entertaining nevertheless.",
+        "Rock, ALTERNATIVE ROCK / INDIE > Sub-Genres > DREAM POP & SHOEGAZE\n\nIn Manchester, an influential nightlife scene evolved around Shoegaze. This scene was dubbed “Madchester” or “Baggy” (because of the artists their baggy trousers), where Indie and Acid Rock played alongside (Acid) House, bridging two separate party worlds within sacred dance temples of drugs and ecstasy (such as the legendary Hacienda club). Madchester is a genre more defined by its geographical origin and its leading label Factory Records than anything else, but extremely entertaining nevertheless.",
+        "POP MUSIC > Sub-Genres > INDIETRONICA & CHILLWAVE\n\n2005\nCONTEMPORARYPOP\nLong after the Madchester explosion (and the fall), Shoegaze was rediscovered as a perfect ingredient for a remarkable melting pot: Synthpop, Electronica, and Shoegazing went pretty well together in a new type of “Ambient New Wave Indie Rock” that could either be called Nu-Gaze, Indietronica or Chillwave depending on matter of perspective or whether the core structure of a certain song is either Rock (New (Shoe)Gaze), Pop/Wave (Chillwave) or Downtempo (Indie (elec)tronica). Therefore two different songs belonging to this genre can very well sound rather different. Unsurprisingly, this is a fairly broad and flexible genre, which can easily tap into a wide spectrum of related genres. Where Nu-Gaze is rather an obscure and rare genre and Indietronica too loosely defined, Chillwave is the genre that comes closest to a certain definition. A definition that easily swallows the other genres as well (illustrated by Chillwave’s alias: Downtempo Pop). After all, this is the age of eclecticism. Chillwave has a very summery mood, full of optimism and dreamy Pop vocals. Eighties retro (further enhanced in a dark way by the successor Synthwave) and lots of reverb on different song parts make it seem like Dream Pop is back from the dead. Another synonym, “Glo-Fi”, also points out parallels between Chillwave and the Dream Pop/Shoegaze era."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "# Shoegaze and Dream Pop\n\nBased on the context provided:\n\n**Dream Pop** branched off from Neo-Psy around 1982-'83 as a softer, more ambient version of the psychedelic rock revival, and is described as a kind of Proto-Post-Rock.\n\n**Shoegaze** (or Shoegazing) evolved later as a part of Neo-Psy into \"Acid Indie Rock.\" It is characterized by layered, heavily distorted guitars with feedback that wash over each other to create a spacy, atmospheric, textured sound—sometimes called a \"wall of noise.\" The name comes from the fact that some artists stared at their shoes while performing.\n\n**Relationship between them:** Dream Pop and Shoegaze are sometimes used as interchangeable terms, though they are technically distinct. Both continued through the nineties as part of the Neo-Psy movement, forming a parallel stream alongside other Alternative Rock.\n\nLater, both genres influenced the development of **Chillwave/Indietronica** (around 2005), where Shoegaze elements were combined with Synthpop and Electronica.",
+      "ragas": {
+        "faithfulness": 0.7647,
+        "response_relevancy": 0.9005,
+        "context_precision": 1.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "genre-03",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "bebop jazz",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:blue_note_jazz#bebop~2",
+        "genre:blue_note_jazz#bebop~1",
+        "genre:blue_note_jazz#hard_bop",
+        "genre:blue_note_jazz#cool_jazz_west_coast_jazz",
+        "genre:blue_note_jazz#free_jazz_avant_garde_jazz",
+        "review:metacritic:192334",
+        "review:metacritic:5829",
+        "review:metacritic:59290",
+        "review:metacritic:141402",
+        "review:metacritic:10252"
+      ],
+      "genre_confidence": 0.9998,
+      "reviews_confidence": 0.082,
+      "latency_s": 4.557,
+      "contexts": [
+        "BLUE NOTE: JAZZ > Sub-Genres > BEBOP\n\nMany wannabe Bebop musicians went downhill because they wrongly believed that heroin, which was very cheap during the forties, was an inherent part of Jazz culture. Their personal but also social problems (racism) illustrate the dark side of Bebop. This was no happy music, but the psychotic screams of struggling musicians, who didn’t care whether you loved or hated their music.\n\nAround 1982, Bebop experiences a strong revival known as Neobop (or sometimes called Neo-Con (= conservative) Jazz). A lot of young Jazz scholars were not interested in the new possibilities of Fusion, and chose to concentrate on the old school (with influences from Free and Modal Jazz): straight, acoustic Jazz but rich and vibrant. A type of Jazz where they could show off their technical skills that would otherwise have been masked by the eclecticism of Fusion.",
+        "BLUE NOTE: JAZZ > Sub-Genres > BEBOP\n\n1945\nJAZZ\nGenres that grow too big eventually will fall. This was no different with Swing. Not only became it difficult to maintain such large, expensive orchestras, but more and more white people were copying the music. Though Jazz had always been less racially restricted than Blues, a number of black Jazz musicians felt a need to redefine black Jazz culture with a new, radical genre: Bebop. Their dissatisfaction is reflected in Bebop’s trademarks: frantic, chaotic and aggressive.\n\nBebop (or simply “Bop”) is one of the most revolutionary types of Jazz (and music). Why? Because it makes the music faster by making it slower. How? By stretching (thus slowing down) the tempo, a lot of silent gaps opened up between the beats. This free space could be filled in freely (improvised) with drum rolls, rhythmic breaks and superfast, harmonic melodies, usually in vibrato. Musicians also regularly imitate trumpet solos with their voice, leading to a new, fast singing technique called “scatting”. The word “bebop” itself comes from scatting, as it is as an often used onomatopoeia. The difference between Jazz from the past was so huge, that people eventually coined the term “Modern Jazz”, which later also included other experimental genres such as Hard Bop and Free Jazz.",
+        "BLUE NOTE: JAZZ > Sub-Genres > HARD BOP\n\n1953\nJAZZ\nIn an attempt to take back Jazz listeners that had turned to R&B, many (east coast) Bebop musicians changed their sound into something more accessible: Hardbop. Hardbop is a more modern evolution of Bebop, but not particularly “harder”, despite the term. The music is smoothened out and more emphasis is being put on the rhythm. The “Cool School” of the west coast had also provoked a certain disdain by Bebop players, with its exaggerated rationalism and lack of pathos. Hardbop formed the emotional answer but it in a very basic and gentle manner and not chaotic at all. Alongside these influences, the arrival of longplay records (at 33rpm) allowed for longer songs and longer solos. Numerous alternating solos and chords (of different instruments, sometimes even bass and drums) are being played in a call and response manner. Hardbop is played by small ensembles and is often described as heaving a more “bodied” or “textured” sound. Since its inception, Hardbop has been the dominant genre in Jazz. When Jazz is performed in Jazz bars or performances, it is highly likely to be Hardbop. There are two Hardbop subgenres: Funky Jazz (simple, with bluesy sound) and Mainstream Hardbop (more complex, closer related to Bebop).",
+        "BLUE NOTE: JAZZ > Sub-Genres > COOL JAZZ & WEST COAST JAZZ\n\n1950\nJAZZ\nCool Jazz is an evolution of Bebop, where the music is approached in a more rational, reserved and calculated manner: in a “cool way”. “Keeping cool” was an important part of the spirit of the fifties, after all. Cool Jazz emphasizes sound, trying to make each note as crisp and clean as possible by providing high contrast in frequency and tempo between its different sections. The use of counterpoint is common as well. Furthermore, the autonomy of notes is being stressed through solos (often many different solos at the same time). Overall, the genre appears as a lightweight and relaxed form of Jazz, yet heavily structured and complex, reminding of Classical music (which was a big source of inspiration). The perfect habitat for this smooth, calm type of Bebop is the laidback west coast of the US, which developed its own type of “Cool”: West Coast Jazz. Cool Jazz is mostly performed by white artists, with more influences from “white music” such as classical music. The genre experienced an early demise, lacking the passion and emotion of other (black) Jazz genres. Be that as it may, Cool Jazz remains the stereotypical background music for sophisticated jazz bars where intellectuals hold philosophical conversations till the wee hours of the morning.",
+        "BLUE NOTE: JAZZ > Sub-Genres > FREE JAZZ / AVANT-GARDE (JAZZ)\n\n1959\nJAZZ\nAfter the invention of Bebop on one hand and long play records on the other, the road lay open for highly experimental Jazz. Long, complex songs with lots of sound effects painted an impressionistic soundscape. Group improvisation was more important than ever, with Jazz bands playing seamlessly endless songs of which no-one knew how it was going to end. The Jazz player was set free from any rule or form: primal, freeform Jazz known as Free Jazz or even Avant Garde (Jazz) due to its highly experimental nature. Crossover experimentation emerged in the form of fusion subgenres such as World Bop (with world music) and M-base (with Funk).\n\nAlthough Free Jazz already emerges around ’59, the accumulation of negative events in the sixties greatly shapes the genre (murder on JFK, Vietnam War, civil rights movement). American musicians responded to these events with atonal Jazz, based on sound experimenting and abstract structures. Amphetamine use infiltrated the world of Jazz as well, allowing for an even faster and more relentless kind of play. With no regular rhythm, no harmony and a large amount of speed, Free Jazz feels more chaotic than almost any other music genre. It is the musical translation of powerless screaming - shrills uttered without defense in a world that made no sense."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "# Bebop Jazz\n\nBased on the context provided, here's what you should know about Bebop:\n\n## Origins and Purpose (1945)\nBebop emerged as a radical new genre created by black Jazz musicians who wanted to redefine black Jazz culture in response to Swing's decline. It was their answer to the commercialization of Jazz and the influx of white musicians copying the music.\n\n## Musical Characteristics\nBebop is revolutionary because it **makes music faster by making it slower**. By stretching the tempo, it creates silent gaps between beats that musicians fill with:\n- Drum rolls and rhythmic breaks\n- Superfast, harmonic melodies (usually in vibrato)\n- A fast singing technique called \"scatting\" (imitating trumpet solos with the voice)\n\nThe genre is marked by **frantic, chaotic, and aggressive** sound.\n\n## Cultural Significance\n- Bebop is considered one of the most revolutionary types of Jazz and music overall\n- It created such a huge difference from past Jazz that the term \"Modern Jazz\" was coined to describe it and similar experimental genres\n- Around 1982, Bebop experienced a revival called **Neobop**, where young Jazz scholars returned to acoustic, straight Jazz with technical complexity\n\n## Dark Side\nMany Bebop musicians struggled with heroin addiction and faced severe social problems due to racism, reflecting the difficult circumstances of the era.",
+      "ragas": {
+        "faithfulness": 0.9545,
+        "response_relevancy": 0.8912,
+        "context_precision": 0.5,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "genre-04",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "black metal",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:heavy_metal#black_metal",
+        "genre:heavy_metal#extreme_metal_black_i_speed",
+        "genre:heavy_metal#doom_metal",
+        "review:metacritic:137727",
+        "review:metacritic:126277",
+        "genre:heavy_metal#nu_metal_rap_metal",
+        "genre:heavy_metal#glam_metal_hair_metal_pop_metal",
+        "review:metacritic:109790",
+        "review:metacritic:41260",
+        "review:metacritic:85885"
+      ],
+      "genre_confidence": 0.9985,
+      "reviews_confidence": 0.7087,
+      "latency_s": 4.209,
+      "contexts": [
+        "HEAVY METAL > Sub-Genres > BLACK METAL\n\n1991\nMETAL\nThe genre outlined here is actually the second wave of Black Metal (See: Extreme Metal). The first wave was very obscure and rapidly vanished. Norway, a country of cold, harsh, and unforgiving landscapes, became the perfect breeding ground for Black Metal - arguably the most extreme and least accessible form of metal. Although Black Metal is a less percussion and bass oriented than its contemporary counterparts, its chaotic, screaming avalanche of macabre noise sounds like it was made by the Devil himself. Hi-pitched vocals, symphonic/Gothic elements, and shrill, hyperfast guitar riffs make such a statement almost believable. Black Metal has always been more about the content than the music itself, trying to be as satanic and anti-Christian as possible (and so are many of its practicers). The exact opposite however, is also true, in the form of Christian Black Metal, indicating that probably any genre imaginable already exists.\n\nBlack Metal bands are recognizable by their bombastic music, satanic names, elaborate artwork (usually with a chaotic web of sharp forms) and heavy black & white make-up (reminiscent of Glam Metal but much more grim and serious). Themes of torture, pain, blood, and sacrifice occur more than in other Metal genres. Some Black Metal bands became frontpage news by committing acts of murder, violence and desecration, leading to a large amount of indepth Black Metal documentaries about this most evil of music genres.",
+        "HEAVY METAL > Sub-Genres > EXTREME METAL (BLACK I & SPEED)\n\n1982\nMETAL\nThe term Extreme Metal is rarely being used, as it is not a genre on its own, but a combination of two obscure but important genres: (early) Black Metal and (true) Speed Metal.\n\nWith the explosion of British and Thrash Metal in the early eighties, some bands realized the extreme potential Metal had to offer. Two similar genres became the product of experiments with Metal outside the regular comfort zone. A small number of these bands created dark, evil, atmospheric Metal (early Black), while others turned the energy and tempo of Thrash even higher, forging Speed Metal. Sometimes the term Speed Metal is reserved for early Thrash Metal, forming a sort of proto genre, or simply as a synonym for Thrash. In the strictest sense, Speed Metal is faster, and more melodic than Thrash. Lead guitarists display extreme craftsmanship in extensive virtuoso solos, playing ever more rapid than before.\n\nNevertheless, the first wave of Black Metal is barely slower than Speed Metal. Pioneering band Venom and their debut album that immediately named the genre, laid out Black Metal’s foundations: distortion, noise, feedback, chaos, shrilling/high-pitch sounds, velocity and satanic themes: a succubus screaming in agony. Black Metal marked a pivotal moment in Metal history. Now it was time to make truly evil music, and no longer just pretend to do so.",
+        "HEAVY METAL > Sub-Genres > DOOM METAL\n\n1984\nMETAL\nClassic Metal band Black Sabbath laid at an early stage (with some of their slower, more ominous songs) the foundations for a lesser known but influential Metal genre: Doom Metal. The utter despair found in their music (and which can also be heard in Gothic Rock) forms the key ingredient of Doom Metal. This is a genre that sounds the way one would expect: hopeless, lethargic and bombastic. Doom Metal often deals about the occult, whether in band names, track titles, imagery or lyrical content. The lyrics are often slightly howled, sometimes with echo, which remind again of Black Sabbath. It’s the slowest form of Metal, and one that came around at a time when Metal only seemed to want to go faster and faster (Speed Metal). A number of bands felt the urge to provide some sort of counterbalance. The lower tempo of Doom Metal leaves lots of room for silence between the ultraheavy sluggish riffs. Not all songs by Doom Metal bands are strictly Doom, some are quite fast and simply Heavy Metal, which would influence Stoner/Sludge Metal bands, as the only alternative approach for non-hyperactive artists. Alongside this evolution, Doom would also crossover with other styles resulting in a lot of different subgenres, such as Atmospheric Doom, Funeral Doom, Doom/Death and Dronemetal or Dronedoom. Modern Doom Metal also experiments with electronic techniques, often found in Ambient and Industrial music, which enhance its droning properties.",
+        "Frank Black Francis by Frank Black (October 12, 2004) — Metascore 69.0\n\nThis unusual set from the Pixies frontman includes a disc of demo solo recordings dating from 1987, and a second disc of new studio recordings of an assortment of Pixies songs by Black with collaborators such as Pere Ubu and Two Pale Boys.",
+        "Honeycomb by Frank Black (July 19, 2005) — Metascore 71.0, User score 8.4\n\nBefore reuniting The Pixies, Black recorded this mellow solo disc in four days in a Nashville studio, backed by veteran southern session musicians."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "# Black Metal\n\nBased on the context provided, here's what Black Metal is:\n\n**Black Metal** is an extreme subgenre of metal that emerged in two waves. The second wave (which began around 1991) originated in Norway and became the most well-known form of the genre.\n\n## Key Characteristics:\n\n**Musical Style:**\n- Chaotic, screaming avalanche of macabre noise\n- Hi-pitched, shrieking vocals\n- Shrill, hyperfast guitar riffs\n- Symphonic/Gothic elements\n- Less percussion and bass-oriented than other metal genres\n\n**Visual Identity:**\n- Bombastic music\n- Satanic band names\n- Elaborate artwork with chaotic webs of sharp forms\n- Heavy black & white makeup (grimmer than Glam Metal)\n\n**Themes:**\n- Satanic and anti-Christian content\n- Torture, pain, blood, and sacrifice\n- Distortion, noise, feedback, and chaos\n\n**Notable Context:**\nBlack Metal is considered arguably the most extreme and least accessible form of metal. Interestingly, Christian Black Metal also exists, showing the genre's versatility. Some Black Metal bands gained notoriety for committing acts of violence and desecration, leading to extensive documentaries about the genre.\n\nThe pioneering band **Venom** laid the foundations for Black Metal with their debut album that named the genre.",
+      "ragas": {
+        "faithfulness": 0.9231,
+        "response_relevancy": 0.8722,
+        "context_precision": 1.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "genre-05",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "dub reggae",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:jamaican_music_reggae#dub",
+        "genre:jamaican_music_reggae#ragga",
+        "genre:edm_dance_drum_n_bass_jungle#breakbeat_garage_grime~2",
+        "genre:edm_dance_drum_n_bass_jungle#breakbeat_garage_grime~3",
+        "genre:edm_dance_drum_n_bass_jungle#uk_garage_2_step_speed_garage~2",
+        "review:metacritic:78752",
+        "review:metacritic:8877",
+        "review:metacritic:114840",
+        "review:metacritic:134459",
+        "review:metacritic:71134"
+      ],
+      "genre_confidence": 0.9995,
+      "reviews_confidence": 0.0491,
+      "latency_s": 4.532,
+      "contexts": [
+        "JAMAICAN MUSIC / REGGAE > Sub-Genres > DUB\n\n1970\nJAMAICAN\nThe early Reggae composers probably never thought that Dub was going to be such an important and influential genre. Dub started out as instrumental B-sides or copy records of Reggae or Rocksteady records. Hence the word “dub” was derived from the name of a copy record: a dubplate (double plate). The original music is completely stripped down of all instruments and then rebuilt in the same way but entirely electronically and much, much slower. Dub features lots of sound effects, especially echo and reverb, and incredibly heavy subsonic bass designed to be played on typical Jamaican sound systems (which have massive bass woofers and air scoops to support Dub music). One of the main characteristics of Dub manipulation is delay, which is used on many different parts of the song and often in an extensive, panoramic manner. This gives Dub its typical “wah-wah” feeling where sounds seem to bounce back from the walls and never die. All these sound effects synergize well with cannabis, which strongly influenced Dub music (and continues to do so).\n\nBecause of its pioneering technology yet dreamy and surreal sound, Dub was an important inspiration for all kinds of music and remains a living stream in the contemporary world of popular music. In the nineties, Dub gets influenced by EDM instead of the other way around, and becomes the subgenre Digidub (digital Dub).",
+        "JAMAICAN MUSIC / REGGAE > Sub-Genres > RAGGA\n\n1985\nJAMAICAN\nRagga (short for “Raggamuffin”) is purely electronic Dancehall in overdrive. With the introduction of music computers, producers could create digital Dancehall rhythms with lots of bass and nifty sound effects, called “riddims”. Riddims had been around since the age of Dub, where they were known as the basic template of any Dub track, which is the stripped down part of the song with enhanced drums and beat (before sound manipulation). With the advent of Ragga, Dub riddims became accelerated and many more (speedy) riddims were created. A whole parallel collection of riddims - each with his own name - was used interchangeably with different Ragga songs (similar to how the same Surf Rock melodies were used for different songs and artists). After the selection of riddim, harsher and jagged sounds are added by the DJ and toasting vocals make up the work of the MC. Ragga is hyperkinetic rhythm, electrifying Jamaican dance music, unable to resist. And this is why it was a tremendous influence on later Rave and Drum ‘n’ Bass culture.\n\nThe very first Ragga riddim was called “Sleng Teng”, which is sometimes used as a synonym for Ragga. When it comes to lyrical content, the Dancehall slackness only got worse. Ragga MC’s, toasting over this booming digital Rapreggae, have no taboos whatsoever when it comes to sexuality, promoting (straight) sex as much as possible and sometimes getting into trouble with homophobic lyrics. The aggressive, often criminal, and homophobic behavior of Ragga diminishes strongly in the 21st century and Ragga starts to blend in with the “peace-and-unity” philosophy of Reggae.",
+        "EDM / DANCE: DRUM 'N' BASS / JUNGLE > Sub-Genres > BREAKBEAT GARAGE & GRIME\n\n### DUBSTEP\n Dubstep can be described as the only true innovative Dance genre since 2000 (alongside Grime), and is sometimes even labeled as a super-genre on its own. After all, it’s hard to categorize; falling somewhere in between Breakbeat, Drum ‘n’ Bass, Downtempo and Jamaican music (Dub). Drum ‘n’ Bass is chosen here, as Dubstep is most closely related to its subculture and most similar in instrumentation and sound manipulation, but there are large differences.\n\nJust like Dub, Dubstep started out as instrumental B-sides, only Grime ones instead of Reggae. Popularity rose beyond expectations however, when UK Garage’s involvement around bling bling, champagne, and mainstream success became too much to bear for the average UKG fan. Underground radio Rinse FM and specialized Dubstep club nights in the UK tapped into that discontent and were responsible for shaping the genre into an institution.",
+        "EDM / DANCE: DRUM 'N' BASS / JUNGLE > Sub-Genres > BREAKBEAT GARAGE & GRIME\n\nEarly or True Dubstep is recognizable by an eerie, ambient soundscape, heavily influenced by Dub, which it lost over the years in subsequent subgenres. To fully appreciate Dubstep, a decent subwoofer or (club) sound system is vital, as frequencies tend to drop even below Drum ‘n’ Bass. These LFO-subsonic basslines are often re-oscillated, creating the stereotypical Dubstep “wobbly bass”, which got transferred to other music genres afterwards. Dubstep has a steady repetitive drum rhythm (kick-snare-kick-snare) stretched far apart, and thus leaving lots of listening room, while also making Dubstep appear slower than its actual tempo (140bpm). Overall sound production can either be hyperclean (like Neurofunk) or gritty/industrial (like Techstep). Dubstep is about surprising and touching the inner mind with sound experiments, no matter the manipulation, just like Dub did before. Therefore lots of effort is being put in percussion arrangements and distortion of mid-range sounds. The long and eager anticipation of young electronic composers for their own revolutionary genre– the sound of the nillies generation - naturally led to an abundance of crossovers, subgenres and a more commercial approach: enter Post-Dubstep.",
+        "EDM / DANCE: DRUM 'N' BASS / JUNGLE > Sub-Genres > UK GARAGE (2-STEP & SPEED GARAGE)\n\nThese two UK Garage genres marked the start of a large music family - also known as UK Garage - that led to Dubstep and UK Bass. But 2-Step is also the beginning of Nu R&B. Not only due to its sound and rhythm, but by spreading a culture of upper-class clubbing that became notorious (and eventually despised) for its cocain use and promiscuous encounters."
+      ],
+      "recall@5": 0.5,
+      "recall@10": 0.5,
+      "mrr": 1.0,
+      "ndcg@10": 0.6131,
+      "answer": "# Dub\n\nBased on the context provided, here's what you should know about Dub:\n\n**Origins & Definition:**\nDub emerged in 1970 Jamaica as instrumental B-sides or copy records of Reggae and Rocksteady records. The term \"dub\" comes from \"dubplate\" (double plate), referring to copy records.\n\n**Sound Characteristics:**\n- The original music is stripped down of all instruments, then rebuilt entirely electronically and much slower\n- Features extensive sound effects, especially echo and reverb\n- Heavy subsonic bass designed for Jamaican sound systems\n- Uses delay extensively, creating a characteristic \"wah-wah\" feeling where sounds bounce and never seem to die\n- Pioneering technology combined with a dreamy, surreal sound\n\n**Cultural Influence:**\n- Cannabis strongly influenced Dub music and continues to do so\n- Became an important inspiration for many music genres\n- In the 1990s, Dub was influenced by EDM, creating the subgenre Digidub (digital Dub)\n- Remains a living stream in contemporary popular music\n\n**Legacy:**\nDub's innovative approach to sound manipulation and production techniques have had lasting influence on later genres, including Dubstep, which is heavily influenced by Dub's ambient soundscape and approach to sound experimentation.",
+      "ragas": {
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8562,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "artist-01",
+      "category": "exact_artist",
+      "language": "en",
+      "query": "Nirvana Nevermind album",
+      "retrieval_scored": true,
+      "retrieved": [
+        "review:metacritic:377",
+        "review:metacritic:17777",
+        "review:metacritic:230",
+        "review:metacritic:136559",
+        "review:metacritic:39627",
+        "genre:rock_golden_age_classic_rock#heartland_rock_a_o_r_adult_oriented_rock~1",
+        "genre:downtempo_ambient#ambient_breaks_illbient",
+        "genre:rock_golden_age_classic_rock#overview~3",
+        "genre:edm_dance_breakbeat#ambient_breaks_illbient",
+        "genre:rhythm_n_blues_r_b#early_rhythm_n_blues"
+      ],
+      "genre_confidence": 0.0073,
+      "reviews_confidence": 1.0,
+      "latency_s": 4.385,
+      "contexts": [
+        "Nevermind [20th Anniversary Edition] by Nirvana (September 27, 2011) — Metascore 89.0, User score 9.0\n\nThe rerelease of Nirvana's classic 1991 album was produced by Butch Vig.",
+        "Bleach: Deluxe Edition by Nirvana (November 3, 2009) — Metascore 85.0, User score 8.6\n\nThe debut album for the grunge band is remastered and reissued with a 1990 live recording of a concert at Portland, Oregon's Pine Street Theatre.",
+        "In Utero [20th Anniversary Edition] by Nirvana (September 24, 2013) — Metascore 90.0, User score 8.9\n\nThe Steve Albini-remastered release of Nirvana's 1993 release includes discs of b-sides, remixes, demos, rare tracks and a DVD of live and music videos.",
+        "With The Lights Out by Nirvana (November 23, 2004) — Metascore 76.0, User score 7.6\n\nThis three-disc box set contains more than 50 previously unreleased recordings by the legendary Seattle band, including demos, live tracks, and alternate versions. Also included is an extensive bonus DVD filled with live performances.",
+        "Never Gonna Touch The Ground by Still Flyin' (April 21, 2009)\n\nThe debut album for the 15-member group from San Francisco."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "Based on the context provided, here's what I can tell you about Nirvana's Nevermind album:\n\n**Nevermind [20th Anniversary Edition]** was released on September 27, 2011. It is a rerelease of Nirvana's classic 1991 album and was produced by Butch Vig. The rerelease received a Metascore of 89.0 and a User score of 9.0.\n\nThe context only provides information about the 20th Anniversary Edition rerelease from 2011, not details about the original 1991 album itself.",
+      "ragas": {
+        "faithfulness": 1.0,
+        "response_relevancy": 0.9164,
+        "context_precision": 1.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "artist-02",
+      "category": "exact_artist",
+      "language": "en",
+      "query": "Radiohead album reviews",
+      "retrieval_scored": true,
+      "retrieved": [
+        "review:metacritic:160290",
+        "review:metacritic:192305",
+        "review:metacritic:181814",
+        "review:metacritic:106400",
+        "review:metacritic:17427",
+        "genre:rock_golden_age_classic_rock#heartland_rock_a_o_r_adult_oriented_rock~1",
+        "genre:jamaican_music_reggae#roots_reggae",
+        "genre:rhythm_n_blues_r_b#neo_soul_nu_soul",
+        "genre:rock_golden_age_classic_rock#overview~3",
+        "genre:rhythm_n_blues_r_b#early_rhythm_n_blues"
+      ],
+      "genre_confidence": 0.0093,
+      "reviews_confidence": 0.7788,
+      "latency_s": 4.375,
+      "contexts": [
+        "Hail To The Thief by Radiohead (June 10, 2003) — Metascore 85.0, User score 8.7\n\nNot quite the return to the \"rock\" side of Radiohead as originally believed (although pretty close), the band's sixth album (produced again by Nigel Godrich) retains some of the experimental electronica elements of its predecessors Kid A and Amnesiac. Note that each of the tracks on the album has an alternate title, as does the album itself (aka 'The Gloaming').",
+        "Kid A by Radiohead (October 3, 2000) — Metascore 80.0, User score 8.9\n\nSeemingly unwilling to stick to a successful formula, Radiohead follow their breakthrough album 'OK Computer' with this much more experimental work (recorded during sessions that also spawned the later-released 'Amnesiac' album), which ventures even further away from conventional song structure and embraces electronica more fully (even sounding at times like Aphex Twin).",
+        "I Might Be Wrong: Live Recordings by Radiohead (November 13, 2001) — Metascore 76.0, User score 8.5\n\nRecorded during a 2000-2001 European tour, Radiohead's first live album contains just eight tracks: seven songs culled from 'Kid A' and 'Amnesiac,' plus long-time live staple \"True Love Waits.\"",
+        "The Eraser by Thom Yorke (July 11, 2006) — Metascore 76.0, User score 8.3\n\nNigel Godrich produced this 9-song solo debut for the Radiohead frontman, which mainly sounds like--shockingly--a Radiohead album, albeit with much less guitar.",
+        "Raditude by Weezer (November 3, 2009)\n\nThe latest album for the California rock band features a guest appearance by Lil Wayne."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "Based on the context provided, here are the Radiohead album reviews:\n\n**Hail To The Thief** (June 10, 2003)\n- Metascore: 85.0\n- User score: 8.7\n- Notes: The sixth album, produced by Nigel Godrich. Not quite a full return to rock as expected, but retains experimental electronica elements from Kid A and Amnesiac. Each track has an alternate title (album also known as 'The Gloaming').\n\n**Kid A** (October 3, 2000)\n- Metascore: 80.0\n- User score: 8.9\n- Notes: Much more experimental than their breakthrough album OK Computer. Ventures away from conventional song structure and embraces electronica fully, sometimes sounding like Aphex Twin.\n\n**I Might Be Wrong: Live Recordings** (November 13, 2001)\n- Metascore: 76.0\n- User score: 8.5\n- Notes: First live album, recorded during a 2000-2001 European tour. Contains eight tracks: seven songs from Kid A and Amnesiac, plus \"True Love Waits.\"",
+      "ragas": {
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8501,
+        "context_precision": 0.0,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "he-01",
+      "category": "hebrew",
+      "language": "he",
+      "query": "דיפ האוס",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:edm_dance_house#deep_house",
+        "review:metacritic:97125",
+        "genre:edm_dance_house#tech_house",
+        "genre:edm_dance_breakbeat#ambient_breaks_illbient",
+        "genre:edm_dance_techno#tech_house",
+        "genre:downtempo_ambient#ambient_breaks_illbient",
+        "review:metacritic:162095",
+        "review:metacritic:173779",
+        "review:metacritic:134539",
+        "review:metacritic:146464"
+      ],
+      "genre_confidence": 0.9246,
+      "reviews_confidence": 0.7607,
+      "latency_s": 4.506,
+      "contexts": [
+        "EDM / DANCE: HOUSE > Sub-Genres > DEEP HOUSE\n\n1993\nHOUSE\nA strong and undefeated house within the family line of House is Deep House, the somewhat opposite counterweight for Eurodance. Deep House has an endless appeal by going back to the primary Roots of House: Philly Soul. Fusion instruments (Hammond organs, electric pianos) give Deep House a funky, warm sound, while Philly Soul and Garage House arrangements provide a steady dance rhythm. That’s why Deep House is sometimes referred to as Jazz House. The most typical characteristic of Deep House is a total absence of climax and classic song structure; the music is one long mix of groovy House beats. After Deep House, the closely related genre Funky House emerged; a more Funk than Soul oriented variant. Deep House forms the opposing pole of a polarized House universe: ambient and soulful versus hard and sharp, which has turned both sides into love-it-or-hate-it styles. Deep House's average tempo is slightly slower than Chicago’s (120bpm) and often features downtuned or downsampled sounds, which sound like they are heard underwater. As such, Deep House submerges the listener in the groovy waves of soulful House. It is not there to blast relentlessly impulses into the brain; it is there to party all night long without excesses.",
+        "Dip by L. Pierre (February 6, 2007) — Metascore 63.0\n\nL(ucky) Pierre is the alter-ego of former Arab Strap member Aidan Moffat, and the cinematic, instrumental 'Dip' was recorded shortly before that band's breakup.",
+        "EDM / DANCE: HOUSE > Sub-Genres > TECH HOUSE\n\n1996\nTECHNOHOUSE\nTech House is exactly what you would expect: a go-between of House and Techno. The sound of Chicago/Deep House is remixed on top of a minimal Techno beat in hyperclean, digital productions. Tech House has no famous hits or anthems: it is a massive abundance of DJ-targeted records specifically made for mixing. This is because it’s the safest Dance music any DJ can play as it never strays too far into one category or another. It’s not too melodic, catchy or ecstatic to be straight House so it can be easily mixed and dissolve as a continuous beat in the background. Neither is it too rhythmical or minimal to be pure Techno. Tech House features more distortion (often on the kicks), shorter sounds, more pronounced snares, and less warm/more digital synth melodies than regular House. It is however more structured than Techno and often features vocal samples or more eclectic influences.",
+        "EDM / DANCE: BREAKBEAT > Sub-Genres > AMBIENT BREAKS & ILLBIENT\n\n1995\nDOWNTEMPOBREAKBEAT\nThe powerful idea of slowed down Breakbeat/Rap pioneered by Trip Hop, led to more similar experiments: Ambient Breaks, with Illbient as the most deviant and noteworthy example. The experimental and innovative nature of Breakbeat synergizes with that of Downtempo, resulting in a highly fascinating electronic music genre. Ambient Breaks often crosses over to Jazz, which is called Jazz Breaks. Ninja Tune Records was principally responsible for spreading the genre with its legendary Jazz Brakes compilations and later with all kinds of Ambient Breakbeat. Ambient Breaks differs from Trip Hop (albeit sometimes minimally) as it is not Hip Hop music; it is the work of electronic music producers using various samples instead of a movement bridging remote subcultures into one.\n\nWhen Trip Hop arrived in the US (specifically New York), conceptual artists got inspired by the sound but worked the other way around: they laid multiple layers of echoing ambient sounds on top of each other (influenced by Dub) and then added a breakbeat. These soundscapes are often eclectic noisescapes: dark, experimental, and drawing from different genres to create some sort of deep mysterious force. Illbient (= Ill Ambient, in its slang meaning: “this beat is ill”) is not drug music as one might suspect, but an artsy, contemplative soundtrack for an unwritten creepy or deeply psychological film.",
+        "EDM / DANCE: TECHNO > Sub-Genres > TECH HOUSE\n\n1996\nTECHNOHOUSE\nTech House is exactly what you would expect: a go-between of House and Techno. The sound of Chicago/Deep House is remixed on top of a minimal Techno beat in hyperclean, digital productions. Tech House has no famous hits or anthems: it is a massive abundance of DJ-targeted records specifically made for mixing. This is because it’s the safest Dance music any DJ can play as it never strays too far into one category or another. It’s not too melodic, catchy or ecstatic to be straight House so it can be easily mixed and dissolve as a continuous beat in the background. Neither is it too rhythmical or minimal to be pure Techno. Tech House features more distortion (often on the kicks), shorter sounds, more pronounced snares, and less warm/more digital synth melodies than regular House. It is however more structured than Techno and often features vocal samples or more eclectic influences."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "I appreciate your question in Hebrew, but I need to clarify: the context provided does not contain information about \"דיפ האוס\" (Deep House in Hebrew).\n\nHowever, the context **does** contain detailed information about **Deep House** in English. Here's what it says:\n\nDeep House is a subgenre of House music that emerged around 1993. Its key characteristics include:\n\n- **Sound**: Funky and warm, featuring fusion instruments like Hammond organs and electric pianos\n- **Roots**: Based on Philly Soul and Garage House arrangements\n- **Structure**: Lacks climax and classic song structure; it's one long mix of groovy beats (sometimes called \"Jazz House\")\n- **Tempo**: Slightly slower than Chicago House (around 120 bpm)\n- **Effects**: Often features downtuned or downsampled sounds that create an \"underwater\" effect\n- **Purpose**: Designed for all-night partying without excesses, rather than relentless stimulation\n\nDeep House represents the ambient and soulful pole of House music, in contrast to harder, sharper styles.\n\nIs this the information you were looking for?",
+      "ragas": {
+        "faithfulness": 0.7778,
+        "response_relevancy": 0.7759,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "he-02",
+      "category": "hebrew",
+      "language": "he",
+      "query": "מוזיקה שקטה ועצובה לערב",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:edm_dance_hardcore_techno#hardcore_techno_rave~1",
+        "genre:downtempo_ambient#lounge_exotica_space_age_pop~1",
+        "genre:edm_dance_drum_n_bass_jungle#darkcore_darkstep~1",
+        "genre:edm_dance_techno#hardcore_techno_rave~1",
+        "review:metacritic:162379",
+        "genre:downtempo_ambient#muzak_elevator_music",
+        "review:metacritic:4094",
+        "review:metacritic:167114",
+        "review:metacritic:65769",
+        "review:metacritic:75827"
+      ],
+      "genre_confidence": 0.4505,
+      "reviews_confidence": 0.3855,
+      "latency_s": 4.709,
+      "contexts": [
+        "EDM / DANCE: HARDCORE (TECHNO) > Sub-Genres > HARDCORE TECHNO / RAVE\n\n1990\nHARDCORETECHNO\nWhat Punk was to Rock, Rave was to Dance. The all-changing, undeniable shock-revolution, shaking things up that otherwise might have gone stale. In Germany and Belgium, young, militant DJ’s discovered the infamous “hoover” sound: an accelerated, distorted sound of an alien vacuum cleaner being turned on. In the beginning this dark and brutal European underground Techno was purely instrumental and barely melodic (such as the pioneering classic “Energy Flash” by Joey Beltram), but gradually the tempo increased and the hoover sounds were used to establish an anthem like, bombastic melody. This led to a sort of dance music unheard of: dark, hard, ecstatic, overwhelming. Rave became a party phenomenon, especially in the UK and the Netherlands: massive illegal and secret pop-up parties (called “Raves”) with excessive drug abuse were soon the target of a nationwide police hunt. This was even reflected in the music: alarm bells, sirens and other paranoia-inducing effects all added to the theatrical overstimulation that is Rave.\n\nThe most important aspect of Rave is undoubtedly XTC. What was already a small shock during New Beat and Acid House, completely erupted when the perfect XTC soundtrack was finally conceived. Stuff to intensify the XTC-rush such as gadgets, Vicks inhalers, glowsticks, and lasers were born in the era of Rave and were eventually transferred to contemporary dance culture.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > LOUNGE / EXOTICA / SPACE AGE POP\n\n1953\nDOWNTEMPO(pop)\nLounge is the term for background music in the fifties and sixties at bars, social places, and of course hotel lounges. It’s music to make people comfortable and relaxed without drawing too much attention to itself. The first wave of Lounge (aka pure or acoustic Lounge) is a loose collection of related subgenres, often based on the template of Swing: Space Age Pop (the principal Lounge genre, named after the space age aka the fifties and with many Latin Jazz influences), Exotica (similar, but with more Hawaiian, Caribbean, or Oceanian influences), Mambo, Latin Jazz, and Bossa Nova. All these genres are connected by their warm, exotic, and cozy feel. Combined with Muzak and New Age, Lounge is also known as Easy-Listening, though the use of this term as a genre is contested. The difference between Spage Age Pop and Exotica is minimal. Both genres stir up a picture of another place: an exotic (retro) dreamworld to take the listener on holiday while relaxing.",
+        "EDM / DANCE: DRUM 'N' BASS / JUNGLE > Sub-Genres > DARKCORE & DARKSTEP\n\n1993\nDRUM 'N' BASSHARDCORE\nThe trinity of pioneering Jungle genres (Jungle, Drum ‘n’ Bass, and Darkcore) almost emerged simultaneously and it’s still very hard to say which influenced which. While D’n’B and Jungle sounded quite similar, Darkcore clearly was something different. It was literally the dark side of Rave: ecstasy addicts (as were many Ravers) being confronted with the side-effects of intensive drug abuse. Darkcore was the after-XTC-soundtrack: a nightmare of paranoia, hallucinations, and depression, being intensified by government suppression of Rave parties. Besides the aural equivalent of withdrawal, Darkcore was also a reaction to the increasing ridiculousness of Breakbeat Hardcore: too happy, too cartoonish, too childish. Disturbing sounds, awkward time-stretching techniques, and horror film samples combined with an ultrafast tempo of 180bpm, provided adequate ammunition to combat the “stupid” Rave scene. Take note: this scene struck successfully back afterwards with Happy Hardcore and Handbag House.\n\nAfter Darkcore and Techstep, Darkstep takes place on the Jungle stage (around 1997-’98). Darkstep can be described as a fusion of Darkcore and Techstep; it also features horror samples, and distorted basslines and has quite complex and dissonant rhythms. Darkstep is recognizable by undoubtedly being the darkest and hardest of all Drum ‘n’ Bass subgenres, which is quite a feat. Darkstep is a machine out of hell on a zealous rampage.",
+        "EDM / DANCE: TECHNO > Sub-Genres > HARDCORE TECHNO / RAVE\n\n1990\nHARDCORETECHNO\nWhat Punk was to Rock, Rave was to Dance. The all-changing, undeniable shock-revolution, shaking things up that otherwise might have gone stale. In Germany and Belgium, young, militant DJ’s discovered the infamous “hoover” sound: an accelerated, distorted sound of an alien vacuum cleaner being turned on. In the beginning this dark and brutal European underground Techno was purely instrumental and barely melodic (such as the pioneering classic “Energy Flash” by Joey Beltram), but gradually the tempo increased and the hoover sounds were used to establish an anthem like, bombastic melody. This led to a sort of dance music unheard of: dark, hard, ecstatic, overwhelming. Rave became a party phenomenon, especially in the UK and the Netherlands: massive illegal and secret pop-up parties (called “Raves”) with excessive drug abuse were soon the target of a nationwide police hunt. This was even reflected in the music: alarm bells, sirens and other paranoia-inducing effects all added to the theatrical overstimulation that is Rave.\n\nThe most important aspect of Rave is undoubtedly XTC. What was already a small shock during New Beat and Acid House, completely erupted when the perfect XTC soundtrack was finally conceived. Stuff to intensify the XTC-rush such as gadgets, Vicks inhalers, glowsticks, and lasers were born in the era of Rave and were eventually transferred to contemporary dance culture.",
+        "Monday At The Hug & Pint by Arab Strap (April 22, 2003) — Metascore 80.0, User score 8.3\n\nThe dour Glasgow-based duo of Aidan Moffat and Malcom Middleton return for their fifth studio album, with guest contributions from members of Bright Eyes and Mogwai."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "Based on the context provided, I cannot find information that directly answers your question about quiet and sad music for an evening.\n\nThe context does mention **Lounge music** (from the 1950s-60s), which is described as \"background music\" designed to \"make people comfortable and relaxed without drawing too much attention to itself\" with a \"warm, exotic, and cozy feel.\" This could potentially fit some of what you're looking for in terms of quiet background music, though it's not specifically described as sad.\n\nHowever, the context does not contain sufficient information about genres or music specifically suited for quiet, sad evening listening. To properly answer your question, I would need additional context about downtempo, ambient, or melancholic music genres.",
+      "ragas": {
+        "faithfulness": 0.9091,
+        "response_relevancy": 0.0,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "he-03",
+      "category": "hebrew",
+      "language": "he",
+      "query": "גראנג' של שנות התשעים",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:rock_alternative_rock_indie#grunge",
+        "genre:rock_alternative_rock_indie#post_grunge",
+        "review:metacritic:106679",
+        "genre:rock_alternative_rock_indie#britpop",
+        "genre:edm_dance_drum_n_bass_jungle#breakbeat_garage_grime~1",
+        "review:metacritic:161735",
+        "review:metacritic:138240",
+        "genre:rhythm_n_blues_r_b#disco~2",
+        "review:metacritic:138002",
+        "review:metacritic:135"
+      ],
+      "genre_confidence": 0.9776,
+      "reviews_confidence": 0.8238,
+      "latency_s": 4.412,
+      "contexts": [
+        "Rock, ALTERNATIVE ROCK / INDIE > Sub-Genres > GRUNGE\n\n1989\nALTERNATIVE(metal)\nThe focus on glamour and fashion in many eighties’ music formed the catalyst of a fierce anti-movement. Fierce may not exactly be the right word for it. Being the complete opposite of Glam Rock, this so-called “Grunge” (the name is negative slang for horrible noisy rock) was humble and inwards, with sincere songs about tragedy and frustrations. The sound on the other hand was dirty, distorted, lo-fi, vintage and crunchy as if it was composed by accident. Grunge often uses distortion on the amps, creating an even more abrasive sound. Grunge “fashion” reinforces such a notion of nonchalance: blue jeans, woolen lumberjack shirts, and dirty, sleazy long hair.\n\nGrunge’s brief but crowd-gathering music revolution started all in the cold and remote city of Seattle. Typical about the Seattle music scene in the eighties was a high popularity of Classic and Thrash Metal. When emotional Post-Hardcore bands pop up all across the states, the genre gets mixed with Metal and becomes Grunge (it is often said that Grunge is one part Metal one part Hardcore/Rock). Grunge is closely related to the second wave of Alternative Rock, which was an immediate result of it. Within the negative emotional context of Grunge and Alt Rock, resorting to heroin use is not uncommon, further adding to the tragedy. The success of Grunge lies in the strength of a return to the mutual core of Rock and Blues. Something that had been lost along the way: raw, unbridled emotion that seemed so hard to bear that it even distorted the music itself.",
+        "Rock, ALTERNATIVE ROCK / INDIE > Sub-Genres > POST-GRUNGE\n\n1995\nALTERNATIVE\nIn the mid-nineties Grunge was barely a shadow of its former self. Its demise had not been in vain however. Many new Rock bands filled the hole that Grunge left and were especially influenced by its tragic, introspective, sentimental lyrics. Post-Grunge elaborated further on this theme but also took a step away from Grunge’s heavy distortion, chaos and roughness. The result was a slicker, more polished sound with a clear song structure that turned out to be a commercial success. Post-Grunge became so popular that it stayed in the mainstream much longer than other “Alternative” Rock (though no surprise as its newest genre), against the will of various opponents. These antagonists claimed that Post-Grunge was merely a commercial imitation of something genious and that it should be clearly separated from the original (leading to its name). On the other hand, the fans saw it as the culmination of Rock where finally a perfect balance of roughness versus slickness was found.",
+        "Nineteeneighties by Grant-Lee Phillips (June 27, 2006) — Metascore 75.0\n\nThe troubadour offers his take on a dozen 1980s alternative-rock classics, including songs by R.E.M., The Cure, New Order, The Smiths, Echo & The Bunnymen and The Pixies.",
+        "Rock, ALTERNATIVE ROCK / INDIE > Sub-Genres > BRITPOP\n\n1994\nPOPALTERNATIVE\nIf every reaction has a “re-reaction”, then Britpop is the re-reaction to Grunge (since Grunge was a reaction itself against Glam Metal). Enough with all the feeble, depressing sorrow and back to glamorous Rock! This soft but catchy kind of Pop is sometimes credited as the least original genre of the nineties. On an auditory level there is indeed not much shocking: a clear wink to British (of course) Mersey Beat but roughened up by the presence of Indie Rock, with sometimes synthesizers and electronic effects to cast a certain glam mood. What makes the genre so well-known, popular and clearly defined is not its sound then, but the Rock ‘n’ Roll mentality of it: the cocky attitude of British frontmen determined to conquer the stage, steal the show and awe the masses. There is a reason for such attitude: many British bands were fed up with the overall dominance of American Rock bands in the British hit charts of the early nineties (mostly due to Grunge). As such they created a strong anti-American music genre, with a very narrow range of influences (all British). Of course, the sound, vocals and song structure are all means to this end. Which explains why Britpop is same meat, different gravy, but very attractive.",
+        "EDM / DANCE: DRUM 'N' BASS / JUNGLE > Sub-Genres > BREAKBEAT GARAGE & GRIME\n\n2001\nBREAKBEATDRUM'N'BASS\nAt the turn of the millennium, UK Garage & 2-Step lose their momentum. The scene changes into two different directions: Nu Dark Swing, a darker and moodier bassline focused form preluding Dubstep, and Breakstep, a more breakbeat focused form. Breakstep aka Breakbeat Garage leaves all House and fancy influences behind, and almost immediately a new garde of very young artists starts adding rap vocals and more Drum ‘n’ Bass elements on top of this. The old UKG classes of ’96 and ’98 however, found it hard to get along with such an aggressive style and a generational gap ensues. This battle was soon won by the youth, as the “old” garde had lost all connection with everyday (street) life. From the comfort of their own bedrooms, British kids started to make home produced music, featuring D’n’B-like breaks at a slower Garage tempo (140 bpm) with dark, ‘grimy’ rhymes: Grime is born. Thanks to internet streaming, Grime rapidly conquers the globe. Its violent sawtooth basslines onto lo-fi riddims (due to inexpensive, DIY software) was truly unique and original in an era of few innovative genres. Grime bridges Rap, Breakbeat, and Drum ‘n’ Bass, and brings Garage back to the streets, to the youth and to the clubs. Its popularity and subsonic quality becomes exposed by its variety of aliases (8bar, UK Bashment, Sub Low, Eskibeat), and it would have been the star of the nillies if Dubstep didn’t claim that prize shortly after."
+      ],
+      "recall@5": 1.0,
+      "recall@10": 1.0,
+      "mrr": 1.0,
+      "ndcg@10": 1.0,
+      "answer": "Based on the context provided, here's what I can tell you about grunge in the 1990s:\n\n**Grunge** התחיל בשנות השמונים בעיר סיאטל והיה תנועת מוזיקה קצרה אך משמעותית. הוא היה תגובה נוקדת נגד ה-Glam Rock של שנות השמונים.\n\n**מאפייני Grunge:**\n- מוזיקה עם עיוות (distortion) כבד, קול מלוכלך ו-lo-fi\n- שירים כנים על טרגדיה וכעס\n- אופנה של ג'ינסים כחולים, חולצות משובצות וערמומיות\n- שילוב של Metal ו-Hardcore/Rock\n\n**בשנות התשעים:**\nבתחילת התשעים, Grunge כמעט נעלם. עם זאת, הוא השאיר השפעה עמוקה - הוא הוביל ל-**Post-Grunge** (משנת 1995), שהיה סגנון מלוטש יותר עם מבנה שיר ברור, אך שמר על הליריקה הטרגית והאינטרוספקטיבית של Grunge המקורי.",
+      "ragas": {
+        "faithfulness": 0.7692,
+        "response_relevancy": 0.8161,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "he-04",
+      "category": "hebrew",
+      "language": "he",
+      "query": "ג'אז קלאסי עם חצוצרה",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:edm_dance_house#ghetto_house_ghettotech_juke",
+        "genre:edm_dance_techno#ghetto_house_ghettotech_juke",
+        "review:metacritic:32069",
+        "genre:blue_note_jazz#fusion_jazz_rock",
+        "review:metacritic:90220",
+        "review:metacritic:129489",
+        "genre:rock_golden_age_classic_rock#heartland_rock_a_o_r_adult_oriented_rock~1",
+        "genre:edm_dance_hardcore_techno#overview~3",
+        "review:metacritic:96579",
+        "review:metacritic:163139"
+      ],
+      "genre_confidence": 0.5723,
+      "reviews_confidence": 0.4338,
+      "latency_s": 4.573,
+      "contexts": [
+        "EDM / DANCE: HOUSE > Sub-Genres > GHETTO HOUSE, GHETTOTECH & JUKE\n\n2005\nHOUSETECHNO\nA lesser known House subculture that has been around since 1992 but only started blossoming at the turn of the century, is Ghetto or Booty House. In Chicago, the Classic House scene started mixing with the South Rap/Miami/Booty Bass scene. This happened primarily in the southwestern parts of town, home to a poorer Rap and Electro loving ghetto community. The end result of this fusion was music shaped to its environment: a dirty, gritty, unpolished House; minimalistic but with a small handful of Electro sound effects. It’s not uncommon for the genre to feature Rap lyrics as well. Pitched down vocals, often in call-and-response manner, make Ghetto House or G-House a “bone-dry” genre.\n\nSoon afterwards, Detroit Techno received a similar “dirty overhaul” to create Ghettotech, with a stronger influence from Miami Bass. And much later (around 2010) the popular subgenre (Chicago) Juke shows that the scene is far from dead. Juke is a further development of Ghetto House with syncopated percussion and a much faster tempo. This even leads to its own unique, fast dance: Footwork.\n\nBecause these genres form a bridge between House/Techno and Rap, it’s not surprising that Ghetto House starts to influence new Rap genres, and thus turns Trap into Drill.",
+        "EDM / DANCE: TECHNO > Sub-Genres > GHETTO HOUSE, GHETTOTECH & JUKE\n\n2005\nHOUSETECHNO\nA lesser known House subculture that has been around since 1992 but only started blossoming at the turn of the century, is Ghetto or Booty House. In Chicago, the Classic House scene started mixing with the South Rap/Miami/Booty Bass scene. This happened primarily in the southwestern parts of town, home to a poorer Rap and Electro loving ghetto community. The end result of this fusion was music shaped to its environment: a dirty, gritty, unpolished House; minimalistic but with a small handful of Electro sound effects. It’s not uncommon for the genre to feature Rap lyrics as well. Pitched down vocals, often in call-and-response manner, make Ghetto House or G-House a “bone-dry” genre.\n\nSoon afterwards, Detroit Techno received a similar “dirty overhaul” to create Ghettotech, with a stronger influence from Miami Bass. And much later (around 2010) the popular subgenre (Chicago) Juke shows that the scene is far from dead. Juke is a further development of Ghetto House with syncopated percussion and a much faster tempo. This even leads to its own unique, fast dance: Footwork.\n\nBecause these genres form a bridge between House/Techno and Rap, it’s not surprising that Ghetto House starts to influence new Rap genres, and thus turns Trap into Drill.",
+        "Living With A Tiger by Acoustic Ladyland (July 6, 2009) — Metascore 68.0\n\nThis is the fourth album for the British jazz-rock band.",
+        "BLUE NOTE: JAZZ > Sub-Genres > FUSION / JAZZ ROCK\n\n1970\nJAZZ(r & b)\nAcoustic traditional Jazz (also called Straight Jazz) reached its saturation point at the end of the sixties: due to its experimental nature almost every genre was already invented. Jazz had to cross over into the territories of the hottest music of the time: Funk for example, but mainly Rock. This powerful reinvention became so popular and well-spread, with many derivative genres, that it simply was called “Fusion”, although Jazz Rock is also a correct term. Fusion fuses traditional Jazz melody and rhythm and Jazz elements such as improvisation and complex interplay with Rock instruments (electric guitars, basses, synth), amplification, and simple harmonies.\n\nThe main structure was similar to Free Jazz, as once again, Fusion was invented by Miles Davis (who invented four different Jazz genres throughout his career). Rock influences came mostly from Acid Rock, although Fusion artists were also interested in Progressive Rock and during the seventies, there was quite some overlapping between Prog Rock of that time and Fusion. Jazz Rock marked the end of a Jazz Era (Modern Jazz) and the beginning of a new one (electronic Jazz or Post-Jazz).",
+        "It's A Bit Complicated by Art Brut (June 19, 2007) — Metascore 76.0, User score 7.8\n\nThis is the second album for the tongue-in-cheek English band fronted by Eddie Argos."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "I cannot answer this question based on the provided context. \n\nYour question in Hebrew asks about \"classic jazz with trumpet,\" but the context provided does not contain information about classic jazz or trumpet music. The context discusses subgenres like Ghetto House, Ghettotech, Juke, and Jazz Fusion, but does not cover classic jazz or its instrumentation in a way that would allow me to answer your question.\n\nTo get an answer to your question, you would need context that specifically addresses classic jazz and trumpet.",
+      "ragas": {
+        "faithfulness": 0.6667,
+        "response_relevancy": 0.0,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "anti-01",
+      "category": "anti_echo_chamber",
+      "language": "en",
+      "query": "something completely different from mainstream pop, surprise me",
+      "retrieval_scored": false,
+      "retrieved": [
+        "genre:pop_music#overview~2",
+        "genre:pop_music#dance_pop",
+        "genre:pop_music#electropop~1",
+        "genre:pop_music#overview~1",
+        "genre:rock_hardcore_punk#overview~3",
+        "review:metacritic:96004",
+        "review:metacritic:176764",
+        "review:metacritic:184649",
+        "review:metacritic:172645",
+        "review:metacritic:113800"
+      ],
+      "genre_confidence": 0.1908,
+      "reviews_confidence": 0.0079,
+      "latency_s": 4.399,
+      "contexts": [
+        "POP MUSIC\n\nThe word “Pop” is short for popular music and first coined in the fifties. Crooners from that decade were the first to be mentioned as “pop”. These artists had a tremendous popular appeal and their songwriters would seek inspiration from the most diverse genres in order to attain the perfect success formula. This means that at first Pop was not seen as a separate genre, but a collection of music from different genres that are the most popular. This is of course a matter of perspective. But although Pop may be vague as a group, especially in the beginning, its various subsequent subgenres are often well-defined. Therefore Pop is rightfully a super-genre on its own. Sometimes Pop is being used as a term for all popular music, but this is highly confusing and will not be used in musicmap.\n\nThe strength of Pop music lies in a denial of genre or niche: Pop does not try to bring a new subculture or convey a message. It wants to include anyone and everyone and just have fun. Pop wants to be approachable: no barrier, no threshold, no shame. Anything goes. But Pop should not be seen as a derogatory term: every person adores at least one Pop song, whether it’s Britpop, Synthpop, Disco Pop or whatnot. Pop after all, is not irreconcilable with innovation or quality. But what exactly defines Pop music then? Pop is whatever gets the most appeal from people, the common denominator between different music tastes and the most flexible, applicable of styles. Never too extreme in one aspect or another, yet never too mundane or boring; Pop seeks to catch the attention fast and hold it, but never in an offensive or disturbing way.",
+        "POP MUSIC > Sub-Genres > DANCE POP\n\n1995\nPOP\nIn the eighties, Pop music changed from a pure trade commodity (records to sell to teens) to a much bigger enterprise: a party and concert industry, where vast wealth was possible to obtain. The Live Aid concert in 1984 for example (one of the biggest concerts of all time) is a pivotal moment. After Disco-Pop, major record labels turned their eye towards Dance music, as Eurodance had proven to be very profitable. Thus, Dance Pop is the fusion of Dance (mostly House) with Pop and is not the same as Disco-Pop or Urban Pop, though a large amount of overlapping is fairly common in the eclectic world of Pop music, where sell value presides over genre integrity. Most Dance Pop artists are girlsbands or boysbands, the epitome of capitalistic Pop. Choreographed ensembles of young girls or boys create an illusion of identification by having a different stereotypical personality, but all aimed at one thing: selling sex. More than ever before, Dance Pop marketed itself to young teens (whether male or female) with the sex-appeal of barely older artists. In Dance-Pop, the music is far more important than the lyrics, which only serves as catchy sing-along phrases.\n\nBesides girlsbands, boysbands and Dance Pop soloists, a new wave of Eurodance artists started to make an incredibly poppy and lightweight version of Eurohouse at the end of the nineties, ushering in the end of the genre. This genre, “Eurodance Pop”, is a lot less R&B influenced than pure Dance Pop and more uptempo with stronger beats.",
+        "POP MUSIC > Sub-Genres > ELECTROPOP\n\n2006\nPOP\nElectropop can be used as a comprehensive term encompassing all forms of Electronic or synthesizer-used Pop. In its narrow definition, it is the latest development of dominant mainstream and dance-oriented Pop music.\n\nIf Dance Pop is the Disco-influenced mainstream music of the eighties and nineties, then Electropop is the Electro-influenced mainstream music of the nillies and tens. The word “Electro” here concerns the combination of both Electroclash (and thus Synthpop indirectly) and Electro-House. Particularly the latter is important, as it has introduced low frequency synth sounds in Electropop, often in a rough, distorted manner. This makes Electropop a lot “nastier” and daring than its predecessor Dance Pop, while also focusing on a more mature audience. A very small subgenre, Wonky Pop, was briefly popular at the end of the nillies, but being only defined by the use of “unstable” or “wonky” sounds in Electropop, it is hardly worth considering a true genre. By the turn of the millennium, all Disco and House elements in hit chart music were not fresh and contemporary anymore. Electroclash and later Electrohouse changed the focus in Pop from a warm R&B-type groove beat to a crisper sound with higher dynamic range. This has made the music somewhat less infectious compared to Dance-Pop, but more eclectic and flexible, thus able to reach an even larger audience.",
+        "POP MUSIC\n\nPop music is difficult to define. The content of its definition has shifted throughout the course of time. What started as a network of white songwriters manufacturing premade songs for crooners and groups (Tin Pan Alley), became an individual crusade (singer/songwriter) and eventually a herald for integration and emancipation, where blacks as artists and teens as audience were given recognition and a platform.\n\nFrom the sixties until the eighties, Rock forms the basis for Pop, but that foundation shifts towards House in the nineties and R&B/Rap in the nillies. Lately (from 2010 onwards), Pop has become too eclectic to identify another super-genre within as the dominant core. Whatever that core may be, Pop is always a lighter, more accessible variant with catchy, pronounced melodies, but not too complex. Pop songs are always 100% radio friendly, i.e. they are edited to play up to four minutes or less and have politically correct lyrics, often bordering on shallowness. Pop has plain song structures, which are easy to memorize and so are the chords or melodies. A strong focus on video clips and visual performance have become staples in the Pop industry throughout the years, as most Pop does try to sell. More than any other super-genre, Pop has a commercial nature, or – in better terms – Pop transmutes in what sells the most.",
+        "ROCK, HARDCORE PUNK\n\nHardcore is mostly an underground thing; mainstream radio or TV attention is minimal, despite a very radio friendly format (regarding song length). Instead, Hardcore lives – stronger than any other super-genre – in the show or gig. Hardcore gigs are smaller than other ones and usually indoors. However, the crowd is often downright fanatic and the interaction between band and crowd is bigger, with smaller and lower stages. There where the DIY approach of Hardcore gets translated into performance, where electric synergy between band and crowd occurs, where mosh pits organically evolve and dissolve again, where communities get formed…that is where Hardcore is home.\n\nBy merging with Heavy Metal, Hardcore Punk diversifies and knows how to reinvent itself. But the most intriguing thing about Hardcore is not the music or subculture, but a far-reaching ethos of DIY (do-it-yourself) that exposes society conventions within music industry and how they are all too easily accepted instead of challenged. Hardcore works largely with small record labels, or band members release their very own record label. Artists become entrepreneurs and distance themselves from capitalism. With the help of local support, such as T-shirt sales, they manage to survive and maintain their musical integrity. Though certainly not all Hardcore bands were anti-commercial or against major record companies. In fact, the failure of a mainstream breakthrough of (Post-)Hardcore bands, urged certain bands to change their sound. This offered them a larger audience, though they were still forced to work with smaller, independent labels. And thus Indie Rock was born."
+      ],
+      "answer": "Based on the context provided, I can tell you about **Hardcore Punk** — something quite different from mainstream Pop!\n\nHardcore is mostly an underground phenomenon with minimal mainstream radio or TV attention. Unlike Pop's goal of mass appeal and accessibility, Hardcore thrives in small indoor gigs where there's intense interaction between band and crowd, mosh pits, and tight-knit communities.\n\nWhat makes Hardcore truly distinctive is its **DIY (do-it-yourself) ethos**. Rather than pursuing commercial success like Pop does, Hardcore artists often distance themselves from capitalism by working with small independent record labels or releasing their own records. Band members become entrepreneurs, surviving through local support like T-shirt sales while maintaining their musical integrity.\n\nThe context notes that Hardcore's most intriguing aspect isn't even the music itself, but this far-reaching ethos that challenges society conventions and music industry norms — the opposite of Pop's commercial nature and radio-friendly polish.\n\nSo if you want something completely different from the polished, accessible, commercially-driven world of mainstream Pop, Hardcore Punk offers an underground, community-driven, anti-establishment alternative.",
+      "ragas": {
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8724,
+        "context_precision": 0.2,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "anti-02",
+      "category": "anti_echo_chamber",
+      "language": "en",
+      "query": "an obscure genre I have probably never heard of",
+      "retrieval_scored": false,
+      "retrieved": [
+        "genre:downtempo_ambient#minimal_wave_synth_minimal_industrial_revival",
+        "genre:heavy_metal#black_metal",
+        "genre:industrial_gothic#minimal_wave_synth_minimal_industrial_revival",
+        "genre:contemporary_rock#indietronica_chillwave~1",
+        "genre:industrial_gothic#overview~1",
+        "review:metacritic:96004",
+        "review:metacritic:106679",
+        "review:metacritic:121277",
+        "review:metacritic:137090",
+        "review:metacritic:81579"
+      ],
+      "genre_confidence": 0.1914,
+      "reviews_confidence": 0.0048,
+      "latency_s": 4.629,
+      "contexts": [
+        "DOWNTEMPO / AMBIENT > Sub-Genres > MINIMAL WAVE / SYNTH & MINIMAL INDUSTRIAL (REVIVAL)\n\n2006\nINDUSTRIALDOWNTEMPO\nThis forgotten subgenre is the hipster’s ultimate fusion: the avant-garde mentality of industrial made (barely) danceable by New Wave synth melodies before the genre became mainstream.\n\nThere are three waves of Industrial that brought the genre as a whole to life. The first one was an obscure experiment of the seventies that would lead to many other genres (Avant-Garde Industrial). Fifteen years later, the influences of these genres alongside Synthpop, modern Rock, and the Goth movement, culminated in an all-round, perfectionized genre that would fuel the Industrial subculture for a long time (Electro-Industrial). Another fifteen years later, in the era of recycling and uncertainty, a revival of purist, minimal Industrial / Darkwave was needed, that briefly existed in the early eighties right before MIDI was introduced to New Wave (sounding quite lo-fi). Minimal Wave aka Synth Wave (not to be confused with Synthwave) is closely related to Coldwave and the Neue Deutsche Welle: a German form of Synthpop that is more ambient and minimal than usual. Minimal wave therefore is a very dark and amateur type of Synthpop, with lots of emphasis on modern artwork and conceptualization. As Electroclash returned interest in Synthpop, so rediscovered Industrial culture Coldwave and Minimal Wave and blended these genres with early Industrial sounds.",
+        "HEAVY METAL > Sub-Genres > BLACK METAL\n\n1991\nMETAL\nThe genre outlined here is actually the second wave of Black Metal (See: Extreme Metal). The first wave was very obscure and rapidly vanished. Norway, a country of cold, harsh, and unforgiving landscapes, became the perfect breeding ground for Black Metal - arguably the most extreme and least accessible form of metal. Although Black Metal is a less percussion and bass oriented than its contemporary counterparts, its chaotic, screaming avalanche of macabre noise sounds like it was made by the Devil himself. Hi-pitched vocals, symphonic/Gothic elements, and shrill, hyperfast guitar riffs make such a statement almost believable. Black Metal has always been more about the content than the music itself, trying to be as satanic and anti-Christian as possible (and so are many of its practicers). The exact opposite however, is also true, in the form of Christian Black Metal, indicating that probably any genre imaginable already exists.\n\nBlack Metal bands are recognizable by their bombastic music, satanic names, elaborate artwork (usually with a chaotic web of sharp forms) and heavy black & white make-up (reminiscent of Glam Metal but much more grim and serious). Themes of torture, pain, blood, and sacrifice occur more than in other Metal genres. Some Black Metal bands became frontpage news by committing acts of murder, violence and desecration, leading to a large amount of indepth Black Metal documentaries about this most evil of music genres.",
+        "INDUSTRIAL & GOTHIC > Sub-Genres > MINIMAL WAVE / SYNTH & MINIMAL INDUSTRIAL (REVIVAL)\n\n2006\nINDUSTRIALDOWNTEMPO\nThis forgotten subgenre is the hipster’s ultimate fusion: the avant-garde mentality of industrial made (barely) danceable by New Wave synth melodies before the genre became mainstream.\n\nThere are three waves of Industrial that brought the genre as a whole to life. The first one was an obscure experiment of the seventies that would lead to many other genres (Avant-Garde Industrial). Fifteen years later, the influences of these genres alongside Synthpop, modern Rock, and the Goth movement, culminated in an all-round, perfectionized genre that would fuel the Industrial subculture for a long time (Electro-Industrial). Another fifteen years later, in the era of recycling and uncertainty, a revival of purist, minimal Industrial / Darkwave was needed, that briefly existed in the early eighties right before MIDI was introduced to New Wave (sounding quite lo-fi). Minimal Wave aka Synth Wave (not to be confused with Synthwave) is closely related to Coldwave and the Neue Deutsche Welle: a German form of Synthpop that is more ambient and minimal than usual. Minimal wave therefore is a very dark and amateur type of Synthpop, with lots of emphasis on modern artwork and conceptualization. As Electroclash returned interest in Synthpop, so rediscovered Industrial culture Coldwave and Minimal Wave and blended these genres with early Industrial sounds.",
+        "CONTEMPORARY ROCK > Sub-Genres > INDIETRONICA & CHILLWAVE\n\n2005\nCONTEMPORARYPOP\nLong after the Madchester explosion (and the fall), Shoegaze was rediscovered as a perfect ingredient for a remarkable melting pot: Synthpop, Electronica, and Shoegazing went pretty well together in a new type of “Ambient New Wave Indie Rock” that could either be called Nu-Gaze, Indietronica or Chillwave depending on matter of perspective or whether the core structure of a certain song is either Rock (New (Shoe)Gaze), Pop/Wave (Chillwave) or Downtempo (Indie (elec)tronica). Therefore two different songs belonging to this genre can very well sound rather different. Unsurprisingly, this is a fairly broad and flexible genre, which can easily tap into a wide spectrum of related genres. Where Nu-Gaze is rather an obscure and rare genre and Indietronica too loosely defined, Chillwave is the genre that comes closest to a certain definition. A definition that easily swallows the other genres as well (illustrated by Chillwave’s alias: Downtempo Pop). After all, this is the age of eclecticism. Chillwave has a very summery mood, full of optimism and dreamy Pop vocals. Eighties retro (further enhanced in a dark way by the successor Synthwave) and lots of reverb on different song parts make it seem like Dream Pop is back from the dead. Another synonym, “Glo-Fi”, also points out parallels between Chillwave and the Dream Pop/Shoegaze era.",
+        "INDUSTRIAL & GOTHIC\n\nIndustrial is a genre in between Rock and Electronic music. It evolved out of the German post-war underground scene in the seventies, and has been experimental and obscure ever since. Gothic music, following out of “Post-Punk Depression”, shares many characteristics with Industrial and both subcultures have become intertwined into a state of Siamese twins. Author John Savage outlines five different aspects of Industrial music that show a great deal of insight into this rather secluded genre: organizational autonomy, access to info, use of synth and anti-music, extra-musical elements, and shock tactics.\n\nThe first one - organizational autonomy - can be traced back to the roots of the genre’s name: Industrial comes from Industrial Records, the first Industrial record company and more an extreme experiment than a real enterprise. The name however is no coincidence: early Industrial criticizes contemporary art by going either backwards (dark retro/industrial age) or forwards (dark cyber/futurism). Musical references to factory and industrial life (noise, machines) strengthen Industrial’s name. Industrial however does not follow any rules but likes to create the illusion of a heavily organized machine, with visual references to totalitarian regimes such as strong logos, artwork in black-red-white, and band names that are conceived as unstoppable movements on their own. Special fashion subcultures that combine “industrial” looks with either futuristic or retro aesthetics such as “Steampunk” or “Cyberpunk”, enrich modern Industrial subculture, and are sometimes mistaken for music genres."
+      ],
+      "answer": "Based on the context provided, several obscure genres are mentioned:\n\n1. **Avant-Garde Industrial** - described as \"an obscure experiment of the seventies\" that was the first wave of Industrial music\n\n2. **Minimal Wave / Synth & Minimal Industrial (Revival)** - described as \"this forgotten subgenre\" that \"briefly existed in the early eighties right before MIDI was introduced to New Wave (sounding quite lo-fi)\"\n\n3. **Nu-Gaze** - described as \"rather an obscure and rare genre\"\n\nThe context suggests that **Minimal Wave** is probably the most obscure of these, as it's explicitly called a \"forgotten subgenre\" that was a brief revival of early eighties purist, minimal Industrial/Darkwave before becoming more mainstream through the Electroclash movement.",
+      "ragas": {
+        "faithfulness": 0.8182,
+        "response_relevancy": 0.8633,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "neg-01",
+      "category": "negative_constraint",
+      "language": "en",
+      "query": "rock music but nothing metal or heavy",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:heavy_metal#overview~1",
+        "genre:heavy_metal#classic_metal",
+        "genre:rock_hardcore_punk#metalcore_nwoahm_new_wave_of_american_heavy_metal",
+        "genre:rock_golden_age_classic_rock#hard_rock",
+        "genre:heavy_metal#nu_metal_rap_metal",
+        "review:metacritic:40400",
+        "review:metacritic:5169",
+        "review:metacritic:30327",
+        "review:metacritic:187002",
+        "review:metacritic:148795"
+      ],
+      "genre_confidence": 0.8709,
+      "reviews_confidence": 0.4071,
+      "latency_s": 4.503,
+      "contexts": [
+        "HEAVY METAL\n\nThunder” is mentioned: a quote from William S. Burrough’s book “Naked Lunch”. After all, Heavy Metal and Hard Rock were more or less the same in the early stages of the genre.\n\nHeavy Metal is extremely popular within nerd culture. This is no coincidence: Metal is music for the analytical mind; it does not simply present itself but challenges the listener to carefully dissect the overload of mid- and low-frequency aural information. In order to absorb all of the music, Metal urges to re-listen at high volume. Because nerd culture has taken an interest in Metal, it has become one of the most defined, examined and structured super-genres, with a strong hierarchical genealogy and copious (over 50) subgenres, sometimes bordering on the ludicrous. Christian Black Metal, Pirate Metal and Viking Metal are such examples. It is only a matter of time before Ninja Metal gets invented, but until then, there is already plenty to explore within one of the healthiest super-genres and with one of the most loyal fan bases. Metal has considerable overlapping with Hardcore Punk, as both genres share a love for speed and heavy guitar music. Grunge is sometimes regarded as a part of Metal as well, but this has led to a backlash of German Metal fans, who swear only by so called “True Metal”: Metal without Grunge or other crossovers.",
+        "HEAVY METAL > Sub-Genres > CLASSIC METAL\n\n1970\nMETAL(golden age)\nHeavy Metal used to be an interchangeable term with Hard Rock in the late sixties. The earliest examples of the genre - Classic (Heavy) Metal - are often cited as Hard Rock examples and vice versa. As such, Classic Metal is a loosely defined genre: simply “Harder-than-Hard Rock”, mainly by means of more amplification and distortion. However, two British bands marked a turning point after which the schism with Rock was a fact: Black Sabbath and Led Zeppelin.\n\nThe shocking tragedy of four deaths and excessive violence at the Altamont Festival in 1969 marked the end of the flower power age, a temporary exile of the Rolling Stones and most importantly: a loss of belief in the hippy utopia. Rock couldn’t make the world a better place and everyone had witnessed the dark side of human nature: deep down inside man is evil. The first band to be influenced by this event was Led Zeppelin. Described at the time as Rock music being dark, heavy and gloomy, it was almost impossible to listen to. Black Sabbath developed an even slower, tuned-down sound, yet also full of distortion, with thick and heavy riffs. In their later work they also experimented with tempo and different instrumentation. Both bands feature lengthy songs, with elaborate guitar solos, while often referring to satanic or dark themes.\n\nThese early blueprints inspired Blues Rock and Acid Rock artists into a similar sound and style, yet over the course of time Blues influences became replaced by a pure metallic sound.",
+        "ROCK, HARDCORE PUNK > Sub-Genres > METALCORE / NWOAHM (NEW WAVE OF AMERICAN HEAVY METAL)\n\n1999\nHARDCOREMETAL\nIn a desperate attempt to prevent Nu Metal from remaining the last chapter in the history of Heavy Metal and to prove that Metal would survive in the 21st century, the ambiguous term NWOAHM (New Wave of American Heavy Metal) was conceived. This was far from necessary, as Metal is perhaps the only super-genre were all different styles are still being practiced and performed intensively. At first, this wave of American bands seemed only unified in their stance against Nu-Metal, but gradually a specific, well-defined genre unfolded, named Metalcore. It must be noted that Metalcore already had a long and experimental history before Nu Metal, emerging shortly after Crossover Thrash, but remaining rather obscure before the mid nineties. Instead of mutually aggravating each other towards the extreme like Grindcore, Metalcore is a balanced mix of Hardcore and (Death) Metal elements, which undoubtedly has led to longer, more complex songs. The song structure and mentality is still Hardcore, but with a slower drum beat and metallic single note guitars. Metalcore is the least emotional type of Hardcore, which has led to the hyperrational, technical Mathcore or Math Metal and Math Rock. Other, lesser known subgenres include Melodic Metalcore, Noisecore, Deathcore, and Nintendocore. Metalcore is a forced marriage between Hardcore Punk and Metal in order to save both genres their legacies, despite mutual differences. Nevertheless, Metalcore’s numerous offspring subgenres prove the healthiness of this marriage in one way or another.",
+        "ROCK, GOLDEN AGE, CLASSIC ROCK > Sub-Genres > HARD ROCK\n\n1968\nGOLDEN AGE\nIn the UK, many music genres have been restyled into a rougher, “British” version of themselves. The same happened with Blues Rock in the late sixties, which got restyled into Hard Rock. This happened simultaneously with the shutdown of UK’s pirate radios of the sixties. Subsidized radio stations after this closure preferred a palette of Pop Rock and Soft Rock and created a hiatus for heavier, more alternative music. Hard Rock filled that gap with a louder and faster kind of Blues Rock / Acid Rock and is therefore the missing link between these genres and Heavy Metal. The genre quickly caught on with the masses. After all, it was the first “heavy” music genre to exist or certainly the heaviest at this time.\n\nHard Rock uses the same instrument set-up as basic Classic Rock but with more distortion on the guitars and simple song structures. Hard Rock also introduced one of the most quintessential Rock elements: the “Riff”. Riffs are short unique melodies, often repetitive and a recognizable trademark of many Rock anthems.\n\nBursting with testosterone, Hard Rock is a macho thing, regardless if you’re a biker, leather-clad Rock star, or simply part of the rebel outlaw-subculture. The lyrical content often dealt with these lifestyles, talking about dark, criminal or macho topics. A new direction of music was born, so large and prominent that it’s hard to say which Metal, Industrial or modern Rock genre wasn’t influenced by it.",
+        "HEAVY METAL > Sub-Genres > NU METAL & RAP METAL\n\n1995\nMETAL(alternative)\nThe Scandinavian styles of Metal (Black, mainly Norway / Death, mainly Sweden / Gothic, mainly Finland) would change the Metal music industry for years to come, but also pull it more underground. A new mainstream, popular genre was bound to emerge, as the same (dinosaur) Thrash and Classic Metal bands kept filling stages over and over again. The heaviest genres of the time (Death, Industrial Metal and Metalcore) were all thrown into an eclectic mix, but mostly Groove Metal and Rap Rock formed the basis for Nu Metal. These genres were only a small step away from fusing Rap or Breakbeat elements into Metal. The outcome was a recipe that could not fail because it was Rap, Rock, and Metal all-in-one. Indeed, “New Metal” had many Rap and few Metal elements: downtuned riffs, breakbeats, scratching, emphasis on kick drums and most noticeably no guitar solos, though the genre lacked no heavy bass or aggressiveness. The difference between Nu Metal and Rap Metal is rather negligible; the latter is reserved for songs which explicitly feature Rap lyrics, though they are both heavily influenced by Rap Rock.\n\nNu Metal is often linked to Emo(core), as piercing lyrics about frustration and depression (self-mutilation, suicide, abuse, etc.) find its way into the heart of adolescents through melancholic choruses; a very distinctive rupture with previous Metal genres. Fashion is another topic where Nu Metal breaks the rules, with a bizarre mix of Emo and Metal styles and some marginal extravaganza. All these elements contribute to a living paradigm of disturbance: psychosis in sound and flesh."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "Based on the context provided, I cannot give you a comprehensive answer about rock music that excludes metal and heavy genres, as the knowledge base is specifically focused on heavy metal and its related genres.\n\nThe context does mention some rock-related genres briefly:\n- **Pop Rock** and **Soft Rock** are mentioned as genres preferred by UK radio stations\n- **Classic Rock** is referenced as a category\n- **Blues Rock** and **Acid Rock** are mentioned as predecessors to hard rock and heavy metal\n\nHowever, the context does not provide detailed information about rock music genres that are distinctly separate from metal and heavy music. To properly answer your question, I would need additional context about mainstream rock, alternative rock, indie rock, or other non-heavy rock genres.",
+      "ragas": {
+        "faithfulness": 1.0,
+        "response_relevancy": 0.0,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "neg-02",
+      "category": "negative_constraint",
+      "language": "en",
+      "query": "electronic music with no vocals at all",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:rap_hip_hop_music#electro~1",
+        "genre:edm_dance_breakbeat#electro~1",
+        "genre:industrial_gothic#electronic_body_music_ebm",
+        "review:metacritic:91334",
+        "review:metacritic:166880",
+        "genre:downtempo_ambient#bit_music_vgm_chiptune_8_bit",
+        "genre:downtempo_ambient#musique_concrete",
+        "review:metacritic:4949",
+        "review:metacritic:147190",
+        "review:metacritic:125115"
+      ],
+      "genre_confidence": 0.9028,
+      "reviews_confidence": 0.4494,
+      "latency_s": 4.608,
+      "contexts": [
+        "RAP / HIP-HOP MUSIC > Sub-Genres > ELECTRO\n\n1982\nBREAKBEATRAP\nTrue Electro, the beginning of Breakbeat, is essentially Hip-Hop music with lots of Krautrock influences (particularly Kraftwerk). American rappers embraced the German revolutionary music and quickly started making Rap music with the aid of drum machines and sequencers, resulting in digital sampling and looping of breakbeats (instead of mixing and scratching, although these two techniques were still heavily used for extra sound effects). Electro has few vocals let alone raps, though if they are present they are usually vocoded. Robotic breakdancing and vocoders give Electro that stereotypical futuristic “robo-feel”, often imitated or parodied.\n\nThe encounter between three (!) separate music worlds (Hip-Hop, Rock, and Electronic) finds its origin in two historical key events. In 1977, the infamous radio DJ “The Electrifying Mojo” starts playing a mix of Funk and Synthpop in Detroit: Proto-Electro that brings the black Rap community in touch with white electronic music.\n\nOn the other hand, the experiment of Old Skool Rap found itself in a precarious and fragile state at the beginning of the eighties. The music never really caught on and was in danger of being suppressed by Synthpop, which was growing exponentially in popularity. In New York, Afrika Bambataa, principal Electro artist and founder, tried to please both the (white) hipster New Wave scene as the (black) Hip-hop scene from the Bronx.",
+        "EDM / DANCE: BREAKBEAT > Sub-Genres > ELECTRO\n\n1982\nBREAKBEATRAP\nTrue Electro, the beginning of Breakbeat, is essentially Hip-Hop music with lots of Krautrock influences (particularly Kraftwerk). American rappers embraced the German revolutionary music and quickly started making Rap music with the aid of drum machines and sequencers, resulting in digital sampling and looping of breakbeats (instead of mixing and scratching, although these two techniques were still heavily used for extra sound effects). Electro has few vocals let alone raps, though if they are present they are usually vocoded. Robotic breakdancing and vocoders give Electro that stereotypical futuristic “robo-feel”, often imitated or parodied.\n\nThe encounter between three (!) separate music worlds (Hip-Hop, Rock, and Electronic) finds its origin in two historical key events. In 1977, the infamous radio DJ “The Electrifying Mojo” starts playing a mix of Funk and Synthpop in Detroit: Proto-Electro that brings the black Rap community in touch with white electronic music.\n\nOn the other hand, the experiment of Old Skool Rap found itself in a precarious and fragile state at the beginning of the eighties. The music never really caught on and was in danger of being suppressed by Synthpop, which was growing exponentially in popularity. In New York, Afrika Bambataa, principal Electro artist and founder, tried to please both the (white) hipster New Wave scene as the (black) Hip-hop scene from the Bronx.",
+        "INDUSTRIAL & GOTHIC > Sub-Genres > ELECTRONIC BODY MUSIC (EBM)\n\n1982\nINDUSTRIAL\nMusic. Without. Emotions. Full Stop. More mechanical, more electronic and more repetitive than industrial, but without the noise and arty obsession for the bizarre. This is almost military music with a sort of robotic aggression. With hard striking and kicking beats, EBM manufactured the first prototype for Electronic Dance Music. EBM, short for Electronic Body Music and also known as Industrial Dance, was the first industrial genre to produce some sort of vocals (though very atonal) that could actually be understood or made any sense, which made it far more accessible than its counterpart genres (Gothic Rock was not bound to Industrial culture yet at that time). The dark, monotonous beating sound became an important influence on other dance genres and artists, since House and Techno weren’t invented yet. This was especially true for that other Belgian phenomenon: New Beat. EBM also influenced Synthpop and the other way around because these were the only true digital genres in the early eighties (though they came from very different paths). Even after the full-blown European expansion of House and Techno, EBM remained an important and distinctive genre; especially in Germany where it gradually faded but not without influencing the whole of Industrial music.",
+        "No Shouts, No Calls by Electrelane (May 8, 2007) — Metascore 76.0, User score 8.3\n\nThis is the fourth studio album for the all-female four-piece from Brighton, England.",
+        "She Has No Strings Apollo by Dirty Three (February 18, 2003) — Metascore 79.0, User score 7.4\n\nThe Australian instrumental trio, known for their dark, minimalist, atmospheric sound, includes Bad Seeds' violinist Warren Ellis, guitarist Mick Turner, and drummer Jim White."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "Based on the context provided, **Electro** is described as electronic music with no or minimal vocals. The context states: \"Electro has few vocals let alone raps, though if they are present they are usually vocoded.\"\n\nAdditionally, **Dirty Three** is mentioned as \"an Australian instrumental trio, known for their dark, minimalist, atmospheric sound\" — which would be electronic music with no vocals at all, though this is presented as a specific artist example rather than a genre definition.",
+      "ragas": {
+        "faithfulness": 0.8571,
+        "response_relevancy": 0.8034,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "neg-03",
+      "category": "negative_constraint",
+      "language": "en",
+      "query": "jazz but nothing modern or electronic",
+      "retrieval_scored": true,
+      "retrieved": [
+        "genre:blue_note_jazz#nu_jazz_electro_jazz",
+        "genre:blue_note_jazz#overview",
+        "genre:blue_note_jazz#third_stream_progressive_jazz_modal_jazz",
+        "genre:downtempo_ambient#lounge_exotica_space_age_pop~2",
+        "genre:blue_note_jazz#hard_bop",
+        "review:metacritic:40400",
+        "review:metacritic:91334",
+        "review:metacritic:197510",
+        "review:metacritic:193330",
+        "review:metacritic:30327"
+      ],
+      "genre_confidence": 0.8859,
+      "reviews_confidence": 0.0098,
+      "latency_s": 4.377,
+      "contexts": [
+        "BLUE NOTE: JAZZ > Sub-Genres > NU JAZZ / ELECTRO JAZZ\n\n1995\nJAZZ(downtempo)\nDuring summer afternoons or evenings, in picturesque metropolitan suburbs (such as Saint-Germain, Paris), Nu-Jazz would be the ideal background music for any café terrace or coffee bar. It is electronic, melodic, playful Jazz with lots of soothing, ambient sound effects that wash over the gentle Jazz percussion like a warm summer breeze. Being made entirely electronic, it marked the end of the traditional Jazz band. All Jazz music from Nu-Jazz and forward – dominantly electronic and often home produced like EDM – is conjoined under the portmanteau “Future Jazz”. Future Jazz succeeded where contemporary Blues failed: renewing Jazz in the 21st century.\n\nNu Jazz, also known as Jazztronica, Phusion or Electro Jazz, can have a broad range of influences, such as deep basses from Ambient House or Deep House, groovy drum rhythms from Breakbeat, and exotic percussion from Latin genres. This makes Nu-Jazz a core genre (or the) of the second or electronic wave of Lounge, and it’s easily mistaken for Broken Beats or other Lounge genres. But these influences are subtle enough to not masquerade the fact that it truly is Jazz. Nevertheless, Nu-Jazz differs radically from older Jazz genres in means of production (solo and recorded versus live and in band) and its electronic sound. Hence, most Jazz enthusiasts regard Nu-Jazz rather as a rupture instead of a continuation within Jazz and encourage its classification among non-Jazz genres (Lounge, House, Breakbeat, Downtempo…). But in the realm of music, tradition is a bad advisor for survival.",
+        "BLUE NOTE: JAZZ\n\nThe power of Jazz lies in its rich contrast: improvised versus predetermination, chaos versus control and light and gentle sounds versus sharp and shrill tones. Jazz is also unique in influencing many genres in a subtle manner. Although there are no immediate derivative genres coming from Jazz, countless ones have been influenced by it. Its unique concepts and instrumentation are versatile enough to transfer to the most diametrical of popular music genres.\n\nOver the course of history, there have been attempts to divide Jazz into a small number of categories, which could have been super-genres in their own right. Names such as “Traditional or Post-Jazz”, “First, Second and Third Stream (Jazz)” have been viable options at one time or another, but hold barely any relevance in today’s styles of Jazz. One possible way to structure this whole is by using two pivotal moments - the birth of Bebop and Fusion - to divide the whole into three time periods: Classic Jazz, Modern Jazz and Post-Jazz (aka Post-Fusion or Free-Bop).\n\nIn the mid-seventies Jazz gets strongly repressed and overshadowed by R&B. Many American Jazz musicians migrate to Europe, where funded Jazz festivals and Jazz bars in historical city centres thrive better than in the States (particularly in Scandinavia and Eastern Europe). Currently, American Jazz education is on the rise, but general public interest has stayed off. Post-Jazz has therefore become a global and heavily dispersed phenomenon of a genre that once was the sound of a nation.",
+        "BLUE NOTE: JAZZ > Sub-Genres > THIRD STREAM / PROGRESSIVE JAZZ & MODAL JAZZ\n\n1937\nJAZZ\nThe whole of Jazz music is sometimes divided into three categories or “streams”: First there was Traditional Jazz (quite formal) which could be seen as the opposite of the experimental, second stream: Modern Jazz. The third stream was reserved for the type of Jazz that was neither, but a merging between Classical Music (particularly Chamber music) and Jazz.\n\nExperimentations between these two genres existed long before Modern Jazz, so it wasn’t until 1957 that composer Gunther Schuller coined this ambiguous term. The quest for coexistence between classical music and a popular genre that was partly defined in its non-classical properties (such as improvisation) proved to be a slippery slope. Third Stream Jazz is certainly not a strong subcultural movement, but more a collection of experimental Jazz songs over the course of time. Obviously Third Stream songs are more intricate with longer and deeper progression (thus “Progressive Jazz’) than other types of Jazz, but when the avant-garde of the sixties invented Free Jazz, Third Stream’s relevance shrunk to absolute zero. Now, classical composers could learn more from Jazz than the other way around.\n\nAs a response, Third Stream’s definition was broadened to include crossovers to World Music, yet it remains one of the lesser known Jazz genres. A different successor at the end of the fifties, Modal Jazz, improvises on a series of scales instead of chords. Like the “Math Rock of Jazz”, Modal Jazz is defined (solely) by its highly technical, rational and mathematical structure.",
+        "DOWNTEMPO / AMBIENT > Sub-Genres > LOUNGE / EXOTICA / SPACE AGE POP\n\nIn the sixties, Lounge gets annihilated by the success of Rock and it would take three decades to get back on its feet. Bands Saint Etienne, Combustible Edison, and Pizzicato Five revived acoustic Lounge in the nineties, but their success was little compared to the real second wave of Lounge taking place at the same time. In this wave, Jazz was no longer used but replaced by soft, slow, electronic music (especially Ambient was a big influence) and the word “Lounge” got a new meaning. Electronic Lounge or Loungetronica as it is called, is not listed as a separate genre but divided on the Carta into its distinctive subgenres: Nu-Jazz, Trip Hop, Broken Beats, Ambient House, and Jazzstep. The abundant Lounge compilation albums available feature a variety of these genres, and often include songs that cross over to one of the other genres. This has created the illusion that electronic Lounge is a real separate genre. Though when it comes to conveying these otherwise hard-to-find tracks into your living room, the end justifies the means.",
+        "BLUE NOTE: JAZZ > Sub-Genres > HARD BOP\n\n1953\nJAZZ\nIn an attempt to take back Jazz listeners that had turned to R&B, many (east coast) Bebop musicians changed their sound into something more accessible: Hardbop. Hardbop is a more modern evolution of Bebop, but not particularly “harder”, despite the term. The music is smoothened out and more emphasis is being put on the rhythm. The “Cool School” of the west coast had also provoked a certain disdain by Bebop players, with its exaggerated rationalism and lack of pathos. Hardbop formed the emotional answer but it in a very basic and gentle manner and not chaotic at all. Alongside these influences, the arrival of longplay records (at 33rpm) allowed for longer songs and longer solos. Numerous alternating solos and chords (of different instruments, sometimes even bass and drums) are being played in a call and response manner. Hardbop is played by small ensembles and is often described as heaving a more “bodied” or “textured” sound. Since its inception, Hardbop has been the dominant genre in Jazz. When Jazz is performed in Jazz bars or performances, it is highly likely to be Hardbop. There are two Hardbop subgenres: Funky Jazz (simple, with bluesy sound) and Mainstream Hardbop (more complex, closer related to Bebop)."
+      ],
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr": 0.0,
+      "ndcg@10": 0.0,
+      "answer": "Based on the context provided, **Traditional Jazz** (also called \"Classic Jazz\") would fit your description of jazz that is neither modern nor electronic.\n\nThe context mentions that Traditional Jazz is \"quite formal\" and represents one of the three historical periods of jazz (Classic Jazz, Modern Jazz, and Post-Jazz). It predates the electronic developments like Nu-Jazz/Electro Jazz that emerged in 1995.\n\nAdditionally, **Bebop** and **Hard Bop** (from the 1950s) would also qualify as non-electronic jazz styles, though Hard Bop is described as a \"more modern evolution\" compared to Traditional Jazz.",
+      "ragas": {
+        "faithfulness": 0.75,
+        "response_relevancy": 0.9205,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    }
+  ]
+}
