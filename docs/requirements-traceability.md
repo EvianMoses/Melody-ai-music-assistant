@@ -11,41 +11,54 @@
 > started. Section 19 of the execution plan governs: a checkbox alone is not
 > evidence.
 >
-> Last reconciled with the repository: **2026-07-24**.
+> Last reconciled with the repository: ~~**2026-07-24**~~ → **2026-07-28**.
+>
+> The 2026-07-28 pass moved 11 rows. Most had simply gone stale — Phases 4, 5, 6,
+> 7 and 8 all landed after the previous reconciliation and the matrix still
+> described the world as it was on 24 July. Honest reading now: **16 `Done`,
+> 4 `Partial`, 0 `Planned`**, against 5 / 11 / 4 on 24 July.
+>
+> The four `Partial` rows are blocked on exactly two artefacts: rows 5, 6 and 17
+> all wait on §3.9's Prompt Engineering Log Version 1, and row 11 waits on
+> `LOCAL-002`/`LOCAL-003`. Both live in Phase 3, which remains the one phase
+> before Phase 9 that has not closed its gate.
 
 ## 1. Graded technology mapping (ACA-002)
 
 | # | Course/reference area | Melody component | Evidence path | Status |
 | - | --------------------- | ---------------- | ------------- | ------ |
 | 1 | Python — basic and advanced | Flask app, five FastAPI services, ingestion scripts, SQLAlchemy models, dataclass contracts | `app.py`, `*/main.py`, `shared_lib/`, `contracts/models.py`, `contracts/db_models.py`, `rag-service/scripts/` | Done |
-| 2 | Web development | Flask UI plus the versioned API boundary (`POST /api/v1/requests`) and OAuth UX | `app.py`, `templates/`, `static/` | Partial — versioned route exists; §8.2 UI modes are Phase 8 |
+| 2 | Web development | Flask UI plus the versioned API boundary (`POST /api/v1/requests`) and OAuth UX | `app.py`, `templates/`, `static/` | ~~Partial — versioned route exists; §8.2 UI modes are Phase 8~~ → Done — the browser now calls `/api/v1/requests`, not the legacy `/chat`; §8.2 delivered except `UI-008` |
 | 3 | AWS basics / AWS AI | Bedrock Agent + Knowledge Base + OpenSearch Serverless + S3 + Lambda, retained as the rollback and latency/quality benchmark | `aws/`, `README.md`, Phase 0 baseline record | Done (as benchmark) — see §3 for why it is not the target |
-| 4 | n8n workflows | WF-000 through WF-010 as the visible main orchestrator | `workflows/n8n/` (WF-000…WF-006 exported) | Partial — 7 of 11 exported; WF-007/008/009/010 outstanding |
+| 4 | n8n workflows | WF-000 through WF-010 as the visible main orchestrator | `workflows/n8n/` (~~WF-000…WF-006 exported~~ → WF-000…WF-010, all 11) | ~~Partial — 7 of 11 exported; WF-007/008/009/010 outstanding~~ → Done — **all 11 exported** (WF-007/008/010 added 2026-07-28); WF-008 and WF-010 executed against live data, WF-007 carries one labelled `RAG-010` placeholder |
 | 5 | n8n Information Extractor | `Extract Music Constraints` node in WF-002 — structured mood/genre/era/energy extraction with no invented values | `workflows/n8n/WF-002 — Text Recommendation.json`, prompt surface PE-1 | Partial — node present, prompt log not started |
 | 6 | n8n AI Agent | `Recommendation Planning Agent` in WF-002 — read-only planning surface with no external write tools | `workflows/n8n/WF-002 — Text Recommendation.json`, prompt surface PE-2 | Partial — same |
 | 7 | RAG / LangChain | Hybrid retrieval: pgvector dense + PostgreSQL full-text + metadata filters + genre expansion + RRF | `rag-service/scripts/test_hybrid_retrieval.py`, `rag-service/main.py`, migration `f1a2b3c4d5e6` | Done (pipeline) — metrics outstanding (§3.8) |
-| 8 | LangGraph | Bounded stateful recommendation graph; `rewrite_count <= 1` enforced by graph topology | `recommendation-service/app/core/graph.py`, `graph_state.py`, `graph_nodes.py` | Partial — 4 of 18 nodes carry real logic |
-| 9 | Machine-learning classifier | Audio genre/tag or energy classifier (Melody's domain adaptation of the reference image classifier — see §2) | Phase 6 `ML-AUD-001`…`ML-AUD-007` | Planned |
-| 10 | PyTorch / Transformers | Audio inference and training; embedding + cross-encoder inference already run on PyTorch | `rag-service/scripts/generate_embeddings.py` (e5-small), `test_hybrid_retrieval.py` (ms-marco cross-encoder) | Partial — inference done, audio training is Phase 6 |
+| 8 | LangGraph | Bounded stateful recommendation graph; `rewrite_count <= 1` enforced by graph topology | `recommendation-service/app/core/graph.py`, `graph_state.py`, `graph_nodes.py` | ~~Partial — 4 of 18 nodes carry real logic~~ → Done — all 18 nodes real; Phase 4 gate passed |
+| 9 | Machine-learning classifier | Audio genre/tag or energy classifier (Melody's domain adaptation of the reference image classifier — see §2; **the substitution is confirmed by the developer, `ACA-005`, 2026-07-28**) | `audio-service/ml/` (`train.py`, `evaluate.py`, `dataset.py`, `model.py`), `docs/ml/audio-genre-classifier.md` | ~~Planned~~ → Done — trained on GTZAN with a leakage-free split; held-out clip-level macro-F1 **0.8692**, accuracy 0.8733 |
+| 10 | PyTorch / Transformers | Audio inference and training; embedding + cross-encoder inference already run on PyTorch | `rag-service/scripts/generate_embeddings.py` (e5-small), `test_hybrid_retrieval.py` (ms-marco cross-encoder) | ~~Partial — inference done, audio training is Phase 6~~ → Done — the GTZAN CNN was trained and measured (test macro-F1 0.8692) |
 | 11 | Local model runtime (Ollama / HF / llama.cpp) | Ollama `llama3.1` owning the local RAG answer baseline | `rag-service/scripts/test_generation.py`, `docker-compose.yml` (`ollama` service), ADR pending for LOCAL-002/003 | Partial — task owned and working; measurements are `LOCAL-003` |
-| 12 | Guardrails | Separate Guardrails Service with input and output rails, called from WF-001 | `guardrails-service/main.py`, WF-001 `Input Guardrails` / `Output Guardrails` nodes | Partial — deterministic placeholder rails; framework decision deferred to Phase 3/4 |
-| 13 | MCP / external tools | Provider and service tools behind normalized contracts | `provider-gateway/main.py`, `contracts/`, ADR-001 | Partial — contract exists, real adapter is Phase 5 |
-| 14 | External LLM | Final curator explanation and the single bounded rewrite | Phase 4 §4.8, `model_usage` table | Planned |
-| 15 | Feedback / active learning | Immutable `feedback_events`, materialized Preference Profile v1, later ranker path | `contracts/db_models.py`, WF-005, `recommendation-service` `/profiles/update` | Partial — tables + wiring done, update logic is Phase 7 |
-| 16 | Monitoring | WF-008 metrics, quota, error rate, and budget summary | Phase 1 §1.11, `model_usage` / `audit_events` tables | Planned — WF-008 not yet built |
+| 12 | Guardrails | Separate Guardrails Service with input and output rails, called from WF-001 | `guardrails-service/main.py`, WF-001 `Input Guardrails` / `Output Guardrails` nodes | ~~Partial — deterministic placeholder rails; framework decision deferred to Phase 3/4~~ → Done — real input/output rails (§8.5 replaced the hardcoded `off_topic = False`); 17 tests |
+| 13 | MCP / external tools | Provider and service tools behind normalized contracts | `provider-gateway/main.py`, `contracts/`, ADR-001 | ~~Partial — contract exists, real adapter is Phase 5~~ → Done — two real adapters (YouTube, Spotify) behind one normalized contract |
+| 14 | External LLM | Final curator explanation and the single bounded rewrite | `recommendation-service/app/core/llm_adapter.py`, `usage_store.py`, ADR-006 | ~~Planned~~ → Done — `claude-haiku-4-5` curator explanation per ADR-006, and **`model_usage` is now actually written to** (N8N-REAL-004); before that the table existed with no writer |
+| 15 | Feedback / active learning | Immutable `feedback_events`, materialized Preference Profile v1, later ranker path | `contracts/db_models.py`, WF-005, `recommendation-service/app/core/profile.py` + `profile_store.py` | ~~Partial — tables + wiring done, update logic is Phase 7~~ → Done — Phase 7 gate passed 5 of 5 |
+| 16 | Monitoring | WF-008 metrics, quota, error rate, and budget summary | `workflows/n8n/MELODY — WF-008 — Monitoring and Budget.json`; `model_usage`, `provider_quota_usage`, `ops_daily_summary`, `audit_events` | ~~Planned — WF-008 not yet built~~ → Done — WF-008 built and executed on real rows; alert branch tested. ⚠️ One honest limitation carried in the report itself: only completed requests are recorded, so its error rate is a floor, not a true rate |
 | 17 | Prompt engineering | Five surfaces × five versions on a shared test set | `docs/prompt-engineering-log.md` | Partial — structure defined, Version 1 outstanding |
 | 18 | Docker / EC2 deployment | Separate containers on a private bridge network with health checks and resource limits | `docker-compose.yml`, `*/Dockerfile`, `shared_lib/shared_lib/health.py` | Done (dev) — production hardening is Phase 9 §9.7 |
-| 19 | WebUI | Text discovery, audio, playback, feedback, export | `templates/`, `static/`, Phase 8 §8.2 | Partial — text path only |
-| 20 | Database / vector store | PostgreSQL 16 + pgvector, 18 tables, HNSW + GIN indexes, Alembic migrations | `migrations/versions/`, `contracts/db_models.py` | Done — `oauth_accounts` deferred to Phase 5 |
+| 19 | WebUI | Text discovery, audio, playback, feedback, export | `templates/index.html`, `static/style.css`, `app.py` | ~~Partial — text path only~~ → Done — text, audio, playback, feedback and export all reachable from the UI; `UI-008` (Smart Sequence display) outstanding |
+| 20 | Database / vector store | PostgreSQL 16 + pgvector, ~~18~~ → 21 tables, HNSW + GIN indexes, Alembic migrations | `migrations/versions/`, `contracts/db_models.py` | Done — ~~`oauth_accounts` deferred to Phase 5~~ → 21 tables: `oauth_accounts` landed in Phase 5, and `provider_quota_usage` + `ops_daily_summary` were added for WF-008 (N8N-REAL-004) |
 
 ### Supporting decision records
 
 | Decision | Record | Status |
 | -------- | ------ | ------ |
 | Architecture boundaries (n8n / LangGraph / adapters) | `docs/adr/ADR-001-architecture-boundaries.md` | Accepted |
-| Music provider mode | ADR-002 — decision closed in the plan (§0.4), **standalone file not yet written** | Decided, unrecorded |
+| Music provider mode | ~~ADR-002 — decision closed in the plan (§0.4), **standalone file not yet written**~~ → `docs/adr/ADR-002-music-provider-mode.md` (written 2026-07-28, including the 2026-07-26 Spotify amendment) | ~~Decided, unrecorded~~ → Accepted |
 | Retrieval embedding model | `docs/adr/ADR-003-embedding-model.md` | Accepted |
-| Recognition provider | ADR-004 | Pending (Phase 6) |
+| Recognition provider | ~~ADR-004~~ → `docs/adr/ADR-004-recognition-provider.md` | ~~Pending (Phase 6)~~ → Accepted |
+| n8n deployment mode | `docs/adr/ADR-005-n8n-deployment-mode.md` | Accepted |
+| Model routing (local vs. hosted) | `docs/adr/ADR-006-model-routing.md` | Accepted |
+| OAuth token storage | `docs/adr/ADR-007-oauth-token-storage.md` | Accepted |
 | Service timeouts / retries / idempotency | `docs/service-call-policies.md` | Defined (`ARC-002`, `ARC-003`) |
 | Feature flags | `docs/feature-flags.md` | Defined (`ARC-004`) |
 | Knowledge domains and sources | `docs/knowledge_inventory.md` | In progress |
@@ -61,7 +74,7 @@ matter.
 | -------------------- | ---------------------------- | ------------------- | -------------------------------- |
 | Domain knowledge base for RAG | Property listings, neighbourhood and regulation documents | Genre knowledge (23 parent genres, subgenres) and album/track reviews | Same retrieval problem: bilingual descriptive prose, chunked semantically, filtered by structured metadata |
 | Structured entity extraction | Budget, rooms, location, property type | Mood, genre, era, instrumentation, energy, novelty | Same Information Extractor requirement — structured constraints from free text, with missing-field honesty |
-| Supervised classifier (PyTorch) | **Image** classifier over property photos | **Audio** genre/tag or energy classifier over uploaded clips | Same requirement: labelled dataset, leakage-free split, pretrained backbone, accuracy/F1 + confusion matrix, confidence-aware `uncertain` output. The input modality changes; the ML deliverable does not. **Requires evaluator confirmation — see ACA-005 below.** |
+| Supervised classifier (PyTorch) | **Image** classifier over property photos | **Audio** genre/tag or energy classifier over uploaded clips | Same requirement: labelled dataset, leakage-free split, pretrained backbone, accuracy/F1 + confusion matrix, confidence-aware `uncertain` output. The input modality changes; the ML deliverable does not. ~~**Requires evaluator confirmation — see ACA-005 below.**~~ → ✅ **CONFIRMED by the developer 2026-07-28 (`ACA-005`): the audio classifier replaces the image classifier.** Delivered and measured — held-out clip-level macro-F1 **0.8692**, accuracy 0.8733; model card at `docs/ml/audio-genre-classifier.md`. |
 | Multimodal input | Photo upload | Audio upload or in-browser recording | Same upload/validation/temporary-storage/cleanup pipeline, with the same "never trust the filename extension" rule |
 | Ranking and personalization | Property fit scoring | Track Reranker v1 with transparent component scores and Preference Profile v1 | Same interpretable-scoring requirement plus an explicit anti-echo-chamber constraint |
 | External write integration | CRM or listing action | YouTube playlist creation and item insertion | Same OAuth + idempotency + partial-failure surface |
@@ -71,14 +84,28 @@ Two adaptations are **additions**, not substitutions, and are declared as such:
 bounded LangGraph control flow with a hard rewrite limit, and the Smart Sequencer
 (Camelot/BPM-aware ordering) as a music-specific deterministic algorithm.
 
-### Open confirmation
+### ~~Open confirmation~~ → ✅ **[COMPLETED] Confirmation received (2026-07-28)**
 
-- **`ACA-005` P0 — not confirmable by implementation.** Two questions require the
+- ~~**`ACA-005` P0 — not confirmable by implementation.** Two questions require the
   evaluator's answer: (a) whether the audio classifier may replace the reference
   image classifier, and (b) whether RAG and LangGraph may share a deployable
   service. Until answered, Melody keeps RAG and LangGraph separable at the API
   boundary (enforced by ADR-001) and documents the classifier adaptation above
-  rather than assuming approval. This item stays open in the plan.
+  rather than assuming approval. This item stays open in the plan.~~
+
+- ✅ **[COMPLETED] `ACA-005` P0 — question (a) is answered: the audio classifier
+  replaces the reference image classifier.** Confirmed by the developer on
+  2026-07-28. The adaptation in the table above is therefore **approved**, not
+  merely proposed, and Phase 6 `ML-AUD-001…007` counts against graded row 9.
+
+- **NEW DECISION: question (b) is closed as moot rather than left open.** The
+  question was whether RAG and LangGraph *may* share a deployable service.
+  Melody does not share one — `rag-service` and `recommendation-service` are
+  separate containers with separate Dockerfiles, communicating only over
+  `POST /rag/retrieve`, structurally enforced by ADR-001. That arrangement is
+  valid under **either** answer, so no evaluator ruling is needed to proceed and
+  none is being waited on. Should a future answer permit sharing, it would be an
+  optional consolidation, never a correction.
 
 ## 3. Why the AWS/Bedrock baseline appears as evidence but not as the target
 
