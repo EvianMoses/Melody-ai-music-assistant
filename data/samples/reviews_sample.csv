@@ -1,0 +1,4 @@
+Unnamed: 0,Name of the Song,Artist,Date of Release,Description,Metascore,User Score
+0,Example Album One,by Example Artist,"January 1, 2020","Synthetic row. Shows the column names and types that ingest_local_data.py reads: the Description column is what becomes chunk text, and Metascore / User Score are carried into chunk metadata rather than into the text itself.",88.0,8.1
+1,Example Album Two,by Another Example Artist,"March 15, 2021","Second synthetic row, present so the sample exercises the multi-row path. Note the Artist column carries a leading 'by ' which _clean_artist strips -- a real quirk of the source data that the sample deliberately reproduces.",74.0,7.3
+2,Example Album Three,by Example Artist,"July 4, 2019","Third synthetic row. Duplicate artists across rows are normal in the real dataset and are why the ingester deduplicates before chunking.",91.0,8.8
