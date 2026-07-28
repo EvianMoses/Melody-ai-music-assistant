@@ -21,11 +21,18 @@ async def retrieve(
     top_k: int = 5,
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
+    candidate_pool: Optional[int] = None,
 ) -> dict[str, Any]:
     """POST {RAG_SERVICE_URL}/rag/retrieve. Returns the parsed JSON body.
 
     Raises on failure (httpx.HTTPError / non-2xx) -- callers catch and degrade
     to empty results rather than failing the whole graph run.
+
+    ``candidate_pool`` sets how deep each first-stage retriever goes before
+    fusion and reranking. It is sent for the first time here: the graph has
+    carried a `candidate_pool` in DISCOVERY_PARAMS since Phase 4, but this
+    client never forwarded it, so the value had no consumer anywhere. Omitted
+    means rag-service's own default.
     """
     filters: dict[str, Any] = {"domain": domain}
     if year_from is not None:
@@ -33,10 +40,13 @@ async def retrieve(
     if year_to is not None:
         filters["year_to"] = year_to
 
+    payload: dict[str, Any] = {"query": query, "top_k": top_k, "filters": filters}
+    if candidate_pool is not None:
+        payload["candidate_pool"] = candidate_pool
+
     async with make_async_client() as client:
         response = await client.post(
-            f"{RAG_SERVICE_URL}/rag/retrieve",
-            json={"query": query, "top_k": top_k, "filters": filters},
+            f"{RAG_SERVICE_URL}/rag/retrieve", json=payload
         )
         response.raise_for_status()
         return response.json()

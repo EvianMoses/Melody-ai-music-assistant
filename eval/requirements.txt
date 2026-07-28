@@ -1,0 +1,26 @@
+# Evaluation-only dependencies (plan §3.8). Deliberately NOT in any service's
+# requirements.txt: nothing here runs on the request path, and dragging the
+# LangChain stack into a production image to support an offline harness would be
+# a poor trade.
+#
+# ⚠️ THE PINS BELOW ARE LOAD-BEARING AND WERE FOUND BY FAILING.
+# ragas 0.4.3 imports `langchain_community.chat_models.vertexai`, which
+# langchain-community REMOVED in 0.4.x, so `import ragas` dies on a fresh
+# install of the latest of everything. Pinning langchain-community back then
+# breaks langchain-openai, which expects a langchain-core 1.x symbol. The set
+# below is the one that actually imports; do not bump one line of it in
+# isolation.
+#
+# Install into the rag-service container (it already has torch,
+# sentence-transformers and database access):
+#   docker exec melody-rag-service pip install -r /app/eval-requirements.txt
+ragas==0.4.3
+langchain-community==0.3.27
+langchain<1.0
+langchain-core<1.0
+langchain-openai<1.0
+# The evaluator LLM. Anthropic rather than OpenAI by developer decision: the key
+# already exists in .env, and it is the same provider the product itself uses
+# for the curator explanation (ADR-006), so evaluation and production share a
+# vendor instead of adding a second paid dependency.
+langchain-anthropic<1.0

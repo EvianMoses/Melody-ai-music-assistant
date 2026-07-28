@@ -84,19 +84,23 @@ DEFAULT_DISCOVERY_MODE = "balanced"
 
 # Deterministic per-mode retrieval knobs.
 #
-# ⚠️ **`candidate_pool` and `genre_expansion` currently reach NOTHING**, and that
-# was discovered on 2026-07-28 while chasing latency. `rag_client.retrieve`
-# sends only `{query, top_k, filters}`; rag-service computes its own pool as
-# `max(top_k, 20)`; and a repository-wide search finds no consumer of
-# `genre_expansion` outside the relaxation logic that sets it. Only `diversity`
-# has a consumer (`apply_diversity_constraints`).
+# ~~⚠️ `candidate_pool` and `genre_expansion` currently reach NOTHING~~ →
+# **`candidate_pool` is wired through as of 2026-07-28 (Phase 3)** and now sets
+# how deep each first-stage retriever goes before fusion and reranking. It
+# became load-bearing the moment the corpus grew from 325 to 4,249 chunks: a
+# fixed pool of 20 was 6% of the old corpus and 0.5% of the new one, and the
+# measured consequence was that a 90s-grunge query stopped returning Soundgarden
+# — not because the album left the store, but because dense+FTS never handed it
+# to the reranker.
 #
-# They are left in place rather than deleted because §4.4 intends them as real
-# discovery-mode levers and wiring them through is a behaviour change that wants
-# §3.8's evaluation set to validate. What has changed is that nothing now
-# *pretends* they work -- see `plan_query_relaxation`.
+# `genre_expansion` still reaches nothing and is left in place honestly: §4.4
+# intends it as a real lever, but wiring it is a behaviour change that wants
+# §3.8's evaluation set behind it. `diversity` is consumed by
+# `apply_diversity_constraints`.
 #
-# Values restored to their originals: raising an unread number is cargo cult.
+# ⚠️ The pool values below are the pre-existing ones and are **not yet tuned** —
+# they are set by measurement against the golden evaluation set, not by
+# intuition. Until that run lands, treat them as a starting point.
 DISCOVERY_PARAMS: dict[str, dict[str, Any]] = {
     "safe": {"genre_expansion": False, "diversity": 0.2, "candidate_pool": 20},
     "balanced": {"genre_expansion": True, "diversity": 0.5, "candidate_pool": 20},
@@ -536,6 +540,7 @@ async def retrieve_genres(state: RecommendationState) -> dict[str, Any]:
             top_k=top_k,
             year_from=positive.get("year_from"),
             year_to=positive.get("year_to"),
+            candidate_pool=(query.get("discovery_params") or {}).get("candidate_pool"),
         )
     except httpx.HTTPError as exc:
         debug["genre"] = {"matched_genres": {}, "confidence": 0.0}
@@ -582,6 +587,7 @@ async def retrieve_reviews(state: RecommendationState) -> dict[str, Any]:
             text,
             domain="reviews",
             top_k=top_k,
+            candidate_pool=(query.get("discovery_params") or {}).get("candidate_pool"),
             year_from=positive.get("year_from"),
             year_to=positive.get("year_to"),
         )

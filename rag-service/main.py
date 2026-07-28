@@ -40,7 +40,37 @@ from test_hybrid_retrieval import (  # noqa: E402
 app = create_app("rag-service")
 
 MODEL_NAME = "intfloat/multilingual-e5-small"
-CE_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+# Reranker, selectable at runtime so RAG-RERANK-001/002/003 stayed measured
+# rather than argued about.
+#
+# ⚠️ DEFAULT CHANGED 2026-07-28 (RAG-RERANK-001), on measurement against the
+# §3.8 golden set (25 queries). ~~cross-encoder/ms-marco-MiniLM-L-6-v2~~ is
+# English-only, and the corpus is English while a fifth of real queries are not:
+#
+#   | reranker            | Recall@5 | MRR   | nDCG@10 | HE Recall@5 | median |
+#   | ------------------- | -------- | ----- | ------- | ----------- | ------ |
+#   | ms-marco (English)  | 0.409    | 0.458 | 0.410   | 0.125       | 2.29 s |
+#   | none (RRF order)    | 0.424    | 0.480 | 0.426   | 0.125       | 0.13 s |
+#   | mmarco (multiling.) | 0.489    | 0.511 | 0.475   | 0.500       | 2.79 s |
+#
+# Two findings, both worth keeping. First, the English reranker was **worse than
+# no reranker at all** on every metric while costing 17x the latency -- it was
+# actively destroying rankings that RRF had got right. Second, dense retrieval
+# was never the Hebrew problem: multilingual-e5 returns the correct chunk top-1
+# for a Hebrew query, and the English cross-encoder then demoted it. Swapping
+# the reranker quadruples Hebrew Recall@5 for +0.5 s.
+#
+#   RERANKER_MODEL=<hf id>   swap the cross-encoder
+#   RERANKER_ENABLED=false   skip reranking entirely (RRF order survives) -- the
+#                            no-reranker baseline RAG-RERANK-002 requires
+CE_MODEL_NAME = os.getenv(
+    "RERANKER_MODEL", "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+)
+RERANKER_ENABLED = os.getenv("RERANKER_ENABLED", "true").strip().lower() not in {
+    "false",
+    "0",
+    "no",
+}
 QUERY_PREFIX = "query: "
 DEFAULT_POOL = 20
 DEFAULT_K_RRF = 60
@@ -89,6 +119,18 @@ class RetrieveRequest(BaseModel):
     query: str
     top_k: int = 5
     filters: dict[str, Any] = Field(default_factory=dict)
+    # How deep each first-stage retriever goes before fusion and reranking.
+    #
+    # This is the recall ceiling of the whole pipeline and it was previously a
+    # hardcoded 20, which was 6% of a 325-chunk corpus and became 0.5% of a
+    # 4,249-chunk one. Measured consequence: a query for 90s grunge stopped
+    # returning Soundgarden after the corpus grew, not because the album left
+    # the store but because dense+FTS never handed it to the reranker.
+    #
+    # Exposed per-request so `candidate_pool` in the recommendation service's
+    # DISCOVERY_PARAMS finally reaches something -- it had no consumer at all
+    # until now (see graph_nodes.plan_query_relaxation).
+    candidate_pool: Optional[int] = Field(default=None, ge=1, le=500)
 
 
 class EvidenceChunk(BaseModel):
@@ -114,6 +156,14 @@ class IngestRequest(BaseModel):
 def _rerank(query: str, candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Cross-encoder rerank using the cached model instance (no per-call reload)."""
     if not candidates:
+        return candidates
+    if not RERANKER_ENABLED:
+        # RAG-RERANK-002's baseline. Candidates arrive in RRF order, so keeping
+        # that order IS the no-reranker condition. `ce_score` is still populated
+        # -- from the fusion score -- because every downstream consumer reads it,
+        # and returning None there would measure a crash rather than a baseline.
+        for rank, candidate in enumerate(candidates):
+            candidate["ce_score"] = float(candidate.get("rrf") or 0.0)
         return candidates
     model = _get_cross_encoder()
     pairs = [(query, c["text"]) for c in candidates]
@@ -144,9 +194,11 @@ async def retrieve(request: RetrieveRequest) -> RetrieveResponse:
         QUERY_PREFIX + query, normalize_embeddings=True, convert_to_numpy=True
     ).tolist()
 
+    pool = request.candidate_pool or DEFAULT_POOL
+
     with Session(_get_engine()) as session:
-        dense = dense_search(session, query_vector, DEFAULT_POOL, filters)
-        fulltext = fulltext_search(session, or_query, DEFAULT_POOL, filters)
+        dense = dense_search(session, query_vector, pool, filters)
+        fulltext = fulltext_search(session, or_query, pool, filters)
 
     info = {cid: (txt, doc_id, domain) for cid, txt, doc_id, domain in fulltext}
     info.update({cid: (txt, doc_id, domain) for cid, txt, doc_id, domain in dense})
@@ -157,8 +209,11 @@ async def retrieve(request: RetrieveRequest) -> RetrieveResponse:
         key=lambda kv: (-kv[1]["rrf"], kv[1]["vec_rank"] or 1e9, kv[1]["ft_rank"] or 1e9),
     )
 
-    # Cross-encoder over a slightly wider pool than top_k, so reranking has room to reorder.
-    candidate_pool = max(request.top_k, 20)
+    # Cross-encoder over a wider pool than top_k, so reranking has room to
+    # reorder. Bounded by what fusion actually produced -- reranking cannot
+    # invent candidates the first stage never returned, which is exactly the
+    # ceiling `pool` above controls.
+    candidate_pool = max(request.top_k, pool)
     candidates = []
     for chunk_id, entry in fused_ranked[:candidate_pool]:
         text_val, doc_id, domain = info.get(chunk_id, ("", None, None))

@@ -1,0 +1,320 @@
+{
+  "name": "melody-golden-retrieval-v1",
+  "created": "2026-07-28",
+  "description": "Golden evaluation set for the Melody RAG pipeline (plan §3.8). 25 queries, inside the 20-30 range the course requires. Every `expected_docs` entry is a doc_id prefix that EXISTS in the live corpus - they were taken from the database, not invented, so a miss is a real retrieval failure rather than a typo. A `~N` part suffix is matched by prefix, so a section split across parts counts as one target.",
+  "corpus": {
+    "genre_domain": "data/genres_knowledge/ (23 files -> 413 chunks)",
+    "reviews_domain": "data/cleaned_large_dataset_t.csv (3,836 unique albums)",
+    "embedding_model": "intfloat/multilingual-e5-small (384-d, 512 tokens)"
+  },
+  "scoring_notes": {
+    "retrieval_scored": "Queries with `retrieval_scored: false` are excluded from Recall@K / MRR / nDCG. Anti-echo-chamber queries have no single correct answer by construction - scoring them against a fixed target would punish the behaviour they exist to test. They are still scored by Ragas, which judges grounding rather than target-matching.",
+    "expected_docs": "Prefix match against knowledge_chunks.metadata->>'doc_id'.",
+    "reference": "A short ground-truth answer, used by Ragas LLMContextRecall to ask whether the retrieved context could support it."
+  },
+  "queries": [
+    {
+      "id": "mood-01",
+      "category": "mood",
+      "language": "en",
+      "query": "warm acoustic folk music for a rainy afternoon",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:contemporary_rock#indie_folk_freakfolk_new_weird_america",
+        "genre:rock_golden_age_classic_rock#folk_rock",
+        "genre:pop_music#singer_songwriter",
+        "genre:rock_rock_n_roll_r_n_r_rock_roll#american_british_folk_revival"
+      ],
+      "reference": "Acoustic folk styles such as folk rock, indie folk and singer-songwriter music emphasise acoustic guitar, gentle tempos and voice-led storytelling, which suits a quiet rainy afternoon."
+    },
+    {
+      "id": "mood-02",
+      "category": "mood",
+      "language": "en",
+      "query": "dark brooding atmospheric music for a sleepless night",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:downtempo_ambient#dark_ambient_dark_industrial",
+        "genre:industrial_gothic#dark_ambient_dark_industrial",
+        "genre:downtempo_ambient#ambient",
+        "genre:heavy_metal#doom_metal"
+      ],
+      "reference": "Dark ambient and dark industrial build slow, oppressive atmospheres from drones and texture rather than melody, which fits a sleepless, brooding mood."
+    },
+    {
+      "id": "mood-03",
+      "category": "mood",
+      "language": "en",
+      "query": "upbeat energetic music for a summer party",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:pop_music#dance_pop",
+        "genre:edm_dance_house#french_house_funky_house",
+        "genre:rhythm_n_blues_r_b#disco",
+        "genre:edm_dance_house#overview"
+      ],
+      "reference": "Dance pop, disco and house are built for parties: four-on-the-floor rhythms, bright production and hooks aimed at a dancefloor."
+    },
+    {
+      "id": "mood-04",
+      "category": "mood",
+      "language": "en",
+      "query": "calm quiet background music for studying and concentration",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:downtempo_ambient#ambient",
+        "genre:downtempo_ambient#new_age",
+        "genre:downtempo_ambient#minimalism",
+        "genre:blue_note_jazz#smooth_jazz"
+      ],
+      "reference": "Ambient, new age and minimalism are designed to sit in the background without demanding attention, which is what makes them usable while concentrating."
+    },
+    {
+      "id": "mood-05",
+      "category": "mood",
+      "language": "en",
+      "query": "aggressive heavy music to push through a hard workout",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:heavy_metal#thrash_metal",
+        "genre:rock_hardcore_punk#original_hardcore_punk",
+        "genre:heavy_metal#death_metal",
+        "genre:heavy_metal#nu_metal_rap_metal"
+      ],
+      "reference": "Thrash metal and hardcore punk are fast, loud and rhythmically driving, which is why they work as workout music."
+    },
+    {
+      "id": "blend-01",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "jazz blended with hip hop production",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:rap_hip_hop_music#jazz_rap_native_tongue",
+        "genre:blue_note_jazz#acid_jazz_jazzdance",
+        "genre:blue_note_jazz#nu_jazz_electro_jazz"
+      ],
+      "reference": "Jazz rap and acid jazz combine jazz instrumentation and samples with hip hop rhythms and production."
+    },
+    {
+      "id": "blend-02",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "electronic music with heavy rock guitars",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:industrial_gothic#industrial_rock_industrial_metal",
+        "genre:industrial_gothic#electronic_body_music_ebm",
+        "genre:rock_alternative_rock_indie#rap_rock_rapcore_funk_metal"
+      ],
+      "reference": "Industrial rock and industrial metal fuse distorted guitars with electronic drums, synthesisers and sampling."
+    },
+    {
+      "id": "blend-03",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "country music with a rock and roll edge",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:country#country_pop_country_rock",
+        "genre:rock_golden_age_classic_rock#southern_rock",
+        "genre:country#progressive_country_outlaw_country",
+        "genre:country#americana_alternative_country"
+      ],
+      "reference": "Country rock and southern rock combine country songwriting and instrumentation with rock band arrangements and electric guitar."
+    },
+    {
+      "id": "blend-04",
+      "category": "blended_genres",
+      "language": "en",
+      "query": "soul music with modern electronic production",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:rhythm_n_blues_r_b#neo_soul_nu_soul",
+        "genre:rhythm_n_blues_r_b#nu_disco_funktronica",
+        "genre:rhythm_n_blues_r_b#urban_breaks_nu_r_b_ii"
+      ],
+      "reference": "Neo soul and nu-disco keep soul's vocal and harmonic language while using contemporary electronic production."
+    },
+    {
+      "id": "genre-01",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "deep house",
+      "retrieval_scored": true,
+      "expected_docs": ["genre:edm_dance_house#deep_house"],
+      "reference": "Deep house is a house subgenre with softer, jazz- and soul-inflected chords, subdued tempos and an emphasis on atmosphere over peak-time impact."
+    },
+    {
+      "id": "genre-02",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "shoegaze and dream pop",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:rock_alternative_rock_indie#dream_pop_shoegaze",
+        "genre:pop_music#dream_pop_shoegaze"
+      ],
+      "reference": "Shoegaze and dream pop are built on layered guitar effects, heavy reverb and vocals mixed into the texture rather than in front of it."
+    },
+    {
+      "id": "genre-03",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "bebop jazz",
+      "retrieval_scored": true,
+      "expected_docs": ["genre:blue_note_jazz#bebop"],
+      "reference": "Bebop is a fast, harmonically complex jazz style built around virtuosic improvisation in small groups."
+    },
+    {
+      "id": "genre-04",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "black metal",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:heavy_metal#black_metal",
+        "genre:heavy_metal#extreme_metal_black_i_speed"
+      ],
+      "reference": "Black metal uses tremolo-picked guitars, blast beats, shrieked vocals and deliberately raw production."
+    },
+    {
+      "id": "genre-05",
+      "category": "exact_genre",
+      "language": "en",
+      "query": "dub reggae",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:jamaican_music_reggae#dub",
+        "genre:jamaican_music_reggae#roots_reggae"
+      ],
+      "reference": "Dub is a Jamaican studio style built by stripping a reggae mix back to drums and bass and treating it with echo and reverb."
+    },
+    {
+      "id": "artist-01",
+      "category": "exact_artist",
+      "language": "en",
+      "query": "Nirvana Nevermind album",
+      "retrieval_scored": true,
+      "expected_docs": ["review:metacritic"],
+      "reference": "Nirvana are the defining grunge band, and their albums are documented in the album review corpus."
+    },
+    {
+      "id": "artist-02",
+      "category": "exact_artist",
+      "language": "en",
+      "query": "Radiohead album reviews",
+      "retrieval_scored": true,
+      "expected_docs": ["review:metacritic"],
+      "reference": "Radiohead's albums appear in the album review corpus with critic and user scores."
+    },
+    {
+      "id": "he-01",
+      "category": "hebrew",
+      "language": "he",
+      "query": "דיפ האוס",
+      "retrieval_scored": true,
+      "expected_docs": ["genre:edm_dance_house#deep_house"],
+      "reference": "Deep house is a house subgenre with softer, jazz- and soul-inflected chords and an emphasis on atmosphere."
+    },
+    {
+      "id": "he-02",
+      "category": "hebrew",
+      "language": "he",
+      "query": "מוזיקה שקטה ועצובה לערב",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:downtempo_ambient#ambient",
+        "genre:pop_music#singer_songwriter",
+        "genre:downtempo_ambient#new_age"
+      ],
+      "reference": "Quiet, melancholy listening is served by ambient and singer-songwriter styles, which favour sparse arrangements and restrained dynamics."
+    },
+    {
+      "id": "he-03",
+      "category": "hebrew",
+      "language": "he",
+      "query": "גראנג' של שנות התשעים",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:rock_alternative_rock_indie#grunge",
+        "genre:rock_alternative_rock_indie#post_grunge"
+      ],
+      "reference": "Grunge emerged from the Seattle scene in the late 1980s and dominated the early 1990s, combining punk energy with heavy, sludgy guitar."
+    },
+    {
+      "id": "he-04",
+      "category": "hebrew",
+      "language": "he",
+      "query": "ג'אז קלאסי עם חצוצרה",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:blue_note_jazz#bebop",
+        "genre:blue_note_jazz#hard_bop",
+        "genre:blue_note_jazz#new_orleans_jazz_dixieland_jazz",
+        "genre:blue_note_jazz#cool_jazz_west_coast_jazz"
+      ],
+      "reference": "Classic jazz styles such as bebop and hard bop are built around horn-led small groups in which the trumpet is a lead voice."
+    },
+    {
+      "id": "anti-01",
+      "category": "anti_echo_chamber",
+      "language": "en",
+      "query": "something completely different from mainstream pop, surprise me",
+      "retrieval_scored": false,
+      "expected_docs": [],
+      "reference": "An adventurous request should reach genres outside the pop mainstream, such as experimental, avant-garde or niche electronic styles."
+    },
+    {
+      "id": "anti-02",
+      "category": "anti_echo_chamber",
+      "language": "en",
+      "query": "an obscure genre I have probably never heard of",
+      "retrieval_scored": false,
+      "expected_docs": [],
+      "reference": "Obscure and highly specific styles exist across the corpus, for example musique concrete, lowercase or speedcore."
+    },
+    {
+      "id": "neg-01",
+      "category": "negative_constraint",
+      "language": "en",
+      "query": "rock music but nothing metal or heavy",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:rock_golden_age_classic_rock#folk_rock",
+        "genre:rock_alternative_rock_indie#jangle_pop_indie_rock_paisley_underground",
+        "genre:contemporary_rock#post_britpop",
+        "genre:rock_alternative_rock_indie#alternative_rock_indie_rock_ii"
+      ],
+      "reference": "Lighter rock styles such as folk rock, jangle pop and indie rock stay within rock without the volume and distortion of metal."
+    },
+    {
+      "id": "neg-02",
+      "category": "negative_constraint",
+      "language": "en",
+      "query": "electronic music with no vocals at all",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:downtempo_ambient#ambient",
+        "genre:edm_dance_techno#minimal_techno",
+        "genre:downtempo_ambient#ambient_techno_idm_intelligent_dance_music",
+        "genre:downtempo_ambient#minimalism"
+      ],
+      "reference": "Ambient, minimal techno and IDM are largely instrumental, built from texture and rhythm rather than singing."
+    },
+    {
+      "id": "neg-03",
+      "category": "negative_constraint",
+      "language": "en",
+      "query": "jazz but nothing modern or electronic",
+      "retrieval_scored": true,
+      "expected_docs": [
+        "genre:blue_note_jazz#new_orleans_jazz_dixieland_jazz",
+        "genre:blue_note_jazz#swing_big_band",
+        "genre:blue_note_jazz#bebop",
+        "genre:blue_note_jazz#chicago_jazz"
+      ],
+      "reference": "Early jazz styles such as New Orleans jazz, swing and bebop are acoustic and predate the electronic and fusion developments of later decades."
+    }
+  ]
+}

@@ -127,6 +127,91 @@ def split_markdown_by_headers(text: str) -> list[dict[str, Any]]:
     return sections
 
 
+# ---------------------------------------------------------------------------
+# Token-bounded splitting (RAG-003 / embedding correctness)
+# ---------------------------------------------------------------------------
+#
+# The embedding model is `intfloat/multilingual-e5-small`, whose hard limit is
+# **512 tokens**. Anything longer is silently truncated at encode time -- the
+# tokenizer even warns `877 > 512 ... will result in indexing errors` -- so the
+# tail of a long section simply never reaches the vector.
+#
+# Measured before this fix: 30 of 300 genre chunks (10%) exceeded the limit, the
+# worst at 877 tokens, meaning ~42% of that section's text was invisible to
+# dense retrieval while still appearing in full-text search. That asymmetry is
+# the nastiest part -- a chunk could be found lexically and then score terribly
+# on the reranker, because the reranker was reading text the embedder never saw.
+#
+# 420 rather than 512: `passage: ` prefixes the text at embed time, headers are
+# prepended for self-describing chunks, and tokenizer estimates drift by a few
+# percent across languages. The margin costs nothing and removes a class of
+# silent failure.
+MAX_CHUNK_TOKENS = 420
+
+# Conservative chars-per-token for this tokenizer on English prose. Measured
+# against the real tokenizer: 1,700 chars -> 343 tokens, 4,371 -> 877, i.e.
+# ~4.96 chars/token. 4.0 keeps the estimate on the safe side without shredding
+# paragraphs unnecessarily.
+_CHARS_PER_TOKEN = 4.0
+MAX_CHUNK_CHARS = int(MAX_CHUNK_TOKENS * _CHARS_PER_TOKEN)
+
+
+def split_long_body(body: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
+    """Split an over-long section into pieces that survive embedding intact.
+
+    Splits on paragraph boundaries first and only falls back to sentence
+    boundaries when a single paragraph is itself too long, so a piece stays a
+    coherent unit of prose rather than an arbitrary character window. Returns
+    ``[body]`` unchanged when it already fits, which is the common case.
+    """
+    body = body.strip()
+    if len(body) <= max_chars:
+        return [body]
+
+    # Paragraphs, preserving their internal structure.
+    units: list[str] = []
+    for para in re.split(r"\n\s*\n", body):
+        para = para.strip()
+        if not para:
+            continue
+        if len(para) <= max_chars:
+            units.append(para)
+            continue
+        # A single oversized paragraph: fall back to sentence boundaries.
+        sentence = ""
+        for piece in re.split(r"(?<=[.!?])\s+", para):
+            if len(sentence) + len(piece) + 1 <= max_chars:
+                sentence = f"{sentence} {piece}".strip()
+            else:
+                if sentence:
+                    units.append(sentence)
+                # A single sentence longer than the window is pathological;
+                # hard-split it rather than emit something that will truncate.
+                while len(piece) > max_chars:
+                    units.append(piece[:max_chars])
+                    piece = piece[max_chars:]
+                sentence = piece
+        if sentence:
+            units.append(sentence)
+
+    # Recombine adjacent units up to the limit, so we emit as few pieces as
+    # possible -- fewer, larger chunks retrieve better than many small ones.
+    chunks: list[str] = []
+    current = ""
+    for unit in units:
+        candidate = f"{current}\n\n{unit}".strip() if current else unit
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            if current:
+                chunks.append(current)
+            current = unit
+    if current:
+        chunks.append(current)
+
+    return chunks or [body[:max_chars]]
+
+
 def parse_genre_file(path: Path) -> ParsedDocument:
     text = path.read_text(encoding="utf-8")
     sections = split_markdown_by_headers(text)
@@ -176,26 +261,43 @@ def parse_genre_file(path: Path) -> ParsedDocument:
         context_path = " > ".join(
             v for v in (headers.get(1), headers.get(2), headers.get(3)) if v
         )
-        chunk_text = f"{context_path}\n\n{body}".strip()
 
-        chunk_meta = {
-            "domain": "genre",
-            "source": "genre_knowledge",
-            "genre": genre_name,
-            "section": section_label,
-            "subgenre": subgenre,
-            "title": title_for_chunk,
-            "era": era,
-            "language": "en",
-            "version": DOC_VERSION,
-            "doc_id": f"{doc_id}#{chunk_slug}",
-        }
-        # Drop empty metadata keys to keep JSONB tidy.
-        chunk_meta = {k: v for k, v in chunk_meta.items() if v is not None}
+        # Keep every emitted chunk inside the embedding model's window. The
+        # header is repeated on each piece so a part-2 chunk is still
+        # self-describing when retrieved on its own -- without it, the second
+        # half of a long sub-genre section arrives as anonymous prose.
+        header_cost = len(context_path) + 2
+        pieces = split_long_body(body, max_chars=MAX_CHUNK_CHARS - header_cost)
 
-        doc.chunks.append(
-            ParsedChunk(chunk_index=index, text=chunk_text, metadata=chunk_meta)
-        )
+        for part, piece in enumerate(pieces):
+            chunk_text = f"{context_path}\n\n{piece}".strip()
+
+            chunk_meta = {
+                "domain": "genre",
+                "source": "genre_knowledge",
+                "genre": genre_name,
+                "section": section_label,
+                "subgenre": subgenre,
+                "title": title_for_chunk,
+                "era": era,
+                "language": "en",
+                "version": DOC_VERSION,
+                # RAG-005: the doc_id stays stable for the section; a split
+                # section carries an explicit part suffix so a citation can name
+                # exactly which piece of the source it came from.
+                "doc_id": f"{doc_id}#{chunk_slug}" + (f"~{part + 1}" if len(pieces) > 1 else ""),
+                "source_uri": doc.uri,
+                "section_part": (part + 1) if len(pieces) > 1 else None,
+                "section_parts": len(pieces) if len(pieces) > 1 else None,
+            }
+            # Drop empty metadata keys to keep JSONB tidy.
+            chunk_meta = {k: v for k, v in chunk_meta.items() if v is not None}
+
+            doc.chunks.append(
+                ParsedChunk(
+                    chunk_index=len(doc.chunks), text=chunk_text, metadata=chunk_meta
+                )
+            )
 
     return doc
 
