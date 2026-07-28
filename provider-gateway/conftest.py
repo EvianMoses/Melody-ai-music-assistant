@@ -18,3 +18,34 @@ from pathlib import Path
 _ROOT = str(Path(__file__).resolve().parent.parent)
 if _ROOT not in sys.path:
     sys.path.append(_ROOT)
+
+import pytest  # noqa: E402  -- must follow the sys.path fix above
+
+
+@pytest.fixture(autouse=True)
+def _no_live_database(monkeypatch):
+    """Keep the suite offline: no test may reach a real database.
+
+    Found by running it, not by reading it. Once `_record_quota_usage` began
+    persisting rows (N8N-REAL-004), the adapter tests -- which call it dozens of
+    times with fake HTTP responses -- wrote **24 rows of fictional quota usage
+    into the development database** on a single run. Inside the container only,
+    where POSTGRES_* is configured, so it looked clean on the host.
+
+    That data is worse than useless: WF-008 reads this table to decide whether
+    the YouTube budget is nearly spent, and a test run would have made it report
+    consumption that never happened.
+
+    Only the URL resolver is patched, so tests that deliberately inject a SQLite
+    session factory (the export tests) are unaffected -- an injected factory is
+    consulted first.
+    """
+    from app import db
+
+    def _refuse() -> str:
+        raise RuntimeError("database disabled in tests (conftest._no_live_database)")
+
+    db.reset_for_tests(None)
+    monkeypatch.setattr(db, "_resolve_database_url", _refuse)
+    yield
+    db.reset_for_tests(None)

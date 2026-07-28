@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.core import profile, profile_store
+from app.core import profile, profile_store, usage_store
 from app.core.graph import recommendation_graph
 from shared_lib import create_app
 
@@ -208,6 +208,15 @@ class ProfileUpdateResponse(BaseModel):
 async def run_recommendation(request: RecommendationRunRequest) -> RecommendationRunResponse:
     initial_state = _build_initial_state(request.model_dump())
     final_state = await recommendation_graph.ainvoke(initial_state)
+
+    # §4.9 / N8N-REAL-004: model usage becomes a row, not just a log line.
+    # After the graph, not inside a node: node_metrics is only complete here,
+    # and one write per request beats one per node. Never raises -- see
+    # usage_store's failure policy.
+    usage_store.record_node_metrics(
+        final_state.get("node_metrics") or {},
+        request_id=final_state.get("request_id") or "",
+    )
 
     tracks = [
         TrackRecommendation(

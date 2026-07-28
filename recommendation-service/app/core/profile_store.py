@@ -101,6 +101,19 @@ def available() -> bool:
     return _factory() is not None
 
 
+def reset_for_tests(factory: Optional[Any] = None) -> None:
+    """Swap the cached session factory (tests inject one, or None to clear).
+
+    Present so the suite can guarantee it never touches a live database. The
+    cache is the reason this is needed at all: once `_factory()` has built a
+    real engine, patching the URL afterwards changes nothing.
+    """
+    global _session_factory, _engine
+    _session_factory = factory
+    if factory is None:
+        _engine = None
+
+
 def _as_uuid(value: Any) -> Optional[uuid.UUID]:
     """Accept a UUID, a UUID string, or anything else and return None.
 

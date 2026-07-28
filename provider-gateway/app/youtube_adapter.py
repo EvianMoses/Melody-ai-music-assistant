@@ -146,11 +146,36 @@ def _duration_bounds() -> tuple[int, int]:
     )
 
 
-def _record_quota_usage(method: str, units: int) -> None:
-    """§YT-005: record quota cost for every API method. Logged, not yet
-    persisted -- same "log now, DB later" gap as recommendation-service's
-    model_usage table (see the plan doc)."""
+def _record_quota_usage(method: str, units: int, provider: str = "youtube") -> None:
+    """§YT-005 / N8N-REAL-004: record quota cost for every API method.
+
+    Logged **and** persisted to `provider_quota_usage`. The log line stays --
+    it is what makes a single request debuggable in `docker logs` -- but the row
+    is what WF-008 reads, and quota is the hard operational limit in this system
+    (10,000 units/day, `search.list` at 100 a call).
+
+    Persistence is best-effort by construction: a monitoring write must never be
+    able to fail a user's search. A database outage costs a row in a report, and
+    turning that into a failed recommendation would be a strictly worse trade.
+    """
     logger.info("youtube_quota_usage: %s", json.dumps({"method": method, "units": units}))
+
+    try:
+        from sqlalchemy import text as sql_text
+
+        from . import db
+
+        with db.session() as session:
+            session.execute(
+                sql_text(
+                    "INSERT INTO provider_quota_usage (provider, method, units) "
+                    "VALUES (:provider, :method, :units)"
+                ),
+                {"provider": provider, "method": method, "units": units},
+            )
+            session.commit()
+    except Exception:  # noqa: BLE001 - deliberate: see docstring
+        logger.warning("quota_usage_persist_failed", exc_info=True)
 
 
 _WRAPPING_QUOTE_PAIRS = ('""', "''", "“”", "‘’")

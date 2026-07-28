@@ -627,3 +627,79 @@ class AuditEvent(Base, CreatedAtMixin):
         Index("ix_audit_events_action", "action"),
         Index("ix_audit_events_created_at", "created_at"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Operations tables (N8N-REAL-004, WF-008 Monitoring and Budget).
+#
+# Section 2.3 froze nineteen tables and `oauth_accounts` was called the last of
+# them. These two are additive, and the reason they exist is specific: WF-008 is
+# required to read *real* usage and health, and two of the four things it must
+# read had nowhere to be read from. `model_usage` already existed but nothing
+# wrote to it; provider quota and the daily summary had no table at all, so the
+# workflow would have had to invent its numbers -- which is the failure the
+# whole placeholder policy exists to prevent.
+# ---------------------------------------------------------------------------
+
+
+class ProviderQuotaUsage(Base, CreatedAtMixin):
+    """One row per quota-consuming provider call (N8N-REAL-004).
+
+    YouTube's daily budget is the hard operational constraint in this system --
+    10,000 units/day, with `search.list` at 100 and a playlist export at 50 per
+    track. That was tracked only by a log line, so the number could be read by a
+    human tailing `docker logs` and by nothing else. WF-008 needs it as data.
+
+    Append-only, and deliberately not aggregated on write: a daily total that is
+    incremented in place cannot answer "which method spent the budget", which is
+    the question that actually changes a decision.
+    """
+
+    __tablename__ = "provider_quota_usage"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    # e.g. "search.list", "videos.list", "playlists.insert".
+    method: Mapped[str] = mapped_column(String(64), nullable=False)
+    units: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Optional: recognition and export calls carry one; cached reads do not.
+    request_id: Mapped[Optional[str]] = mapped_column(String(64))
+
+    __table_args__ = (
+        Index("ix_provider_quota_usage_created_at", "created_at"),
+        Index("ix_provider_quota_usage_provider_method", "provider", "method"),
+    )
+
+
+class OpsDailySummary(Base, TimestampMixin):
+    """WF-008's `Store Daily Summary` output -- one row per UTC day.
+
+    `summary_date` is unique so a re-run of the daily schedule updates the day
+    rather than appending a second, contradictory version of it. That matters
+    because the workflow is retryable: an alert that fired at 09:00 and a re-run
+    at 09:05 must not leave two rows disagreeing about whether the budget
+    threshold was crossed.
+    """
+
+    __tablename__ = "ops_daily_summary"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    summary_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    # Model cost, provider quota, error rate, latency, storage -- the whole
+    # measured picture, kept as one document rather than a column per metric so
+    # a new metric does not require a migration.
+    metrics: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
+    budget_percent: Mapped[Optional[float]] = mapped_column(Float)
+    # "ok" | "notice" | "warning" | "critical" | "emergency" -- the 50/75/90/95
+    # rules of §1.11.
+    alert_level: Mapped[str] = mapped_column(String(16), nullable=False, default="ok")
+    alert_sent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    __table_args__ = (
+        UniqueConstraint("summary_date", name="uq_ops_daily_summary_date"),
+        Index("ix_ops_daily_summary_date", "summary_date"),
+    )
