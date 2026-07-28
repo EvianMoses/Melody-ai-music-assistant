@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: melody-shared-lib
-Version: 0.1.0
-Summary: Shared FastAPI utilities for Melody Phase 2 services
-Requires-Python: >=3.11
-Requires-Dist: fastapi>=0.115
-Requires-Dist: httpx>=0.28

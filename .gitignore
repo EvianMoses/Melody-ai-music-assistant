@@ -21,3 +21,6 @@ data/gtzan/
 # ml/train.py; binaries do not belong in the repository.
 audio-service/ml/checkpoints/*.pt
 audio-service/ml/checkpoints/*.pth
+
+# Python build artifacts (editable installs regenerate these).
+*.egg-info/
