@@ -156,3 +156,49 @@ too often), revisit this note rather than silently reintroducing the call.
 - If the API is unreachable at request time, the recommendation path fails —
   the guardrails and error envelopes already cover this, and
   `ENABLE_LEGACY_BEDROCK_FALLBACK` remains the documented escape hatch.
+
+---
+
+## Amendment (2026-07-28): the local runtime is no longer Ollama
+
+**Status of this amendment:** Accepted. The routing decision above is unchanged —
+`claude-haiku-4-5` still owns the curator explanation, and the deterministic core
+still owns everything it owned. What changes is *which* local runtime exists.
+
+**Ollama was removed entirely, by developer decision.** An audit while chasing
+Phase 3 latency found:
+
+- `ollama` was referenced **nowhere on the request path** — not in
+  `recommendation-service`, `rag-service/main.py`, the workflows, or the Flask app;
+- its container had **never started once**, because port 11434 was held by
+  something on the host and nothing depended on it enough to notice;
+- the job this ADR assigned it — *"intent classification for ambiguous requests
+  and structured music-constraint extraction"* — **was never implemented**.
+
+So the service was carrying a responsibility nothing had asked it to perform, and
+`rag-service/scripts/test_generation.py`, retained above as "the measured
+local-inference demonstration", could not run at all.
+
+**NEW DECISION: the local-model requirement is met by the three models that
+genuinely run locally, in-process, on every request.**
+
+| Model | Role | Where |
+| ----- | ---- | ----- |
+| `intfloat/multilingual-e5-small` | query + passage embeddings | `rag-service` |
+| `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | reranking (RAG-RERANK-001) | `rag-service` |
+| Melody audio genre CNN (PyTorch, trained on GTZAN) | audio classification | `audio-service` |
+
+This is a **stronger** claim than the one it replaces, not a weaker substitute:
+three models doing real work on the live path, versus one that did none. Measured
+under `LOCAL-003` (`eval/local_models.py`, results in `eval/reports/`): embeddings
+at 42 ms/query with a passing 384-d schema check, reranking at 94 ms/pair with a
+passing score-count check, and the classifier at held-out macro-F1 **0.8692**.
+
+`rag-service/scripts/test_generation.py` was **deleted** rather than left as dead
+code pointing at a service that no longer exists.
+
+⚠️ **One consequence worth stating plainly:** the reranker is now the single most
+expensive component of a retrieval call — 94 ms per pair × a 20-candidate pool is
+~1.9 s, which is most of the ~2.2 s a `/rag/retrieve` takes. That is the honest
+cost of the Hebrew fix (RAG-RERANK-001), and it is the first place to look if
+retrieval latency needs to come down again.

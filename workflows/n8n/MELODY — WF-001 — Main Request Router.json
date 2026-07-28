@@ -467,7 +467,7 @@
         "promptType": "define",
         "text": "={{ $(\"Validate Request Schema\").item.json.message }}",
         "options": {
-          "systemMessage": "You classify a user message into exactly one intent label from: faq, billing, technical, account, sales, feedback. Respond with only the single lowercase label."
+          "systemMessage": "You classify a music-assistant request into exactly one intent label from: text_recommendation, audio_vibe_recommendation, audio_identification, feedback, playlist_export, auth_connection_sync.\n\n- text_recommendation: the user describes music they want in words.\n- audio_vibe_recommendation: the user wants music similar to an audio clip.\n- audio_identification: the user asks what a clip IS (name the song).\n- feedback: the user is rating or reacting to a track already shown (liked it, disliked it, skip).\n- playlist_export: the user asks to save or export tracks to a playlist.\n- auth_connection_sync: the user asks about connecting or disconnecting a music account.\n\nRequests may be in English or Hebrew; classify the intent, not the language. If the request is ambiguous, choose text_recommendation, which is the safe default for a music assistant. Respond with only the single lowercase label and nothing else."
         }
       },
       "id": "e751ecaf-b517-484e-a9d8-4a2fdc18c313",
@@ -477,7 +477,8 @@
       "position": [
         1792,
         208
-      ]
+      ],
+      "notes": "PE-2 Version 2 (2026-07-28). Version 1 was untouched n8n template boilerplate classifying into faq/billing/technical/account/sales/feedback -- a customer-support taxonomy with no relation to this product. This node feeds 'Route by Intent', which switches on Melody's six intents, so the ONLY label the two vocabularies shared was 'feedback' -- and it meant support feedback, not a music like/dislike, so an ambiguous request could have been routed into WF-005's feedback loop. Everything else fell through as Unroutable."
     },
     {
       "parameters": {

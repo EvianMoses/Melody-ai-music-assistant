@@ -1756,8 +1756,24 @@ Use Ollama or llama.cpp for at least one real, measured project responsibility:
 Do not use a local model for deterministic validation, OAuth, database writes, or sequencing.
 
 - [x] ✅ **[COMPLETED] LOCAL-001 P0: Select a small local model compatible with available CPU/RAM.** `llama3` ~~(8B)~~ → **NEW DECISION:** `llama3.1` served locally via Ollama, reachable from the rag-service container on `melody-net` (or from `--no-deps` runs via `host.docker.internal:11434`).
-- [ ] **LOCAL-002 P0:** Expose it behind a stable internal adapter. *(In progress —* `test_generation.py` *proves the REST call; a reusable adapter/endpoint is the next step.)*
-- [ ] **LOCAL-003 P0:** Measure latency, memory, and output-schema pass rate. → **First measurements recorded (July 25, 2026), on the development machine with** `llama3.1` **8B Q4_K_M (4.9 GB):**
+- [x] ✅ **[COMPLETED] LOCAL-002 P0 — CLOSED AS UNNECESSARY, not delivered (July 28, 2026, developer-approved).** ~~Expose it behind a stable internal adapter. *(In progress —* `test_generation.py` *proves the REST call; a reusable adapter/endpoint is the next step.)*~~ → The adapter would have had **no caller**. Ollama is removed from the project (see `LOCAL-003` below and the ADR-006 amendment); the local models that remain — `multilingual-e5-small`, `mmarco-mMiniLMv2-L12` and the audio CNN — are already invoked in-process by the services that own them, so "a stable internal adapter" is what `rag-service` and `audio-service` themselves are. Building a second indirection to reach a model in the same process would be ceremony, not architecture.
+- [x] ✅ **[COMPLETED] LOCAL-003 P0: Measure latency, memory, and output-schema pass rate (July 28, 2026) — RETARGETED onto the local models that actually run.**
+
+  ⚠️ **NEW DECISION (developer-approved, July 28, 2026): Ollama is removed from the project entirely, and `LOCAL-002` is closed as unnecessary rather than delivered.** An audit found `ollama` referenced **nowhere on the request path**, its container **never once started** (port 11434 was held on the host and nothing depended on it enough to notice), and the job ADR-006 assigned it — intent classification and structured extraction — **never implemented**. `LOCAL-002` would have been an adapter with no caller.
+
+  **The requirement is met, more strongly, by three models that run locally and in-process on every request** — measured by `eval/local_models.py`, results in `eval/reports/local_models_*.json`:
+
+  | Model | Role | Latency | Memory | Schema |
+  | --- | --- | --- | --- | --- |
+  | `intfloat/multilingual-e5-small` | embeddings (rag-service) | **42 ms/query** median; 9.9 passages/s batched | 792 MB resident | ✅ 384-d as declared |
+  | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | reranking (rag-service) | **94 ms/pair**, 1.88 s per 20-pair pool | 1,264 MB resident | ✅ one score per pair |
+  | Melody audio genre CNN (PyTorch) | classification (audio-service) | — | — | ✅ held-out macro-F1 **0.8692** |
+
+  Three models doing real work beats one that did none. **Removed with it:** the `ollama` service, its volume, `rag-service`'s dependency on it, `OLLAMA_PORT`, and `rag-service/scripts/test_generation.py` — deleted rather than left as dead code pointing at a service that no longer exists. **Verified after removal:** full stack healthy, `smoke_test_e2e.py` **12/12**, live requests returning real tracks in both languages. ADR-006 carries the amendment.
+
+  ⚠️ **One number worth carrying forward: the reranker is now the single most expensive part of a retrieval call** — 94 ms × 20 candidates ≈ 1.9 s of the ~2.2 s a `/rag/retrieve` costs. That is the honest price of the Hebrew fix, and the first place to look if retrieval latency must come down again.
+
+- ~~[ ] **LOCAL-003 P0:** Measure latency, memory, and output-schema pass rate. → **First measurements recorded (July 25, 2026), on the development machine with** `llama3.1` **8B Q4_K_M (4.9 GB):**~~ *(superseded above; the original llama3.1 figures are retained below for the record)*
 
   | Task | Output tokens | Wall time | Throughput |
   | ---- | ------------- | --------- | ---------- |

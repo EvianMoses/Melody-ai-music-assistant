@@ -145,30 +145,26 @@ services:
           memory: 1G
 
   # -------------------------------------------------------------------------
-  # INF-008 — Local model runtime for cheap classification / routing
+  # INF-008 — Local model runtime
+  #
+  # ⚠️ The `ollama` service was REMOVED on 2026-07-28, by developer decision,
+  # after an audit found it referenced nowhere on the request path and its
+  # container had never once started (port 11434 was held by something on the
+  # host, and nothing noticed because nothing used it).
+  #
+  # The requirement it existed for -- "local model runtime (Ollama / HF /
+  # llama.cpp)" -- is met, on the live request path, by three locally hosted
+  # models that do real work on every request:
+  #
+  #   * intfloat/multilingual-e5-small  -- query + passage embeddings (rag-service)
+  #   * cross-encoder/mmarco-mMiniLMv2-L12-H384-v1 -- reranking (rag-service)
+  #   * the trained PyTorch audio genre CNN (audio-service)
+  #
+  # ADR-006 had already routed generation to claude-haiku-4-5 and left the local
+  # model only "intent classification and structured extraction", which was never
+  # implemented -- so the container was carrying a job nothing asked it to do.
+  # LOCAL-003's measurements are taken against the three models above instead.
   # -------------------------------------------------------------------------
-  ollama:
-    image: ollama/ollama:latest
-    container_name: melody-ollama
-    restart: unless-stopped
-    ports:
-      - "${OLLAMA_PORT:-11434}:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - melody-net
-    healthcheck:
-      test:
-        ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "2.00"
-          memory: 4G
 
   # -------------------------------------------------------------------------
   # INF-003..INF-007 — FastAPI service skeletons (Section 2.4)
@@ -216,8 +212,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      ollama:
-        condition: service_started
 
   audio-service:
     <<: *python-service
@@ -354,7 +348,6 @@ networks:
 volumes:
   pgdata:
   n8n_data:
-  ollama_data:
   hf_cache:
   # Uploaded audio clips (§6.1). Short-lived by design — the service sweeps
   # anything past AUDIO_RETENTION_MINUTES, so this volume stays near empty.
