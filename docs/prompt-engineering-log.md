@@ -117,28 +117,61 @@ exist is worse than no log, because it reads as evidence.
 
 ---
 
-### PE-1 — n8n Information Extractor
+### PE-1 — Structured constraint extraction *(deliberately not an LLM surface)*
 
-**Status: NOT IMPLEMENTED. No version can be logged, because the surface does not
-exist.**
+**Status: NO PROMPT, BY DECISION. There is nothing to version here, and that is
+the intended end state rather than an unfinished one.**
 
-Searched every workflow in `workflows/n8n/` for
-`@n8n/n8n-nodes-langchain.informationExtractor` and for a node named
-`Extract Music Constraints`: **zero matches**. The `docs/requirements-traceability.md`
-row citing it was inaccurate and has been corrected.
+~~Searched every workflow for `@n8n/n8n-nodes-langchain.informationExtractor` and
+for a node named `Extract Music Constraints`: zero matches. Open decision for the
+developer — build the node, or record a substitution.~~ → ✅ **DECIDED by the
+developer (2026-07-29): keep the deterministic Python extractor; do not build an
+n8n Information Extractor node.**
 
-**What does the job today, and does it well:** structured constraint extraction
-is deterministic Python in `recommendation-service/app/core/graph_nodes.py` —
-`normalize_input` pulls positive and negative constraints from
-`explicit_constraints`, and `extract_negations` parses bilingual free-text
-negation. For this task that is arguably *better* than an LLM node (no latency,
-no cost, nothing invented, unit-tested) — but it is **not** an n8n Information
-Extractor, and the graded area names that node specifically.
+**The developer's reasoning, recorded as given:** the only explicit academic
+requirement for n8n is *a main workflow acting as the core orchestrator of the
+system*, which WF-001 is. An Information Extractor node is not separately
+required, so it should only be built if it improves actual functionality.
 
-**Open decision for the developer:** either build a real Information Extractor
-node in WF-002 to satisfy the graded requirement, or record the deterministic
-extractor as a deliberate substitution and argue it. This log will not pretend
-the node exists either way.
+**It would not.** Structured extraction here is a closed, enumerable problem —
+genre, artist, era, year range, mood, language, and their negations — and it is
+implemented in `recommendation-service/app/core/graph_nodes.py`:
+
+| Function | Job |
+| -------- | --- |
+| `normalize_input` | Positive/negative constraints from `explicit_constraints`, plus text hygiene (control characters, whitespace, length cap) |
+| `extract_negations` | Bilingual free-text negation (`but not`, `without`, `no`, `avoid`, `except`, and `בלי`, `ללא`, `חוץ מ`, `לא`) |
+| `negative_terms` | Flattens every origin into the term list retrieval consumes |
+
+**Four properties an LLM node would trade away, and none of them are theoretical:**
+
+1. **It cannot invent a constraint.** §1's own measure for this surface is
+   *"missing-field honesty"* — does it leave absent values absent? A regex either
+   matches or does not. An extractor that hallucinates `year_from: 1990` from
+   *"something nostalgic"* silently narrows retrieval, and the §3.8 golden set
+   would show it as a recall drop with no obvious cause.
+2. **It costs nothing.** Extraction sits on the request path, where the current
+   budget is ~8 s median and the reranker alone is ~1.9 s. An extra LLM round trip
+   would be the third model call in a single request.
+3. **It is unit-tested to the failure mode that matters.** `test_negation.py`
+   deliberately weights toward **false positives** — ordinary requests must
+   produce *no* exclusions — because an invented exclusion silently deletes
+   evidence the user wanted. That is a property you can assert about a regex and
+   only sample about a model.
+4. **It is deterministic under evaluation.** Every §3.8 number would otherwise
+   carry an extra source of run-to-run variance that has nothing to do with
+   retrieval quality.
+
+⚠️ **The honest cost of this decision**, stated so it is not discovered later:
+the deterministic extractor only understands the patterns it was written for.
+*"stuff like Radiohead but earlier"* yields no year constraint, where an LLM
+might infer one. The mitigation is that unparsed text still reaches retrieval as
+free text and is embedded — nothing is dropped, it is simply not promoted to a
+structured filter. **NEW DECISION: revisit only if the golden set shows a
+category failing specifically for want of structured extraction.** As of the
+2026-07-28 run, the weak categories are `negative_constraint` (now fixed by
+adding negation handling to *retrieval*, not by better parsing) and Hebrew
+descriptive queries (a reranker and corpus-language problem). Neither points here.
 
 ---
 

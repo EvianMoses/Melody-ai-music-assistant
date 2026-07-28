@@ -18,10 +18,13 @@
 > described the world as it was on 24 July. Honest reading now: **16 `Done`,
 > 4 `Partial`, 0 `Planned`**, against 5 / 11 / 4 on 24 July.
 >
-> The four `Partial` rows are blocked on exactly two artefacts: rows 5, 6 and 17
+> ~~The four `Partial` rows are blocked on exactly two artefacts: rows 5, 6 and 17
 > all wait on §3.9's Prompt Engineering Log Version 1, and row 11 waits on
-> `LOCAL-002`/`LOCAL-003`. Both live in Phase 3, which remains the one phase
-> before Phase 9 that has not closed its gate.
+> `LOCAL-002`/`LOCAL-003`.~~ → **Updated 2026-07-29:** rows 5, 6 and 11 are now
+> closed — row 5 as a documented substitution, row 6 after the AI Agent's prompt
+> was rewritten from n8n template boilerplate, row 11 by retargeting `LOCAL-003`
+> onto the three local models that actually run. **Row 17 (prompt engineering)
+> remains the single `Partial`**, needing versions 3–5 per `DOC-007`.
 
 ## 1. Graded technology mapping (ACA-002)
 
@@ -31,7 +34,7 @@
 | 2 | Web development | Flask UI plus the versioned API boundary (`POST /api/v1/requests`) and OAuth UX | `app.py`, `templates/`, `static/` | ~~Partial — versioned route exists; §8.2 UI modes are Phase 8~~ → Done — the browser now calls `/api/v1/requests`, not the legacy `/chat`; §8.2 delivered except `UI-008` |
 | 3 | AWS basics / AWS AI | Bedrock Agent + Knowledge Base + OpenSearch Serverless + S3 + Lambda, retained as the rollback and latency/quality benchmark | `aws/`, `README.md`, Phase 0 baseline record | Done (as benchmark) — see §3 for why it is not the target |
 | 4 | n8n workflows | WF-000 through WF-010 as the visible main orchestrator | `workflows/n8n/` (~~WF-000…WF-006 exported~~ → WF-000…WF-010, all 11) | ~~Partial — 7 of 11 exported; WF-007/008/009/010 outstanding~~ → Done — **all 11 exported** (WF-007/008/010 added 2026-07-28); WF-008 and WF-010 executed against live data, WF-007 carries one labelled `RAG-010` placeholder |
-| 5 | n8n Information Extractor | ~~`Extract Music Constraints` node in WF-002~~ → ⚠️ **NO SUCH NODE EXISTS.** Verified 2026-07-28 by searching every workflow for `informationExtractor`: zero matches. Structured extraction is done deterministically in `normalize_input` / `extract_negations` (Python), which is arguably better for the task but is **not** the graded node | `recommendation-service/app/core/graph_nodes.py`; see PE-1 in `docs/prompt-engineering-log.md` | ~~Partial — node present, prompt log not started~~ → **Not implemented — open decision** |
+| 5 | n8n Information Extractor | ~~`Extract Music Constraints` node in WF-002~~ → **Deliberate substitution, decided 2026-07-29.** No Information Extractor node exists (verified: zero `informationExtractor` matches in any workflow). Structured extraction is deterministic Python — `normalize_input` + `extract_negations` — chosen over an LLM node because it cannot invent a constraint, costs no latency on a request path already at ~8 s, and is unit-tested against the false-positive failure mode. The n8n requirement is satisfied by WF-001 as the main orchestrator | `recommendation-service/app/core/graph_nodes.py`, `recommendation-service/test_negation.py`; full rationale at PE-1 in `docs/prompt-engineering-log.md` | ~~Partial — node present, prompt log not started~~ → **Done (as a documented substitution)** |
 | 6 | n8n AI Agent | ~~`Recommendation Planning Agent` in WF-002~~ → `Classify Ambiguous Intent` in **WF-001** — read-only intent classification, no write tools. ⚠️ Its prompt was untouched n8n template boilerplate (faq/billing/technical/…) until 2026-07-28; rewritten for Melody's six real intents | `workflows/n8n/MELODY — WF-001 — Main Request Router.json`; PE-2 in `docs/prompt-engineering-log.md` | ~~Partial — same~~ → Done (V2) — not yet measured on a 10-case set |
 | 7 | RAG / LangChain | Hybrid retrieval: pgvector dense + PostgreSQL full-text + metadata filters + genre expansion + RRF | `rag-service/scripts/test_hybrid_retrieval.py`, `rag-service/main.py`, migration `f1a2b3c4d5e6` | Done (pipeline) — metrics outstanding (§3.8) |
 | 8 | LangGraph | Bounded stateful recommendation graph; `rewrite_count <= 1` enforced by graph topology | `recommendation-service/app/core/graph.py`, `graph_state.py`, `graph_nodes.py` | ~~Partial — 4 of 18 nodes carry real logic~~ → Done — all 18 nodes real; Phase 4 gate passed |
