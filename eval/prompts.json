@@ -1,0 +1,65 @@
+{
+  "description": "Shared prompt set for REC-LEG-001 (legacy Bedrock vs new LangGraph engine comparison, plan §4.10). Categories follow §3.8's golden-eval-set list so this set can grow into that one rather than being thrown away.",
+  "prompts": [
+    {
+      "id": "mood-en-1",
+      "category": "mood-based discovery",
+      "text": "I need something warm and cozy for a rainy afternoon."
+    },
+    {
+      "id": "mood-he-1",
+      "category": "mood-based discovery",
+      "text": "אני רוצה משהו אנרגטי לריצת בוקר."
+    },
+    {
+      "id": "blend-1",
+      "category": "blended genres",
+      "text": "A mix of jazz and electronic, something smooth but still danceable."
+    },
+    {
+      "id": "artist-1",
+      "category": "exact artist name",
+      "text": "More songs like Bon Iver and Sufjan Stevens."
+    },
+    {
+      "id": "genre-1",
+      "category": "exact genre name",
+      "text": "Give me some deep house tracks."
+    },
+    {
+      "id": "anti-echo-1",
+      "category": "anti-echo-chamber",
+      "text": "Surprise me with something outside my usual indie folk taste."
+    },
+    {
+      "id": "negative-1",
+      "category": "negative constraints",
+      "text": "Upbeat pop, but nothing with heavy autotune."
+    },
+    {
+      "id": "genre-he-1",
+      "category": "exact genre name",
+      "text": "משהו במקצב של רוק ישראלי קלאסי."
+    },
+    {
+      "id": "mood-era-1",
+      "category": "mood-based discovery",
+      "text": "90s grunge for a moody evening."
+    },
+    {
+      "id": "blend-2",
+      "category": "blended genres",
+      "text": "Hip hop mixed with soul, in English please."
+    },
+    {
+      "id": "vague-1",
+      "category": "mood-based discovery",
+      "text": "Play me something good."
+    },
+    {
+      "id": "negative-2",
+      "category": "negative constraints",
+      "text": "Chill acoustic music, but nothing that sounds like a coffee-shop cliche."
+    }
+  ]
+}

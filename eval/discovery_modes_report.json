@@ -1,0 +1,32 @@
+{
+  "queries": [
+    "dreamy shoegaze for a rainy night",
+    "something warm and mellow for the evening",
+    "energetic guitar music for running",
+    "quiet music to read to"
+  ],
+  "modes": {
+    "safe": {
+      "tracks": 15,
+      "familiar_share": 0.067,
+      "unique_artists": 14,
+      "distinct_genres": 0,
+      "overlap_with_safe": 1.0
+    },
+    "balanced": {
+      "tracks": 16,
+      "familiar_share": 0.062,
+      "unique_artists": 14,
+      "distinct_genres": 0,
+      "overlap_with_safe": 0.933
+    },
+    "adventurous": {
+      "tracks": 16,
+      "familiar_share": 0.062,
+      "unique_artists": 15,
+      "distinct_genres": 0,
+      "overlap_with_safe": 0.625
+    }
+  },
+  "safe_minus_adventurous_familiarity": 0.005
+}

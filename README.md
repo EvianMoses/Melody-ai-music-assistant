@@ -278,19 +278,19 @@ Melody/
 ### 1. Create and activate a virtual environment
 
 ```bash
-python -m venv venv
+python -m venv .venv
 ```
 
 Windows PowerShell:
 
 ```powershell
-.\venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 ```
 
 macOS / Linux:
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 ### 2. Install dependencies
