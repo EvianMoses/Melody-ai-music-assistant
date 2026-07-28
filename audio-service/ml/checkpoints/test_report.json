@@ -1,0 +1,87 @@
+{
+  "model_version": "melody-genre-cnn-1.0.0",
+  "trained_at": "2026-07-26T22:13:45Z",
+  "checkpoint_val_macro_f1": 0.8482,
+  "test_clips": 150,
+  "test_segments": 1500,
+  "segment_accuracy": 0.8413,
+  "segment_macro_f1": 0.8378,
+  "clip_accuracy": 0.8733,
+  "clip_macro_f1": 0.8692,
+  "abstained_clips": 20,
+  "baseline_macro_f1": 0.1,
+  "target_macro_f1": 0.6,
+  "per_class": [
+    {
+      "genre": "blues",
+      "support": 15,
+      "precision": 0.882,
+      "recall": 1.0,
+      "f1": 0.938
+    },
+    {
+      "genre": "classical",
+      "support": 15,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    {
+      "genre": "country",
+      "support": 15,
+      "precision": 0.812,
+      "recall": 0.867,
+      "f1": 0.839
+    },
+    {
+      "genre": "disco",
+      "support": 15,
+      "precision": 0.875,
+      "recall": 0.933,
+      "f1": 0.903
+    },
+    {
+      "genre": "hiphop",
+      "support": 15,
+      "precision": 0.875,
+      "recall": 0.933,
+      "f1": 0.903
+    },
+    {
+      "genre": "jazz",
+      "support": 15,
+      "precision": 0.938,
+      "recall": 1.0,
+      "f1": 0.968
+    },
+    {
+      "genre": "metal",
+      "support": 15,
+      "precision": 1.0,
+      "recall": 0.933,
+      "f1": 0.966
+    },
+    {
+      "genre": "pop",
+      "support": 15,
+      "precision": 0.706,
+      "recall": 0.8,
+      "f1": 0.75
+    },
+    {
+      "genre": "reggae",
+      "support": 15,
+      "precision": 0.846,
+      "recall": 0.733,
+      "f1": 0.786
+    },
+    {
+      "genre": "rock",
+      "support": 15,
+      "precision": 0.8,
+      "recall": 0.533,
+      "f1": 0.64
+    }
+  ],
+  "meets_target": true
+}

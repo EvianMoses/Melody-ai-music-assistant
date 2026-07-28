@@ -1,0 +1,22 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+httpx==0.28.1
+python-multipart==0.0.20
+# Shared Melody utilities (copied to /app/shared_lib in the Dockerfile).
+melody-shared-lib @ file:///app/shared_lib
+
+# --- §6.2 feature extraction -------------------------------------------------
+# librosa rather than Essentia: Essentia publishes no reliable Python 3.12 wheel
+# and the rest of the stack is pinned to 3.12. See app/features.py for the full
+# rationale; the key-detection algorithm (Krumhansl-Schmuckler) is implemented
+# there explicitly, so that part is not delegated to either library.
+librosa==0.10.2.post1
+numpy==1.26.4
+soundfile==0.12.1
+
+# --- §6.3 PyTorch classifier -------------------------------------------------
+# Melody's domain adaptation of the course's PyTorch requirement. Installed from
+# the CPU wheel index (see Dockerfile) -- inference only, no GPU in this stack.
+torch==2.5.1
+torchaudio==2.5.1

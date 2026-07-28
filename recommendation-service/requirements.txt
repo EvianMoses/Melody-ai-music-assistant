@@ -1,0 +1,25 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+httpx==0.28.1
+python-multipart==0.0.20
+# Phase 4 LangGraph recommendation engine (app/core/graph*.py, §4.1-4.3).
+langgraph==1.2.9
+# Node 17 (generate_grounded_explanation): claude-haiku-4-5 via the direct
+# Anthropic API, behind app/core/llm_adapter.py (ADR-006).
+anthropic==0.120.0
+# Node 18 (validate_output): validates against contracts/ai_recommendation_schema.json.
+jsonschema==4.26.0
+# Shared Melody utilities (copied to /app/shared_lib in the Dockerfile).
+melody-shared-lib @ file:///app/shared_lib
+
+# Phase 7 (§7.2): the materialized preference profile lives in `user_preferences`,
+# so this service needs a database layer for the first time. The update *rules*
+# stay pure functions in app/core/profile.py -- only app/core/profile_store.py
+# touches rows -- which is what keeps PERS-006's tests offline.
+SQLAlchemy==2.0.51
+psycopg[binary]==3.2.13
+# contracts/db_models.py declares the pgvector column type at import time, so
+# this is needed to import the ORM at all -- even by a service that never
+# touches an embedding.
+pgvector==0.3.6

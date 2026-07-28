@@ -1,0 +1,17 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+httpx==0.28.1
+python-multipart==0.0.20
+# Phase 5 §5.5 playlist export: reads oauth_accounts for the user's grant and
+# writes playlist_exports, so this service gained a database dependency.
+SQLAlchemy==2.0.51
+psycopg[binary]==3.2.13
+# contracts/db_models.py is the single canonical ORM for all 19 tables, so
+# importing it pulls in knowledge_chunks' Vector column type even though this
+# service never touches that table.
+pgvector==0.3.6
+# Decrypts the stored OAuth tokens (contracts/token_crypto.py, ADR-007).
+cryptography==49.0.0
+# Shared Melody utilities (copied to /app/shared_lib in the Dockerfile).
+melody-shared-lib @ file:///app/shared_lib

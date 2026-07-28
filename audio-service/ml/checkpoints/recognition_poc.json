@@ -1,0 +1,741 @@
+{
+  "summary": {
+    "host": "identify-ap-southeast-1.acrcloud.com",
+    "clips": 62,
+    "requests": 62,
+    "catalogue_coverage": 0.917,
+    "latency_ms": {
+      "median": 3840.0,
+      "p95": 4884,
+      "max": 5477
+    },
+    "by_class": {
+      "clean_original": {
+        "n": 12,
+        "matched": 11,
+        "match_rate": 0.917,
+        "mean_confidence": 1.0
+      },
+      "noisy_light": {
+        "n": 11,
+        "matched": 10,
+        "match_rate": 0.909,
+        "mean_confidence": 1.0
+      },
+      "noisy_moderate": {
+        "n": 11,
+        "matched": 9,
+        "match_rate": 0.818,
+        "mean_confidence": 1.0
+      },
+      "noisy_heavy": {
+        "n": 11,
+        "matched": 4,
+        "match_rate": 0.364,
+        "mean_confidence": 0.85
+      },
+      "noisy_severe": {
+        "n": 11,
+        "matched": 0,
+        "match_rate": 0.0,
+        "mean_confidence": null
+      },
+      "no_match": {
+        "n": 3,
+        "matched": 0,
+        "mean_confidence": null,
+        "false_positive_rate": 0.0
+      },
+      "humming_synthetic": {
+        "n": 3,
+        "matched": 0,
+        "match_rate": 0.0,
+        "mean_confidence": null
+      }
+    }
+  },
+  "results": [
+    {
+      "class": "clean_original",
+      "label": "metal/metal.00017.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3052,
+      "title": "Angel Of Death",
+      "artist": "Slayer"
+    },
+    {
+      "class": "clean_original",
+      "label": "rock/rock.00088.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3000,
+      "title": "The Stroke",
+      "artist": "Billy Squier"
+    },
+    {
+      "class": "clean_original",
+      "label": "jazz/jazz.00020.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3875,
+      "title": "I Can't Get Started",
+      "artist": "Joe Lovano"
+    },
+    {
+      "class": "clean_original",
+      "label": "pop/pop.00049.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3062,
+      "title": "Pero Me Acuerdo de T\u00ed",
+      "artist": "Christina Aguilera"
+    },
+    {
+      "class": "clean_original",
+      "label": "disco/disco.00009.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 4243,
+      "title": "Get Up",
+      "artist": "Osibisa"
+    },
+    {
+      "class": "clean_original",
+      "label": "jazz/jazz.00006.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3840,
+      "title": "The Stevedore's Serenade",
+      "artist": "James Carter"
+    },
+    {
+      "class": "clean_original",
+      "label": "metal/metal.00024.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3662,
+      "title": "Kinescope",
+      "artist": "Jacob's Dream"
+    },
+    {
+      "class": "clean_original",
+      "label": "pop/pop.00057.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2809,
+      "title": "Bootylicious",
+      "artist": "Destiny's Child"
+    },
+    {
+      "class": "clean_original",
+      "label": "classical/classical.00060.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 4146,
+      "title": "Satie: La belle excentrique",
+      "artist": "Bernard Herrmann, The London Festival Players, London Philharmonic Orchestra"
+    },
+    {
+      "class": "clean_original",
+      "label": "pop/pop.00026.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2956,
+      "title": "I'll Never Stop Loving You",
+      "artist": "Britney Spears"
+    },
+    {
+      "class": "clean_original",
+      "label": "reggae/reggae.00090.wav",
+      "matched": false,
+      "confidence": 0.43,
+      "low_confidence": false,
+      "reason": "below_threshold",
+      "latency_ms": 3191,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "clean_original",
+      "label": "disco/disco.00052.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3056,
+      "title": "In The Navy",
+      "artist": "Village People"
+    },
+    {
+      "class": "noisy_light",
+      "label": "metal/metal.00017.wav",
+      "matched": false,
+      "confidence": 0.55,
+      "low_confidence": false,
+      "reason": "below_threshold",
+      "latency_ms": 2900,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_light",
+      "label": "rock/rock.00088.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2787,
+      "title": "The Stroke",
+      "artist": "Billy Squier"
+    },
+    {
+      "class": "noisy_light",
+      "label": "jazz/jazz.00020.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3949,
+      "title": "I Can't Get Started",
+      "artist": "Joe Lovano"
+    },
+    {
+      "class": "noisy_light",
+      "label": "pop/pop.00049.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2881,
+      "title": "Pero Me Acuerdo de T\u00ed",
+      "artist": "Christina Aguilera"
+    },
+    {
+      "class": "noisy_light",
+      "label": "disco/disco.00009.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 4066,
+      "title": "Get Up",
+      "artist": "Osibisa"
+    },
+    {
+      "class": "noisy_light",
+      "label": "jazz/jazz.00006.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3898,
+      "title": "The Stevedore's Serenade",
+      "artist": "James Carter"
+    },
+    {
+      "class": "noisy_light",
+      "label": "metal/metal.00024.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 4104,
+      "title": "Kinescope",
+      "artist": "Jacob's Dream"
+    },
+    {
+      "class": "noisy_light",
+      "label": "pop/pop.00057.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2793,
+      "title": "Bootylicious",
+      "artist": "Destiny's Child"
+    },
+    {
+      "class": "noisy_light",
+      "label": "classical/classical.00060.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 4273,
+      "title": "Satie: La belle excentrique",
+      "artist": "Bernard Herrmann, The London Festival Players, London Philharmonic Orchestra"
+    },
+    {
+      "class": "noisy_light",
+      "label": "pop/pop.00026.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3044,
+      "title": "I'll Never Stop Loving You",
+      "artist": "Britney Spears"
+    },
+    {
+      "class": "noisy_light",
+      "label": "disco/disco.00052.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3086,
+      "title": "In The Navy",
+      "artist": "Village People"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "metal/metal.00017.wav",
+      "matched": false,
+      "confidence": 0.49,
+      "low_confidence": false,
+      "reason": "below_threshold",
+      "latency_ms": 3171,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "rock/rock.00088.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2795,
+      "title": "The Stroke",
+      "artist": "Billy Squier"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "jazz/jazz.00020.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4890,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "pop/pop.00049.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2852,
+      "title": "Pero Me Acuerdo de T\u00ed",
+      "artist": "Christina Aguilera"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "disco/disco.00009.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3734,
+      "title": "Get Up",
+      "artist": "Osibisa"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "jazz/jazz.00006.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3873,
+      "title": "The Stevedore's Serenade",
+      "artist": "James Carter"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "metal/metal.00024.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3592,
+      "title": "Kinescope",
+      "artist": "Jacob's Dream"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "pop/pop.00057.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3010,
+      "title": "Bootylicious",
+      "artist": "Destiny's Child"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "classical/classical.00060.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 4309,
+      "title": "Satie: La belle excentrique",
+      "artist": "The London Festival Players, Bernard Herrmann"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "pop/pop.00026.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2968,
+      "title": "I'll Never Stop Loving You",
+      "artist": "Britney Spears"
+    },
+    {
+      "class": "noisy_moderate",
+      "label": "disco/disco.00052.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 2821,
+      "title": "In The Navy",
+      "artist": "Village People"
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "metal/metal.00017.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4463,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "rock/rock.00088.wav",
+      "matched": true,
+      "confidence": 0.61,
+      "low_confidence": true,
+      "reason": "low_confidence",
+      "latency_ms": 2812,
+      "title": "The Stroke",
+      "artist": "Billy Squier"
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "jazz/jazz.00020.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4757,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "pop/pop.00049.wav",
+      "matched": false,
+      "confidence": 0.58,
+      "low_confidence": false,
+      "reason": "below_threshold",
+      "latency_ms": 2950,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "disco/disco.00009.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4669,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "jazz/jazz.00006.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4884,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "metal/metal.00024.wav",
+      "matched": false,
+      "confidence": 0.55,
+      "low_confidence": false,
+      "reason": "below_threshold",
+      "latency_ms": 4275,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "pop/pop.00057.wav",
+      "matched": true,
+      "confidence": 0.79,
+      "low_confidence": true,
+      "reason": "low_confidence",
+      "latency_ms": 3122,
+      "title": "Bootylicious",
+      "artist": "Destiny's Child"
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "classical/classical.00060.wav",
+      "matched": false,
+      "confidence": 0.37,
+      "low_confidence": false,
+      "reason": "below_threshold",
+      "latency_ms": 3745,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "pop/pop.00026.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3201,
+      "title": "I'll Never Stop Loving You",
+      "artist": "Britney Spears"
+    },
+    {
+      "class": "noisy_heavy",
+      "label": "disco/disco.00052.wav",
+      "matched": true,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "reason": null,
+      "latency_ms": 3073,
+      "title": "In The Navy",
+      "artist": "Village People"
+    },
+    {
+      "class": "noisy_severe",
+      "label": "metal/metal.00017.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4497,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "rock/rock.00088.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4761,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "jazz/jazz.00020.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4753,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "pop/pop.00049.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 5477,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "disco/disco.00009.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4753,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "jazz/jazz.00006.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 5143,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "metal/metal.00024.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4923,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "pop/pop.00057.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4710,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "classical/classical.00060.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4829,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "pop/pop.00026.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4821,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "noisy_severe",
+      "label": "disco/disco.00052.wav",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4682,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "no_match",
+      "label": "tone",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 3787,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "no_match",
+      "label": "sweep",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 3720,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "no_match",
+      "label": "noise",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 4016,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "humming_synthetic",
+      "label": "root=220Hz",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 3963,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "humming_synthetic",
+      "label": "root=262Hz",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 3840,
+      "title": null,
+      "artist": null
+    },
+    {
+      "class": "humming_synthetic",
+      "label": "root=330Hz",
+      "matched": false,
+      "confidence": 0.0,
+      "low_confidence": false,
+      "reason": "no_match",
+      "latency_ms": 3982,
+      "title": null,
+      "artist": null
+    }
+  ]
+}
