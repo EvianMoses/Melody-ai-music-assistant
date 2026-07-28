@@ -22,6 +22,7 @@ async def retrieve(
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
     candidate_pool: Optional[int] = None,
+    exclude_terms: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """POST {RAG_SERVICE_URL}/rag/retrieve. Returns the parsed JSON body.
 
@@ -43,6 +44,10 @@ async def retrieve(
     payload: dict[str, Any] = {"query": query, "top_k": top_k, "filters": filters}
     if candidate_pool is not None:
         payload["candidate_pool"] = candidate_pool
+    # Negative constraints, which retrieval ignored entirely until now -- the
+    # §3.8 golden set scored that category at 0.00 context precision.
+    if exclude_terms:
+        payload["exclude_terms"] = list(exclude_terms)
 
     async with make_async_client() as client:
         response = await client.post(

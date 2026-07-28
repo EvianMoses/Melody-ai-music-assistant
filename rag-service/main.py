@@ -10,8 +10,11 @@ Endpoints:
 
 from __future__ import annotations
 
+import json
+import logging
 import math
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Optional
@@ -38,6 +41,7 @@ from test_hybrid_retrieval import (  # noqa: E402
 )
 
 app = create_app("rag-service")
+logger = logging.getLogger("melody.rag")
 
 MODEL_NAME = "intfloat/multilingual-e5-small"
 # Reranker, selectable at runtime so RAG-RERANK-001/002/003 stayed measured
@@ -74,6 +78,11 @@ RERANKER_ENABLED = os.getenv("RERANKER_ENABLED", "true").strip().lower() not in 
 QUERY_PREFIX = "query: "
 DEFAULT_POOL = 20
 DEFAULT_K_RRF = 60
+# How much deeper the first stage reaches when a negative constraint is present.
+# 3x was enough to take "rock but nothing metal" from zero surviving chunks to
+# five good ones; the cap stops a pathological request from scanning the corpus.
+EXCLUSION_POOL_MULTIPLIER = 3
+MAX_FETCH_POOL = 200
 
 _engine = None
 _embedding_model = None
@@ -131,6 +140,14 @@ class RetrieveRequest(BaseModel):
     # DISCOVERY_PARAMS finally reaches something -- it had no consumer at all
     # until now (see graph_nodes.plan_query_relaxation).
     candidate_pool: Optional[int] = Field(default=None, ge=1, le=500)
+    # Terms the caller wants kept OUT of the evidence ("rock but nothing metal").
+    #
+    # Retrieval had no negation handling at all before this, and the §3.8 golden
+    # set measured the consequence precisely: the `negative_constraint` category
+    # scored **0.00 context precision**. A phrase embedding is dominated by its
+    # nouns, so "rock but nothing metal" looks a great deal like "metal" to a
+    # bi-encoder, and the excluded genre came back as top evidence.
+    exclude_terms: list[str] = Field(default_factory=list)
 
 
 class EvidenceChunk(BaseModel):
@@ -151,6 +168,49 @@ class RetrieveResponse(BaseModel):
 class IngestRequest(BaseModel):
     source: str
     documents: list[dict[str, Any]] = Field(default_factory=list)
+
+
+_SLUG_NON_WORD = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify_term(term: str) -> str:
+    return _SLUG_NON_WORD.sub("_", (term or "").strip().lower()).strip("_")
+
+
+def is_excluded(doc_id: str, text: str, exclude_terms: list[str]) -> bool:
+    """Whether a candidate should be dropped for matching a negative constraint.
+
+    Two signals, in order of trust:
+
+    1. **The doc_id**, which encodes the taxonomy position -- a chunk from
+       ``genre:heavy_metal#black_metal`` is *about* metal in a way no amount of
+       prose analysis needs to establish. This is the precise signal and it is
+       what makes "rock but nothing metal" work.
+    2. **A whole-word match in the text**, as a fallback for the reviews domain,
+       whose doc_ids are opaque row ids (``review:metacritic:12345``) and carry
+       no genre.
+
+    Whole-word matching matters: a substring test would drop every *rock* chunk
+    for an exclusion of "rock" appearing inside "rockabilly", and -- worse --
+    would let "no metal" delete "metallic sheen" from an ambient description.
+    Even so, signal 2 is deliberately blunt, and a passing mention of an excluded
+    genre inside an otherwise relevant chunk will drop it. That is the right
+    trade for a *negative* constraint: a user who says "nothing metal" is better
+    served by a slightly thinner result set than by the thing they excluded.
+    """
+    if not exclude_terms:
+        return False
+
+    doc_slug = _slugify_term(doc_id)
+    for term in exclude_terms:
+        slug = _slugify_term(term)
+        if not slug:
+            continue
+        if slug in doc_slug:
+            return True
+        if re.search(rf"\b{re.escape(term.strip().lower())}\b", (text or "").lower()):
+            return True
+    return False
 
 
 def _rerank(query: str, candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -196,9 +256,21 @@ async def retrieve(request: RetrieveRequest) -> RetrieveResponse:
 
     pool = request.candidate_pool or DEFAULT_POOL
 
+    # Exclusion happens AFTER retrieval, so the first stage needs headroom or
+    # filtering can empty the result entirely. Measured: "rock music but nothing
+    # metal or heavy" put metal in 4 of the top 5, and excluding it at pool=20
+    # returned **zero chunks** -- the pool was metal all the way down, because
+    # that is what the query embeds close to. At pool=60 the same request returns
+    # five genuine rock sections and no metal.
+    #
+    # So a negative constraint deepens the first stage rather than narrowing the
+    # answer. The reranker still only scores `pool` survivors, so this costs one
+    # slightly wider database read, not a slower rerank.
+    fetch_pool = min(pool * EXCLUSION_POOL_MULTIPLIER, MAX_FETCH_POOL) if request.exclude_terms else pool
+
     with Session(_get_engine()) as session:
-        dense = dense_search(session, query_vector, pool, filters)
-        fulltext = fulltext_search(session, or_query, pool, filters)
+        dense = dense_search(session, query_vector, fetch_pool, filters)
+        fulltext = fulltext_search(session, or_query, fetch_pool, filters)
 
     info = {cid: (txt, doc_id, domain) for cid, txt, doc_id, domain in fulltext}
     info.update({cid: (txt, doc_id, domain) for cid, txt, doc_id, domain in dense})
@@ -215,8 +287,21 @@ async def retrieve(request: RetrieveRequest) -> RetrieveResponse:
     # ceiling `pool` above controls.
     candidate_pool = max(request.top_k, pool)
     candidates = []
-    for chunk_id, entry in fused_ranked[:candidate_pool]:
+    excluded_count = 0
+    # Walks the whole (possibly deepened) fused list and stops at `candidate_pool`
+    # SURVIVORS. Slicing first and filtering second is what produced the empty
+    # result: it filtered a fixed 20 and kept whatever happened to remain.
+    for chunk_id, entry in fused_ranked:
+        if len(candidates) >= candidate_pool:
+            break
         text_val, doc_id, domain = info.get(chunk_id, ("", None, None))
+        # Applied AFTER fusion and BEFORE reranking, which is the only place it
+        # both works and is cheap: the first stage has already found the best
+        # candidates, and dropping them here means the cross-encoder never spends
+        # time scoring evidence that is disqualified anyway.
+        if request.exclude_terms and is_excluded(doc_id or "", text_val, request.exclude_terms):
+            excluded_count += 1
+            continue
         candidates.append(
             {
                 "id": chunk_id,
@@ -249,6 +334,12 @@ async def retrieve(request: RetrieveRequest) -> RetrieveResponse:
         )
         for c in reranked
     ]
+
+    if excluded_count:
+        logger.info(
+            "rag_retrieve_excluded: %s",
+            json.dumps({"terms": request.exclude_terms, "dropped": excluded_count}),
+        )
 
     return RetrieveResponse(
         query=request.query,

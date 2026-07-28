@@ -13,7 +13,14 @@
 #
 # Install into the rag-service container (it already has torch,
 # sentence-transformers and database access):
-#   docker exec melody-rag-service pip install -r /app/eval-requirements.txt
+#   docker cp eval melody-rag-service:/app/eval
+#   docker exec melody-rag-service pip install -r /app/eval/requirements.txt
+#
+# ⚠️ EVERY `docker compose build rag-service` WIPES THIS. The service images have
+# no bind mount and carry only what their own requirements.txt declares, so an
+# ad-hoc install vanishes on the next rebuild -- and the symptom is a confusing
+# `ModuleNotFoundError: langchain_anthropic` from a harness that worked an hour
+# earlier. Re-run the two commands above after any rag-service rebuild.
 ragas==0.4.3
 langchain-community==0.3.27
 langchain<1.0

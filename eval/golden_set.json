@@ -10,7 +10,8 @@
   "scoring_notes": {
     "retrieval_scored": "Queries with `retrieval_scored: false` are excluded from Recall@K / MRR / nDCG. Anti-echo-chamber queries have no single correct answer by construction - scoring them against a fixed target would punish the behaviour they exist to test. They are still scored by Ragas, which judges grounding rather than target-matching.",
     "expected_docs": "Prefix match against knowledge_chunks.metadata->>'doc_id'.",
-    "reference": "A short ground-truth answer, used by Ragas LLMContextRecall to ask whether the retrieved context could support it."
+    "reference": "A short ground-truth answer, used by Ragas LLMContextRecall to ask whether the retrieved context could support it.",
+    "exclude_terms": "Negative-constraint ground truth, passed to /rag/retrieve so the harness measures the same exclusion the graph applies. The extractor that derives these from free text is unit-tested in recommendation-service/test_negation.py."
   },
   "queries": [
     {
@@ -142,7 +143,9 @@
       "language": "en",
       "query": "deep house",
       "retrieval_scored": true,
-      "expected_docs": ["genre:edm_dance_house#deep_house"],
+      "expected_docs": [
+        "genre:edm_dance_house#deep_house"
+      ],
       "reference": "Deep house is a house subgenre with softer, jazz- and soul-inflected chords, subdued tempos and an emphasis on atmosphere over peak-time impact."
     },
     {
@@ -163,7 +166,9 @@
       "language": "en",
       "query": "bebop jazz",
       "retrieval_scored": true,
-      "expected_docs": ["genre:blue_note_jazz#bebop"],
+      "expected_docs": [
+        "genre:blue_note_jazz#bebop"
+      ],
       "reference": "Bebop is a fast, harmonically complex jazz style built around virtuosic improvisation in small groups."
     },
     {
@@ -196,7 +201,9 @@
       "language": "en",
       "query": "Nirvana Nevermind album",
       "retrieval_scored": true,
-      "expected_docs": ["review:metacritic"],
+      "expected_docs": [
+        "review:metacritic"
+      ],
       "reference": "Nirvana are the defining grunge band, and their albums are documented in the album review corpus."
     },
     {
@@ -205,7 +212,9 @@
       "language": "en",
       "query": "Radiohead album reviews",
       "retrieval_scored": true,
-      "expected_docs": ["review:metacritic"],
+      "expected_docs": [
+        "review:metacritic"
+      ],
       "reference": "Radiohead's albums appear in the album review corpus with critic and user scores."
     },
     {
@@ -214,7 +223,9 @@
       "language": "he",
       "query": "דיפ האוס",
       "retrieval_scored": true,
-      "expected_docs": ["genre:edm_dance_house#deep_house"],
+      "expected_docs": [
+        "genre:edm_dance_house#deep_house"
+      ],
       "reference": "Deep house is a house subgenre with softer, jazz- and soul-inflected chords and an emphasis on atmosphere."
     },
     {
@@ -286,7 +297,11 @@
         "genre:contemporary_rock#post_britpop",
         "genre:rock_alternative_rock_indie#alternative_rock_indie_rock_ii"
       ],
-      "reference": "Lighter rock styles such as folk rock, jangle pop and indie rock stay within rock without the volume and distortion of metal."
+      "reference": "Lighter rock styles such as folk rock, jangle pop and indie rock stay within rock without the volume and distortion of metal.",
+      "exclude_terms": [
+        "metal",
+        "heavy"
+      ]
     },
     {
       "id": "neg-02",
@@ -300,7 +315,10 @@
         "genre:downtempo_ambient#ambient_techno_idm_intelligent_dance_music",
         "genre:downtempo_ambient#minimalism"
       ],
-      "reference": "Ambient, minimal techno and IDM are largely instrumental, built from texture and rhythm rather than singing."
+      "reference": "Ambient, minimal techno and IDM are largely instrumental, built from texture and rhythm rather than singing.",
+      "exclude_terms": [
+        "vocals"
+      ]
     },
     {
       "id": "neg-03",
@@ -314,7 +332,11 @@
         "genre:blue_note_jazz#bebop",
         "genre:blue_note_jazz#chicago_jazz"
       ],
-      "reference": "Early jazz styles such as New Orleans jazz, swing and bebop are acoustic and predate the electronic and fusion developments of later decades."
+      "reference": "Early jazz styles such as New Orleans jazz, swing and bebop are acoustic and predate the electronic and fusion developments of later decades.",
+      "exclude_terms": [
+        "modern",
+        "electronic"
+      ]
     }
   ]
 }

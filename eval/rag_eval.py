@@ -112,11 +112,14 @@ async def retrieve(
     domain: str,
     top_k: int,
     candidate_pool: Optional[int],
+    exclude_terms: Optional[list[str]] = None,
 ) -> tuple[list[dict[str, Any]], float, float]:
     """Returns (chunks, retrieval_confidence, elapsed_seconds)."""
     payload: dict[str, Any] = {"query": query, "top_k": top_k, "filters": {"domain": domain}}
     if candidate_pool:
         payload["candidate_pool"] = candidate_pool
+    if exclude_terms:
+        payload["exclude_terms"] = exclude_terms
     started = time.perf_counter()
     response = await client.post(f"{RAG_SERVICE_URL}/rag/retrieve", json=payload, timeout=300)
     response.raise_for_status()
@@ -135,11 +138,14 @@ async def run_retrieval(
     results = []
     async with httpx.AsyncClient() as client:
         for q in queries:
+            excludes = q.get("exclude_terms") or []
             genre_chunks, genre_conf, genre_ms = await retrieve(
-                client, q["query"], domain="genre", top_k=top_k, candidate_pool=candidate_pool
+                client, q["query"], domain="genre", top_k=top_k,
+                candidate_pool=candidate_pool, exclude_terms=excludes,
             )
             review_chunks, review_conf, review_ms = await retrieve(
-                client, q["query"], domain="reviews", top_k=top_k, candidate_pool=candidate_pool
+                client, q["query"], domain="reviews", top_k=top_k,
+                candidate_pool=candidate_pool, exclude_terms=excludes,
             )
 
             # The graph fuses both domains, so the evaluation must too -- scoring

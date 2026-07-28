@@ -126,6 +126,86 @@ def _as_lowered_list(value: Any) -> list[str]:
     return [str(item).strip().lower() for item in items if str(item).strip()]
 
 
+# ---------------------------------------------------------------------------
+# Free-text negation (§3.8 negative-constraint category)
+# ---------------------------------------------------------------------------
+#
+# `normalize_input` reads negative constraints out of `explicit_constraints`,
+# which is the UI's structured payload -- and the UI has no "exclude" control,
+# so in practice that dictionary was ALWAYS EMPTY. Negation only ever arrives
+# the way people actually express it: in the sentence.
+#
+# Measured on the §3.8 golden set before this existed: the `negative_constraint`
+# category scored **0.00 context precision**. "rock but nothing metal" retrieved
+# metal, because a bi-encoder embedding of the whole phrase is dominated by its
+# nouns and has no notion of "not".
+#
+# Deliberately conservative: only explicit negation markers, and only the short
+# span that follows one. Over-triggering here silently deletes evidence, which is
+# a worse failure than missing an exclusion -- so the patterns require a marker
+# and stop at the first conjunction or punctuation.
+_NEGATION_MARKERS_EN = r"(?:but\s+(?:not|no|nothing)|without|nothing|no|not|avoid|except|excluding)"
+# Hebrew: בלי (without), ללא (without), חוץ מ (except), לא (not).
+_NEGATION_MARKERS_HE = r"(?:בלי|ללא|חוץ\s+מ|לא)"
+
+_NEGATION_RE = re.compile(
+    rf"\b{_NEGATION_MARKERS_EN}\s+(?P<term>[a-z0-9][a-z0-9'&\- ]{{1,30}}?)"
+    r"(?=\s*(?:,|\.|;|!|\?|$|\band\b|\bor\b|\bbut\b|\bwith\b|\bfor\b))",
+    re.IGNORECASE,
+)
+_NEGATION_RE_HE = re.compile(
+    rf"{_NEGATION_MARKERS_HE}\s+(?P<term>[֐-׿][֐-׿' \-]{{1,30}}?)"
+    r"(?=\s*(?:,|\.|;|!|\?|$|\bו\b))",
+)
+
+# Words that are never a musical exclusion, even after a negation marker. Without
+# this, "I do not want something too loud" yields the exclusion "want".
+_NEGATION_STOPWORDS = {
+    "want", "like", "sure", "really", "very", "too", "that", "this", "it",
+    "the", "a", "an", "any", "much", "more", "less", "one", "thing", "things",
+    "idea", "problem", "matter", "worry", "rush",
+}
+
+# Conversational filler that trails an exclusion. "no rap either" is an
+# exclusion of *rap*, not of "rap either" -- and the difference matters, because
+# the term is matched against doc_ids and chunk text downstream, where a
+# two-word term with a filler in it simply never matches anything.
+_NEGATION_TRAILING_FILLER = {
+    "either", "please", "thanks", "though", "actually", "at", "all", "really",
+    "tonight", "today", "stuff", "music", "songs", "tracks",
+}
+
+
+def extract_negations(text: str) -> list[str]:
+    """Pull explicit exclusions out of free text. Returns lowercase terms.
+
+    Bilingual, because the product is. Returns ``[]`` for text with no negation
+    marker, which is the overwhelming majority of requests.
+    """
+    if not text:
+        return []
+
+    found: list[str] = []
+    for pattern in (_NEGATION_RE, _NEGATION_RE_HE):
+        for match in pattern.finditer(text):
+            term = " ".join((match.group("term") or "").split()).strip(" -'")
+            if not term:
+                continue
+            # A bare stopword is noise; a phrase whose FIRST word is a stopword
+            # ("too loud") is usually noise too, but the tail may be real.
+            words = term.lower().split()
+            while words and words[0] in _NEGATION_STOPWORDS:
+                words = words[1:]
+            while words and words[-1] in _NEGATION_TRAILING_FILLER:
+                words = words[:-1]
+            term = " ".join(words)
+            if not term or term in _NEGATION_STOPWORDS or len(term) < 2:
+                continue
+            if term not in found:
+                found.append(term)
+    return found
+
+
 def validate_context(state: RecommendationState) -> dict[str, Any]:
     """1. Validate the incoming RecommendationContext envelope.
 
@@ -204,6 +284,15 @@ def normalize_input(state: RecommendationState) -> dict[str, Any]:
             values = _as_lowered_list(explicit[key])
             if values:
                 negative[key] = values
+
+    # Negation as the user actually expressed it, in the sentence. The
+    # `explicit_constraints` route above only ever fires for a UI that has an
+    # exclude control, and this one does not -- so before this, negative
+    # constraints were empty on every real request.
+    text_negations = extract_negations(text)
+    if text_negations:
+        existing = list(negative.get("exclude", []) or [])
+        negative["exclude"] = existing + [t for t in text_negations if t not in existing]
 
     # era/language may arrive as single strings — keep scalars readable.
     for scalar_key in ("era", "mood", "language"):
@@ -450,6 +539,23 @@ def describe_audio_features(audio: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def negative_terms(retrieval_query: dict[str, Any]) -> list[str]:
+    """Flatten `negative_constraints` into the flat term list rag-service takes.
+
+    The dict is keyed by origin (`exclude_genres` from a UI control,
+    `exclude` from free-text negation), and retrieval does not care which door a
+    term came through -- only that the user does not want it.
+    """
+    negatives = (retrieval_query or {}).get("negative_constraints") or {}
+    terms: list[str] = []
+    for value in negatives.values():
+        for item in (value if isinstance(value, (list, tuple)) else [value]):
+            term = str(item).strip().lower()
+            if term and term not in terms:
+                terms.append(term)
+    return terms
+
+
 def build_retrieval_query(state: RecommendationState) -> dict[str, Any]:
     """4. Structured query construction (§4.4) — deterministic, rules-based.
 
@@ -541,6 +647,7 @@ async def retrieve_genres(state: RecommendationState) -> dict[str, Any]:
             year_from=positive.get("year_from"),
             year_to=positive.get("year_to"),
             candidate_pool=(query.get("discovery_params") or {}).get("candidate_pool"),
+            exclude_terms=negative_terms(query),
         )
     except httpx.HTTPError as exc:
         debug["genre"] = {"matched_genres": {}, "confidence": 0.0}
@@ -588,6 +695,7 @@ async def retrieve_reviews(state: RecommendationState) -> dict[str, Any]:
             domain="reviews",
             top_k=top_k,
             candidate_pool=(query.get("discovery_params") or {}).get("candidate_pool"),
+            exclude_terms=negative_terms(query),
             year_from=positive.get("year_from"),
             year_to=positive.get("year_to"),
         )

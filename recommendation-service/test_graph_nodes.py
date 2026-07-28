@@ -25,7 +25,12 @@ def run(coro):
 # ---------------------------------------------------------------------------
 
 
-async def _fake_rag_retrieve_ok(query, *, domain, top_k=5, year_from=None, year_to=None):
+# `**_kwargs` rather than an exhaustive signature: these fakes stand in for
+# `rag_client.retrieve`, whose keyword surface grows as retrieval gains levers
+# (candidate_pool, then exclude_terms). Pinning every argument here means a
+# real improvement to the client breaks a dozen unrelated tests with a
+# TypeError that says nothing about the change.
+async def _fake_rag_retrieve_ok(query, *, domain, top_k=5, year_from=None, year_to=None, **_kwargs):
     return {
         "query": query,
         "chunks": [
@@ -41,7 +46,7 @@ async def _fake_rag_retrieve_ok(query, *, domain, top_k=5, year_from=None, year_
     }
 
 
-async def _fake_rag_retrieve_low_confidence(query, *, domain, top_k=5, year_from=None, year_to=None):
+async def _fake_rag_retrieve_low_confidence(query, *, domain, top_k=5, year_from=None, year_to=None, **_kwargs):
     return {"query": query, "chunks": [], "retrieval_confidence": 0.1, "matched_genres": {}}
 
 
