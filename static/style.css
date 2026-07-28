@@ -1080,3 +1080,917 @@
       color: #1DB954;
       text-decoration: underline;
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       Phase 8 — orchestrated recommendation UI
+       Cards, playback, export and account controls for the /api/v1 path.
+       Uses the existing token set so it reads as one surface with the
+       chat shell above.
+    ═══════════════════════════════════════════════════════════════ */
+
+    /* ─── Shared action button ──────────────────────────────────── */
+    .melody-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.42rem 0.8rem;
+      border: 1px solid color-mix(in oklab, var(--primary) 48%, transparent);
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--primary) 12%, transparent);
+      color: color-mix(in oklab, var(--primary) 30%, var(--foreground));
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 0.18s, border-color 0.18s, transform 0.18s;
+    }
+
+    .melody-action-btn:hover {
+      background: color-mix(in oklab, var(--primary) 22%, transparent);
+      border-color: color-mix(in oklab, var(--primary) 72%, transparent);
+      transform: translateY(-1px);
+    }
+
+    /* ─── Alerts: error / warning (UI-010) ──────────────────────── */
+    .melody-alert {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      padding: 0.7rem 0.85rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      background: color-mix(in oklab, var(--card) 80%, transparent);
+    }
+
+    .melody-alert-error {
+      border-color: color-mix(in oklab, var(--destructive) 42%, transparent);
+      background: color-mix(in oklab, var(--destructive) 9%, var(--card));
+    }
+
+    .melody-alert-warn {
+      border-color: color-mix(in oklab, var(--mesh-orange) 38%, transparent);
+      background: color-mix(in oklab, var(--mesh-orange) 8%, var(--card));
+    }
+
+    .melody-alert-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--foreground);
+      margin-bottom: 0.15rem;
+    }
+
+    .melody-alert-text {
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--muted-foreground);
+    }
+
+    .melody-alert-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    /* ─── Recommendation block (UI-005) ─────────────────────────── */
+    .rec-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .rec-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--foreground);
+      letter-spacing: -0.01em;
+    }
+
+    .rec-count {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted-foreground);
+    }
+
+    .rec-description {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: color-mix(in oklab, var(--muted-foreground) 68%, var(--foreground));
+      margin-bottom: 0.65rem;
+    }
+
+    .rec-notice {
+      margin-bottom: 0.75rem;
+    }
+
+    .rec-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .rec-card {
+      border: 1px solid var(--border);
+      border-radius: 0.8rem;
+      background: color-mix(in oklab, var(--primary) 4%, #141414);
+      padding: 0.7rem 0.8rem;
+      transition: border-color 0.18s;
+    }
+
+    .rec-card:hover {
+      border-color: color-mix(in oklab, var(--primary) 34%, var(--border));
+    }
+
+    .rec-card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+    }
+
+    .rec-pos {
+      flex-shrink: 0;
+      width: 1.5rem;
+      height: 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--primary) 18%, transparent);
+      color: color-mix(in oklab, var(--primary) 26%, var(--foreground));
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
+    .rec-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .rec-track-title {
+      font-size: 0.9rem;
+      font-weight: 650;
+      color: var(--foreground);
+      overflow-wrap: anywhere;
+    }
+
+    .rec-artist {
+      font-size: 0.775rem;
+      color: var(--muted-foreground);
+      margin-top: 0.1rem;
+    }
+
+    .rec-card-feedback {
+      display: flex;
+      gap: 0.3rem;
+      flex-shrink: 0;
+    }
+
+    .rec-fb {
+      width: 1.85rem;
+      height: 1.85rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: transparent;
+      font-size: 0.85rem;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.45;
+      transition: opacity 0.18s, background-color 0.18s, border-color 0.18s;
+    }
+
+    .rec-fb:hover {
+      opacity: 1;
+      background: color-mix(in oklab, var(--primary) 12%, transparent);
+    }
+
+    .rec-fb.is-active {
+      opacity: 1;
+      border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+      background: color-mix(in oklab, var(--primary) 20%, transparent);
+    }
+
+    .rec-reason {
+      margin-top: 0.5rem;
+      padding-left: 2.2rem;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: color-mix(in oklab, var(--muted-foreground) 78%, var(--foreground));
+    }
+
+    .rec-noembed {
+      margin-top: 0.45rem;
+      padding-left: 2.2rem;
+      font-size: 0.73rem;
+      color: color-mix(in oklab, var(--mesh-orange) 55%, var(--muted-foreground));
+    }
+
+    .rec-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-top: 0.6rem;
+      padding-left: 2.2rem;
+      flex-wrap: wrap;
+    }
+
+    .rec-link {
+      font-size: 0.74rem;
+      color: var(--muted-foreground);
+      text-decoration: none;
+      border-bottom: 1px dotted color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+    }
+
+    .rec-link:hover {
+      color: var(--foreground);
+    }
+
+    .rec-embed-wrap {
+      margin-top: 0.6rem;
+      margin-left: 2.2rem;
+      border-radius: 0.7rem;
+      overflow: hidden;
+      border: 1px solid color-mix(in oklab, #ff0033 22%, var(--border));
+    }
+
+    .rec-embed-wrap iframe {
+      display: block;
+      width: 100%;
+      border: 0;
+    }
+
+    /* ─── Export bar (UI-009) ───────────────────────────────────── */
+    .rec-export {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 0.85rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 0.75rem;
+      border: 1px dashed color-mix(in oklab, var(--primary) 32%, var(--border));
+      background: color-mix(in oklab, var(--primary) 5%, transparent);
+    }
+
+    .rec-export-done {
+      border-style: solid;
+      border-color: color-mix(in oklab, #22c55e 40%, transparent);
+      background: color-mix(in oklab, #22c55e 8%, transparent);
+      font-size: 0.78rem;
+      color: var(--muted-foreground);
+    }
+
+    .rec-export-note {
+      font-size: 0.78rem;
+      color: var(--muted-foreground);
+    }
+
+    /* ─── Discovery mode (UI-007) ───────────────────────────────── */
+    .discovery-mode {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.55rem 0.8rem 0.15rem;
+      flex-wrap: wrap;
+    }
+
+    .discovery-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted-foreground);
+      margin-right: 0.35rem;
+    }
+
+    .discovery-btn {
+      padding: 0.22rem 0.62rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted-foreground);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.18s, background-color 0.18s, border-color 0.18s;
+    }
+
+    .discovery-btn:hover {
+      color: var(--foreground);
+      background: color-mix(in oklab, var(--primary) 10%, transparent);
+    }
+
+    .discovery-btn.is-active {
+      color: color-mix(in oklab, var(--primary) 28%, var(--foreground));
+      border-color: color-mix(in oklab, var(--primary) 50%, transparent);
+      background: color-mix(in oklab, var(--primary) 16%, transparent);
+    }
+
+    /* ─── Provider mode toggle (§5.6) ───────────────────────────── */
+    .prompt-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .provider-mode {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      margin: 0.55rem 0.8rem 0.15rem 0;
+      padding: 2px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--background) 60%, transparent);
+    }
+
+    .provider-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.22rem 0.7rem;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted-foreground);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.18s, background-color 0.18s;
+    }
+
+    .provider-btn:hover {
+      color: var(--foreground);
+    }
+
+    .provider-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 999px;
+      background: currentColor;
+      opacity: 0.55;
+    }
+
+    .provider-btn.is-active {
+      color: var(--foreground);
+      background: color-mix(in oklab, var(--foreground) 12%, transparent);
+    }
+
+    .provider-btn.is-active .provider-dot-youtube {
+      background: #ff0033;
+      opacity: 1;
+    }
+
+    .provider-btn.is-active .provider-dot-spotify {
+      background: #1DB954;
+      opacity: 1;
+    }
+
+    /* Per-provider accent on the track badge and the Spotify embed frame. */
+    .rec-pos-youtube {
+      background: color-mix(in oklab, #ff0033 20%, transparent);
+      color: color-mix(in oklab, #ff0033 30%, var(--foreground));
+    }
+
+    .rec-pos-spotify {
+      background: color-mix(in oklab, #1DB954 20%, transparent);
+      color: color-mix(in oklab, #1DB954 34%, var(--foreground));
+    }
+
+    .rec-embed-spotify {
+      border-color: color-mix(in oklab, #1DB954 30%, var(--border));
+    }
+
+    /* ─── Account widget (UI-003 / UI-004) ──────────────────────── */
+    .google-auth-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid color-mix(in oklab, var(--primary) 42%, transparent);
+      border-radius: var(--radius);
+      background: color-mix(in oklab, var(--primary) 8%, transparent);
+      color: var(--foreground);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background-color 0.18s, border-color 0.18s;
+    }
+
+    .google-auth-button:hover {
+      background: color-mix(in oklab, var(--primary) 16%, transparent);
+      border-color: color-mix(in oklab, var(--primary) 70%, transparent);
+    }
+
+    .google-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.3rem;
+      height: 1.3rem;
+      border-radius: 999px;
+      background: #fff;
+      color: #4285F4;
+      font-weight: 800;
+      font-size: 0.82rem;
+    }
+
+    .account-note {
+      margin-top: 0.45rem;
+      font-size: 0.68rem;
+      line-height: 1.45;
+      color: var(--muted-foreground);
+    }
+
+    .account-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0.6rem;
+      border: 1px solid var(--sidebar-border);
+      border-radius: var(--radius);
+      background: color-mix(in oklab, var(--primary) 5%, transparent);
+    }
+
+    .account-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+
+    .account-avatar {
+      flex-shrink: 0;
+      width: 1.6rem;
+      height: 1.6rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--primary) 32%, transparent);
+      color: var(--foreground);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .account-email {
+      font-size: 0.76rem;
+      color: var(--foreground);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .account-scope {
+      font-size: 0.68rem;
+      color: var(--muted-foreground);
+    }
+
+    .account-scope-ok {
+      color: color-mix(in oklab, #22c55e 55%, var(--muted-foreground));
+    }
+
+    .account-connect {
+      width: 100%;
+    }
+
+    .account-signout {
+      align-self: flex-start;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--muted-foreground);
+      font-size: 0.68rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .account-signout:hover {
+      color: var(--destructive);
+    }
+    /* ─── §6.1 / UI-002: Listen + Upload, and the listening overlay ───
+       Two separate controls rather than one button that opens a menu. The
+       dropdown put a decision between the user and the thing they came to do,
+       and it was a decision they had already made by choosing to press it. */
+    .composer-tools {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .listen-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 2.35rem;
+      padding: 0.48rem 0.95rem 0.48rem 0.7rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      /* The primary audio affordance, so it is the only control down here that
+         carries a filled gradient — everything else is an outline. */
+      background: linear-gradient(135deg,
+        color-mix(in oklab, var(--primary) 92%, #7c5cff),
+        color-mix(in oklab, var(--primary) 55%, #d24bff));
+      color: white;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      box-shadow: 0 6px 18px -10px color-mix(in oklab, var(--primary) 90%, transparent);
+      transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
+    }
+
+    .listen-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px -10px color-mix(in oklab, var(--primary) 95%, transparent);
+    }
+
+    .listen-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+
+    .listen-btn:disabled,
+    .upload-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+    .listen-icon {
+      display: inline-flex;
+      width: 1.35rem;
+      height: 1.35rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .listen-icon svg { width: 0.9rem; height: 0.9rem; }
+
+    .upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 2.35rem;
+      padding: 0.48rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: transparent;
+      color: color-mix(in oklab, var(--foreground) 78%, transparent);
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: border-color 0.18s, color 0.18s, transform 0.18s;
+    }
+
+    .upload-btn svg { width: 0.9rem; height: 0.9rem; }
+
+    .upload-btn:hover:not(:disabled) {
+      border-color: color-mix(in oklab, var(--primary) 60%, transparent);
+      color: var(--foreground);
+      transform: translateY(-1px);
+    }
+
+    /* ── The listening overlay ──────────────────────────────────── */
+
+    .listen-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 2rem 1.5rem;
+      background:
+        radial-gradient(circle at 50% 42%,
+          color-mix(in oklab, var(--primary) 22%, transparent), transparent 58%),
+        color-mix(in oklab, var(--background) 92%, black);
+      backdrop-filter: blur(18px);
+      animation: listen-in 0.22s ease-out;
+    }
+
+    @keyframes listen-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Fading out rather than vanishing. The chat behind is already painted and
+       already showing its loading state, so this is purely the overlay leaving
+       — it delays nothing. `pointer-events: none` matters as much as the fade:
+       during those 140 ms the dismiss button must not still be clickable. */
+    .listen-overlay.is-closing {
+      animation: none;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.14s ease-out;
+    }
+
+    .listen-dismiss {
+      position: absolute;
+      top: max(1rem, env(safe-area-inset-top));
+      right: 1rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--card) 70%, transparent);
+      color: var(--foreground);
+      cursor: pointer;
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .listen-dismiss:hover { border-color: color-mix(in oklab, var(--foreground) 40%, transparent); }
+
+    .listen-stage {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Scaled and faded from the analyser every frame — see startVisualizer.
+       No CSS keyframes here on purpose: a canned pulse would keep beating with
+       a muted microphone, which is precisely the thing the user needs to know. */
+    .listen-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 999px;
+      border: 1px solid color-mix(in oklab, var(--primary) 70%, transparent);
+      transform: translate(-50%, -50%);
+      will-change: transform, opacity;
+    }
+
+    .listen-ring-1 { width: 190px; height: 190px; }
+    .listen-ring-2 { width: 226px; height: 226px; }
+    .listen-ring-3 { width: 258px; height: 258px; }
+
+    .listen-core {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 220px;
+      height: 220px;
+      transform: translate(-50%, -50%);
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 45%,
+          color-mix(in oklab, var(--primary) 26%, transparent),
+          transparent 66%);
+    }
+
+    #listen-canvas { width: 220px; height: 220px; }
+
+    .listen-headline {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--foreground);
+    }
+
+    .listen-sub {
+      font-size: 0.85rem;
+      color: color-mix(in oklab, var(--foreground) 58%, transparent);
+    }
+
+    .listen-progress {
+      width: min(240px, 60vw);
+      height: 3px;
+      margin-top: 1.1rem;
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--foreground) 14%, transparent);
+      overflow: hidden;
+    }
+
+    #listen-progress-bar {
+      height: 100%;
+      width: 100%;
+      transform: scaleX(0);
+      transform-origin: left center;
+      border-radius: 999px;
+      background: linear-gradient(90deg,
+        color-mix(in oklab, var(--primary) 90%, #7c5cff),
+        color-mix(in oklab, var(--primary) 50%, #d24bff));
+    }
+
+    /* Reduced motion still gets the reactive rings — they are information, not
+       decoration — but loses the overlay's entrance animation. */
+    @media (prefers-reduced-motion: reduce) {
+      .listen-overlay { animation: none; }
+      .listen-overlay.is-closing { transition: none; }
+    }
+
+    /* ─── §6.4: identification result card ───────────────────────── */
+    .ident-card {
+      padding: 1rem 1.1rem;
+      border: 1px solid color-mix(in oklab, var(--primary) 32%, var(--border));
+      border-radius: 1rem;
+      background:
+        radial-gradient(circle at 0% 0%,
+          color-mix(in oklab, var(--primary) 10%, transparent), transparent 55%),
+        color-mix(in oklab, var(--card) 85%, transparent);
+    }
+
+    .ident-label {
+      font-size: 0.66rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: color-mix(in oklab, var(--primary) 78%, transparent);
+    }
+
+    .ident-label-muted { color: color-mix(in oklab, var(--foreground) 45%, transparent); }
+
+    .ident-title {
+      margin-top: 0.35rem;
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--foreground);
+    }
+
+    .ident-artist {
+      margin-top: 0.1rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: color-mix(in oklab, var(--foreground) 74%, transparent);
+    }
+
+    .ident-meta,
+    .ident-confidence {
+      margin-top: 0.35rem;
+      font-size: 0.75rem;
+      color: color-mix(in oklab, var(--foreground) 50%, transparent);
+    }
+
+    .ident-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.9rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+    }
+
+    .ident-stat {
+      flex: 1 1 4.5rem;
+      min-width: 4.5rem;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 0.65rem;
+      background: color-mix(in oklab, var(--background) 45%, transparent);
+    }
+
+    /* A measurement the analyser is not sure of must not look like one it is.
+       Same information, visibly less weight, and labelled. */
+    .ident-stat.is-weak { opacity: 0.6; border-style: dashed; }
+
+    .ident-stat-label {
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: color-mix(in oklab, var(--foreground) 42%, transparent);
+    }
+
+    .ident-stat-value {
+      margin-top: 0.15rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--foreground);
+    }
+
+    .ident-stat-note {
+      font-size: 0.6rem;
+      color: color-mix(in oklab, var(--foreground) 40%, transparent);
+    }
+
+    .ident-followup {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.95rem;
+    }
+
+    .ident-prompt {
+      flex: 1 1 12rem;
+      min-width: 0;
+      padding: 0.55rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--background) 55%, transparent);
+      color: var(--foreground);
+      font-size: 0.82rem;
+    }
+
+    .ident-prompt::placeholder { color: color-mix(in oklab, var(--foreground) 35%, transparent); }
+
+    .ident-prompt:focus {
+      outline: none;
+      border-color: color-mix(in oklab, var(--primary) 65%, transparent);
+    }
+
+    .ident-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.95rem;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg,
+        color-mix(in oklab, var(--primary) 92%, #7c5cff),
+        color-mix(in oklab, var(--primary) 55%, #d24bff));
+      color: white;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 800;
+      white-space: nowrap;
+      transition: transform 0.18s, opacity 0.18s;
+    }
+
+    .ident-cta:hover:not(:disabled) { transform: translateY(-1px); }
+    .ident-cta:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    @media (max-width: 520px) {
+      .ident-cta { flex: 1 1 100%; justify-content: center; }
+      .listen-stage { width: 220px; height: 220px; }
+    }
+
+    /* ─── §6.4: ranked alternatives ──────────────────────────────────
+       Shown when recognition is not confident. Melody matching returns a
+       ranked list whose first entry is frequently wrong while the right
+       answer sits just below it, so the list is the honest presentation —
+       a guess shown as a guess rather than dressed up as an answer. */
+    .ident-candidates {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+    }
+
+    .ident-candidates-head {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: color-mix(in oklab, var(--foreground) 45%, transparent);
+      margin-bottom: 0.5rem;
+    }
+
+    .ident-candidate {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      background: color-mix(in oklab, var(--background) 40%, transparent);
+    }
+
+    .ident-candidate + .ident-candidate { margin-top: 0.35rem; }
+
+    .ident-candidate-meta { min-width: 0; }
+
+    .ident-candidate-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--foreground);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ident-candidate-artist {
+      font-size: 0.75rem;
+      color: color-mix(in oklab, var(--foreground) 60%, transparent);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* The number is the point of the row: it is what lets the reader judge
+       a 96% against a 44% instead of trusting the order alone. */
+    .ident-candidate-score {
+      flex: 0 0 auto;
+      font-size: 0.8rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: color-mix(in oklab, var(--primary) 80%, transparent);
+    }

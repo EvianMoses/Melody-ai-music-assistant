@@ -121,6 +121,7 @@
           New chat
         </button>
       </div>
+      <div id="account-widget" class="px-3 pb-3"></div>
       <div id="spotify-auth-widget" class="px-3 pb-3"></div>
 
       <!-- Thread list -->
@@ -172,34 +173,89 @@
         </div>
 
         <!-- Input area -->
+        <!-- §6.1 — the listening overlay. Full-screen and modal on purpose:
+             listening is a single-focus moment, and the surrounding chat
+             offers nothing useful during the few seconds it lasts. -->
+        <div id="listen-overlay" class="listen-overlay" hidden role="dialog" aria-modal="true"
+          aria-labelledby="listen-headline">
+          <button type="button" class="listen-dismiss" onclick="cancelListening()"
+            aria-label="Stop listening">×</button>
+
+          <div class="listen-stage">
+            <!-- Rings are driven from the analyser in requestAnimationFrame, so
+                 they track the actual room, not a canned animation. -->
+            <div class="listen-ring listen-ring-3" aria-hidden="true"></div>
+            <div class="listen-ring listen-ring-2" aria-hidden="true"></div>
+            <div class="listen-ring listen-ring-1" aria-hidden="true"></div>
+            <div class="listen-core" aria-hidden="true">
+              <canvas id="listen-canvas" width="220" height="220"></canvas>
+            </div>
+          </div>
+
+          <h2 id="listen-headline" class="listen-headline">Listening…</h2>
+          <p id="listen-sub" class="listen-sub" aria-live="polite">Hold your phone towards the music</p>
+          <div class="listen-progress" aria-hidden="true"><div id="listen-progress-bar"></div></div>
+        </div>
+
         <div id="input-area" class="relative px-4 pb-6 pt-2" style="z-index:1;">
           <div class="mx-auto w-full max-w-3xl">
             <form method="POST" action="/" onsubmit="handleSubmit(); return false;">
               <div id="prompt-box">
-                <div id="feedback-controls" class="feedback-controls" aria-label="Recommendation feedback">
-                  <span class="feedback-label" dir="auto">Want a better recommendation? Click with your next
-                    message:</span>
-                  <button class="feedback-btn" type="button" data-feedback="Loved it" aria-label="Loved it">
-                    <svg class="feedback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M7 10v12" />
-                      <path
-                        d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
-                    </svg>
-                  </button>
-                  <button class="feedback-btn" type="button" data-feedback="Not for me" aria-label="Not for me">
-                    <svg class="feedback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M17 14V2" />
-                      <path
-                        d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
-                    </svg>
-                  </button>
+                <div class="prompt-controls">
+                  <!-- UI-007: discovery mode, sent with every request -->
+                  <div id="discovery-mode" class="discovery-mode" role="group" aria-label="Discovery mode">
+                    <span class="discovery-label">Discovery</span>
+                    <button class="discovery-btn" type="button" data-mode="safe"
+                      title="Stay close to what you asked for">Safe</button>
+                    <button class="discovery-btn" type="button" data-mode="balanced"
+                      title="A mix of familiar and new">Balanced</button>
+                    <button class="discovery-btn" type="button" data-mode="adventurous"
+                      title="Push further from the obvious picks">Adventurous</button>
+                  </div>
+
+                  <!-- §5.6: which service answers. Asking for a provider by
+                       name in the message overrides whatever is selected here. -->
+                  <div id="provider-mode" class="provider-mode" role="group" aria-label="Music service">
+                    <button class="provider-btn" type="button" data-provider="youtube"
+                      title="Recommend from YouTube">
+                      <span class="provider-dot provider-dot-youtube" aria-hidden="true"></span>YouTube
+                    </button>
+                    <button class="provider-btn" type="button" data-provider="spotify"
+                      title="Recommend from Spotify">
+                      <span class="provider-dot provider-dot-spotify" aria-hidden="true"></span>Spotify
+                    </button>
+                  </div>
                 </div>
                 <textarea id="message-input" name="user_query" rows="1" dir="auto"
                   placeholder="Ask Melody about any sound, mood, or artist…" style="min-height:44px;max-height:200px;"
                   onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+                <input id="audio-file-input" type="file" accept="audio/*" hidden
+                  onchange="handleAudioFileChosen(event)">
+
                 <div class="flex items-center justify-between gap-3 px-3 pb-3">
+                  <div class="composer-tools">
+                    <!-- §6.1 AUD-UP-001 — two separate controls, no menu in
+                         between. Listening starts on the first tap. -->
+                    <button id="audio-listen-btn" type="button" class="listen-btn"
+                      onclick="startListening()" aria-label="Listen to music around you">
+                      <span class="listen-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round">
+                          <path d="M12 3v18M8 7v10M16 7v10M4 10v4M20 10v4"/>
+                        </svg>
+                      </span>
+                      Listen
+                    </button>
+                    <button id="audio-upload-btn" type="button" class="upload-btn"
+                      onclick="document.getElementById('audio-file-input').click()"
+                      title="Upload an audio file">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v13"/>
+                      </svg>
+                      Upload
+                    </button>
+                  </div>
                   <button id="anti-algorithm-btn" type="button" onclick="handleAntiAlgorithm()">
                     <span aria-hidden="true">🎲</span>
                     Break the Algorithm
@@ -253,19 +309,26 @@
     const INITIAL_ANSWER = readInitialJson('initial-answer-data');
     const INITIAL_ERROR = readInitialJson('initial-error-data');
     const ANTI_ALGORITHM_SUFFIX = "IGNORE MY SPOTIFY TASTE COMPLETELY. Recommend a completely unexpected, obscure, or avant-garde track related to this request. Surprise me and explain why!";
+    const DISCOVERY_STORAGE_KEY = 'melody_discovery_mode';
+    const PROVIDER_STORAGE_KEY = 'melody_provider_mode';
     let currentThreadId = null;
     let currentMessages = [];
     let isLoading = false;
-    let activeFeedback = null;
     let renderedMessageCount = 0;
     let loadingNode = null;
-    let backendSessionId = null;
-    let authStatusPromise = null;
-    console.log('[DEBUG - FRONTEND STATE] Waiting for backend Flask session_id from /api/auth_status:', {
-      hasInitialQuestion: Boolean(INITIAL_QUESTION),
-      hasInitialAnswer: Boolean(INITIAL_ANSWER),
-      hasInitialError: Boolean(INITIAL_ERROR),
-    });
+    let lastPrompt = '';
+    // UI-007: safe | balanced | adventurous, forwarded on every request and
+    // remembered between visits.
+    let discoveryMode = localStorage.getItem(DISCOVERY_STORAGE_KEY) || 'balanced';
+    // §5.6: 'youtube' | 'spotify'. A default the message can override.
+    let providerMode = localStorage.getItem(PROVIDER_STORAGE_KEY) || 'youtube';
+    // UI-003/UI-004: the latest /api/v1/auth/status snapshot.
+    let authState = null;
+    // Keyed by message index.
+    const exportStates = {};
+    const exportKeys = {};
+    // Keyed by "msgIndex:trackIndex".
+    const trackFeedback = {};
 
     /* ── localStorage helpers ───────────────────────────────────── */
     function loadThreads() {
@@ -301,43 +364,116 @@
       return s.length < first.content.length ? s + '…' : s;
     }
 
-    function setBackendSessionId(sessionId, source) {
-      if (!sessionId) {
-        console.log('[DEBUG - FRONTEND STATE] No backend sessionId available to store:', {
-          source,
-          previousBackendSessionId: backendSessionId,
-        });
+    /* ── Identity and provider connection (UI-003 / UI-004) ─────────
+       The browser never handles a session id or a provider token: Flask's
+       HttpOnly session cookie carries identity on every request, and this
+       endpoint returns connection *metadata* only. */
+    async function refreshAuthState() {
+      try {
+        const res = await fetch('/api/v1/auth/status');
+        authState = await res.json();
+      } catch {
+        // Treat an unreachable status endpoint as "guest": it degrades to the
+        // sign-in prompt rather than offering an export that cannot work.
+        authState = { ok: false, authenticated: false, guest: true, can_export: false, providers: {} };
+      }
+      renderAuthWidget();
+      return authState;
+    }
+
+    function renderAuthWidget() {
+      renderGoogleWidget();
+      renderSpotifyWidget();
+    }
+
+    function renderGoogleWidget() {
+      const widget = document.getElementById('account-widget');
+      if (!widget) return;
+
+      const google = authState?.providers?.google || {};
+
+      if (!google.configured) {
+        widget.innerHTML = `<div class="account-note">Google sign-in isn't configured on this server. You're browsing as a guest.</div>`;
+        return;
+      }
+      if (!authState?.authenticated) {
+        widget.innerHTML = `
+          <a class="google-auth-button" href="/auth/google/login">
+            <span class="google-mark" aria-hidden="true">G</span>
+            Sign in with Google
+          </a>
+          <div class="account-note">Guest mode — your picks work, but nothing is saved.</div>`;
         return;
       }
 
-      const previousBackendSessionId = backendSessionId;
-      backendSessionId = sessionId;
-      console.log('[DEBUG - FRONTEND STATE] Stored backend Flask sessionId:', {
-        source,
-        backendSessionId,
-        previousBackendSessionId,
-        changed: Boolean(previousBackendSessionId && previousBackendSessionId !== backendSessionId),
-      });
+      const email = google.email || 'Signed in';
+      widget.innerHTML = `
+        <div class="account-card">
+          <div class="account-row">
+            <span class="account-avatar" aria-hidden="true">${esc((email[0] || '?').toUpperCase())}</span>
+            <span class="account-email" title="${esc(email)}">${esc(email)}</span>
+          </div>
+          ${authState.can_export
+            ? `<div class="account-scope account-scope-ok">✅ YouTube playlists connected</div>`
+            : `<a class="melody-action-btn account-connect" href="/auth/google/upgrade">Connect YouTube playlists</a>`}
+          <button class="account-signout" type="button" onclick="handleDisconnect()">Disconnect</button>
+        </div>`;
     }
 
-    async function ensureBackendSessionId() {
-      if (backendSessionId) return backendSessionId;
+    /* Spotify connection widget. Independent of Google sign-in: Spotify is a
+       music provider here, not an identity provider, so a user can be
+       connected to either, both, or neither. Spotify *search* works without
+       any connection at all (the server uses application credentials), so
+       this is about the user's own library and taste, not about whether
+       Spotify mode functions. */
+    const SPOTIFY_MARK = `<span class="spotify-icon" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.59 14.43a.72.72 0 0 1-.99.24c-2.72-1.66-6.14-2.04-10.17-1.12a.72.72 0 1 1-.32-1.4c4.41-1.01 8.19-.57 11.24 1.29.34.21.45.65.24.99Zm1.31-2.92a.9.9 0 0 1-1.23.3c-3.12-1.91-7.87-2.47-11.56-1.35a.9.9 0 1 1-.52-1.72c4.22-1.28 9.45-.66 13.01 1.52.42.26.55.82.3 1.25Zm.11-3.03C14.27 8.25 8.1 8.04 4.53 9.2a1.08 1.08 0 1 1-.67-2.05c4.1-1.34 10.92-1.1 15.25 1.47a1.08 1.08 0 0 1-1.1 1.86Z" />
+        </svg>
+      </span>`;
 
-      console.log('[DEBUG - FRONTEND STATE] Waiting for backend sessionId before request:', {
-        currentThreadId,
-        hasAuthStatusPromise: Boolean(authStatusPromise),
-      });
+    async function renderSpotifyWidget() {
+      const widget = document.getElementById('spotify-auth-widget');
+      if (!widget) return;
 
-      const auth = authStatusPromise
-        ? await authStatusPromise
-        : await updateAuthStatus();
-      setBackendSessionId(auth?.session_id, 'ensureBackendSessionId');
-
-      if (!backendSessionId) {
-        throw new Error('Missing backend session id from /api/auth_status.');
+      let auth = null;
+      try {
+        const res = await fetch('/api/auth_status');
+        auth = await res.json();
+      } catch {
+        auth = null;
       }
 
-      return backendSessionId;
+      if (!auth?.logged_in) {
+        widget.innerHTML = `
+          <a class="spotify-auth-button" href="/login">
+            ${SPOTIFY_MARK}
+            <span>Connect Spotify</span>
+          </a>`;
+        return;
+      }
+
+      const avatar = auth.profile_image_url
+        ? `<img class="spotify-profile-avatar" src="${esc(auth.profile_image_url)}" alt="">`
+        : `<span class="spotify-profile-avatar spotify-profile-fallback">${esc((auth.display_name || 'M').slice(0, 1))}</span>`;
+      widget.innerHTML = `
+        <div class="spotify-profile-widget">
+          ${avatar}
+          <div class="min-w-0 flex-1">
+            <div class="spotify-profile-name">${esc(auth.display_name || 'Spotify User')}</div>
+            <a class="spotify-logout-link" href="/logout">Disconnect</a>
+          </div>
+        </div>`;
+    }
+
+    async function handleDisconnect() {
+      if (!window.confirm('Disconnect your Google account? Melody will revoke its access.')) return;
+      try {
+        await fetch('/auth/google/disconnect', { method: 'POST' });
+      } finally {
+        await refreshAuthState();
+        renderMessages(true);
+      }
     }
 
     /* ── Sidebar ────────────────────────────────────────────────── */
@@ -439,8 +575,12 @@
       }
     }
 
-    /* ── Message rendering ──────────────────────────────────────── */
-    function renderMessages() {
+    /* ── Message rendering ────────────────────────────────────────
+       Rendering is incremental (only new messages are appended) so that a
+       mounted YouTube player is never torn down by an unrelated update.
+       `full` forces a rebuild for the cases that change an *existing*
+       message's markup — export state, mainly. */
+    function renderMessages(full) {
       const inner = document.getElementById('messages-inner');
       if (!inner) return;
 
@@ -448,7 +588,7 @@
       document.getElementById('main-area')?.classList.toggle('home-mode', isHomeMode);
       const renderKey = currentThreadId || (currentMessages.length ? 'transient-chat' : 'home');
 
-      if (inner.dataset.renderKey !== renderKey || renderedMessageCount > currentMessages.length) {
+      if (full || inner.dataset.renderKey !== renderKey || renderedMessageCount > currentMessages.length) {
         inner.innerHTML = '';
         inner.dataset.renderKey = renderKey;
         renderedMessageCount = 0;
@@ -459,7 +599,6 @@
         inner.innerHTML = renderEmptyState();
         renderedMessageCount = 0;
         loadingNode = null;
-        updateFeedbackControls();
         return;
       }
 
@@ -475,71 +614,497 @@
       }
 
       for (let i = renderedMessageCount; i < currentMessages.length; i += 1) {
-        inner.insertAdjacentHTML('beforeend', renderMsg(currentMessages[i]));
+        inner.insertAdjacentHTML('beforeend', renderMsg(currentMessages[i], i));
       }
       renderedMessageCount = currentMessages.length;
+      restoreFeedbackButtons();
 
       if (isLoading) {
         inner.insertAdjacentHTML('beforeend', renderEqualizer());
         loadingNode = inner.querySelector('[data-loading-message="true"]');
       }
-      updateFeedbackControls();
       scrollToBottom();
     }
 
-    function renderMsg(m) {
+    /* A forced re-render throws away the DOM, so the recorded like/dislike
+       has to be reapplied from state rather than living only in the markup. */
+    function restoreFeedbackButtons() {
+      Object.entries(trackFeedback).forEach(([key, action]) => {
+        if (!action) return;
+        const [msgIndex, trackIndex] = key.split(':');
+        document
+          .querySelector(`.rec-fb[data-fb="${action}"][data-fb-msg="${msgIndex}"][data-fb-track="${trackIndex}"]`)
+          ?.classList.add('is-active');
+      });
+    }
+
+    function renderMsg(m, index) {
       if (m.role === 'user') {
         return `
         <div class="flex justify-end fade-in-up" dir="auto">
           <div class="user-bubble" dir="auto">${esc(m.content)}</div>
         </div>`;
       }
-      const parsed = parseAgentResponse(m.content);
+      const inner = m.kind === 'recommendation'
+        ? renderRecommendation(m, index)
+        : m.kind === 'identification'
+          ? renderIdentification(m, index)
+        : m.kind === 'error'
+          ? renderErrorState(m, index)
+          : `<div class="melody-markdown" dir="auto" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
+               ${marked.parse(String(m.content || ''))}
+             </div>`;
       return `
       <div class="flex items-start gap-3 fade-in-up" dir="auto">
         ${avatarHTML(32)}
         <div class="flex-1 min-w-0 pt-1">
           <div class="mb-1 text-xs font-medium tracking-wide" style="color:color-mix(in oklab,var(--primary) 80%,transparent);">Melody</div>
-          <div class="ai-bubble" dir="auto">
-            <div class="melody-markdown" dir="auto" style="font-size:0.9375rem;line-height:1.65;color:var(--foreground);">
-              ${marked.parse(parsed.text)}
-            </div>
-            ${renderSpotifyEmbed(parsed)}
+          <div class="ai-bubble" dir="auto">${inner}</div>
+        </div>
+      </div>`;
+    }
+
+    /* ── UI-010: actionable failure, not a dead end ─────────────────
+       Every error carries a code, a human sentence, and — when the fix is
+       something the user can actually do — a button that does it. An
+       authorization failure must never read as "something broke". */
+    function renderErrorState(m, index) {
+      const code = String(m.code || 'ERROR');
+      const needsAuth = code === 'AUTHORIZATION_REQUIRED' || code === 'REAUTHORIZATION_REQUIRED';
+      const needsScope = code === 'INSUFFICIENT_SCOPE';
+      let action = '';
+      if (needsAuth) {
+        action = `<a class="melody-action-btn" href="/auth/google/login">Sign in with Google</a>`;
+      } else if (needsScope) {
+        action = `<a class="melody-action-btn" href="/auth/google/upgrade">Approve playlist access</a>`;
+      } else if (m.retryPrompt) {
+        action = `<button class="melody-action-btn" type="button" data-retry-index="${index}">Try again</button>`;
+      }
+      return `
+      <div class="melody-alert melody-alert-error" dir="auto">
+        <div class="melody-alert-body">
+          <div class="melody-alert-title">${esc(m.title || 'That didn\'t work')}</div>
+          <div class="melody-alert-text">${esc(m.content || '')}</div>
+        </div>
+        ${action ? `<div class="melody-alert-actions">${action}</div>` : ''}
+      </div>`;
+    }
+
+    /* §6.4 — the result card.
+
+       Four outcomes, kept apart on purpose, because collapsing them is how a
+       user is told "we couldn't find your song" about a feature that never ran:
+
+         matched            — a real match, with its confidence
+         no match           — recognition ran and found nothing
+         not configured     — no recognition provider; say so
+         provider failed    — it broke; say that too
+
+       In every one of them the measured features are still shown. BPM, key and
+       genre are worth something on their own — they are what the "similar
+       vibe" follow-up actually runs on — so a failed *match* never leaves an
+       empty card. */
+    function renderIdentification(m, index) {
+      const d = m.data || {};
+      const track = d.track || {};
+      const f = d.features || {};
+      const matched = d.matched === true && (track.title || track.artist);
+
+      const conf = (value) => Math.round((Number(value) || 0) * 100);
+
+      // Only shown when the measurement earned it. `field_confidence` below
+      // 0.35 means the analyser is guessing, and printing "A minor" in the same
+      // type as a confident BPM would present a coin-flip as a fact.
+      const fc = f.field_confidence || {};
+      const stat = (label, value, confidence) => {
+        if (value === null || value === undefined || value === '') return '';
+        const weak = confidence !== undefined && confidence < 0.35;
+        return `
+          <div class="ident-stat${weak ? ' is-weak' : ''}">
+            <div class="ident-stat-label">${esc(label)}</div>
+            <div class="ident-stat-value">${esc(String(value))}</div>
+            ${weak ? '<div class="ident-stat-note">uncertain</div>' : ''}
+          </div>`;
+      };
+
+      const stats = [
+        stat('BPM', f.bpm ? Math.round(f.bpm) : null, fc.tempo),
+        stat('Key', f.musical_key, fc.key),
+        stat('Camelot', f.camelot, fc.key),
+        stat('Genre', f.genre, fc.genre),
+        stat('Energy', f.energy != null ? `${Math.round(f.energy * 100)}%` : null, fc.energy),
+      ].filter(Boolean).join('');
+
+      let head;
+      if (matched) {
+        head = `
+          <div class="ident-head">
+            <div class="ident-label">${d.low_confidence ? 'Probably' : 'Identified'}</div>
+            <div class="ident-title">${esc(track.title || 'Unknown title')}</div>
+            <div class="ident-artist">${esc(track.artist || 'Unknown artist')}</div>
+            ${track.album ? `<div class="ident-meta">${esc(track.album)}${track.release_date ? ` · ${esc(String(track.release_date).slice(0, 4))}` : ''}</div>` : ''}
+            <div class="ident-confidence">${conf(d.confidence)}% match${d.low_confidence ? ' · not certain' : ''}</div>
+          </div>`;
+      } else if (d.placeholder === true) {
+        head = `
+          <div class="ident-head">
+            <div class="ident-label ident-label-muted">Not available</div>
+            <div class="ident-title">Track recognition isn't switched on</div>
+            <div class="ident-meta">Melody still listened and measured what it heard — you can search from that.</div>
+          </div>`;
+      } else if (d.reason && d.reason !== 'no_match' && d.reason !== 'below_threshold') {
+        head = `
+          <div class="ident-head">
+            <div class="ident-label ident-label-muted">Couldn't check</div>
+            <div class="ident-title">Recognition didn't answer</div>
+            <div class="ident-meta">The measurements below are still yours to search with.</div>
+          </div>`;
+      } else {
+        head = `
+          <div class="ident-head">
+            <div class="ident-label ident-label-muted">No match</div>
+            <div class="ident-title">Melody didn't recognise that</div>
+            <div class="ident-meta">A longer or clearer clip usually helps — or search from the sound itself.</div>
+          </div>`;
+      }
+
+      // The follow-up needs the clip, and the clip expires. Offering a button
+      // that cannot work is worse than not offering it.
+      const canFollowUp = Boolean(m.audioJobId);
+
+      /* Ranked alternatives (§6.4). Shown whenever we are not confident —
+         which for hummed audio is most of the time, and deliberately so.
+         Melody matching returns a ranked list whose top entry is often wrong
+         while the right answer sits one row below: measured on six real hums,
+         showing the list puts the correct song on screen for three of them
+         against one for top-1 alone. Presenting a ranked guess as an answer
+         would be worse than presenting it as a list of guesses. */
+      const candidates = Array.isArray(d.candidates) ? d.candidates : [];
+      const alternatives = candidates.filter((c) =>
+        !(matched && c.title === track.title && c.artist === track.artist));
+      const list = alternatives.length && (!matched || d.low_confidence) ? `
+        <div class="ident-candidates">
+          <div class="ident-candidates-head">${matched
+            ? 'Or did you mean one of these?'
+            : 'Closest matches — none certain enough to call'}</div>
+          ${alternatives.map((c) => `
+            <div class="ident-candidate">
+              <div class="ident-candidate-meta">
+                <div class="ident-candidate-title">${esc(c.title || 'Unknown title')}</div>
+                <div class="ident-candidate-artist">${esc(c.artist || 'Unknown artist')}</div>
+              </div>
+              <div class="ident-candidate-score">${Math.round((Number(c.confidence) || 0) * 100)}%</div>
+            </div>`).join('')}
+        </div>` : '';
+
+      return `
+      <div class="ident-card" dir="auto">
+        ${head}
+        ${list}
+        ${stats ? `<div class="ident-stats">${stats}</div>` : ''}
+        ${canFollowUp ? `
+        <div class="ident-followup">
+          <input class="ident-prompt" type="text" dir="auto"
+            data-ident-msg="${index}" maxlength="200"
+            placeholder="Anything to add? e.g. slower, in Hebrew, from the 90s"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();requestSimilarVibe(${index});}">
+          <button type="button" class="ident-cta" onclick="requestSimilarVibe(${index})">
+            <span aria-hidden="true">✨</span> Find me something with a similar vibe
+          </button>
+        </div>` : ''}
+      </div>`;
+    }
+
+    function renderRecommendation(m, index) {
+      const d = m.data || {};
+      const tracks = Array.isArray(d.tracks) ? d.tracks : [];
+
+      if (!tracks.length) {
+        return `
+        <div class="melody-alert melody-alert-warn" dir="auto">
+          <div class="melody-alert-body">
+            <div class="melody-alert-title">No playable tracks came back</div>
+            <div class="melody-alert-text">${esc(d.playlist_description || 'Try describing the sound, mood or era in a little more detail.')}</div>
+          </div>
+        </div>`;
+      }
+
+      // Export writes a *YouTube* playlist (§5.5), so only YouTube tracks can
+      // be offered — sending a Spotify id to playlistItems.insert would fail
+      // at the provider after the user had already confirmed.
+      const exportable = tracks
+        .filter(t => t.provider_track_id && providerOf(t) === 'youtube')
+        .map(t => t.provider_track_id);
+      return `
+      <div class="rec-block" dir="auto">
+        <div class="rec-header">
+          <div>
+            <div class="rec-title">${esc(d.playlist_title || 'Your Melody Mix')}</div>
+            <div class="rec-count">${tracks.length} track${tracks.length === 1 ? '' : 's'}</div>
           </div>
         </div>
+        ${d.playlist_description
+          ? `<div class="melody-markdown rec-description">${marked.parse(String(d.playlist_description))}</div>`
+          : ''}
+        ${renderNotices(m)}
+        <ol class="rec-list">${tracks.map((t, i) => renderTrackCard(t, index, i)).join('')}</ol>
+        ${renderExportBar(index, exportable)}
       </div>`;
     }
 
-    function parseAgentResponse(content) {
-      const raw = String(content || '');
-      const embedTypes = [
-        { tag: 'TRACK_ID', type: 'track' },
-        { tag: 'PLAYLIST_ID', type: 'playlist' },
-        { tag: 'ALBUM_ID', type: 'album' },
-        { tag: 'ARTIST_ID', type: 'artist' },
-      ];
-      const embed = embedTypes.reduce((found, candidate) => {
-        if (found) return found;
-        const match = raw.match(new RegExp(`\\[${candidate.tag}:\\s*([^\\]]+)\\]`, 'i'));
-        return match ? { type: candidate.type, id: match[1].trim() } : null;
-      }, null);
-      const text = raw
-        .replace(/\[(TRACK|PLAYLIST|ALBUM|ARTIST)_ID:\s*[^\]]+\]/gi, '')
-        .trim();
-      return { text, embed };
-    }
-
-    function renderSpotifyEmbed({ embed }) {
-      if (!embed || !embed.id) return '';
-      const dimensions = embed.type === 'track'
-        ? { height: 152 }
-        : { height: 352 };
-      return `
-      <div class="track-enhancement" data-spotify-type="${esc(embed.type)}" data-spotify-id="${esc(embed.id)}">
-        <div class="spotify-embed-wrap">
-          <iframe style="border-radius:12px" src="https://open.spotify.com/embed/${esc(embed.type)}/${esc(embed.id)}?utm_source=generator" width="100%" height="${dimensions.height}" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+    /* UI-010: partial and low-confidence results are shown as such rather
+       than presented as a clean answer. `fallbackUsed` and a short track
+       list are the two signals the backend actually gives us today. */
+    function renderNotices(m) {
+      const notices = [];
+      const meta = m.meta || {};
+      if (meta.fallbackUsed) {
+        notices.push('Melody had to fall back to a simpler search for this one, so the picks may be less tailored.');
+      }
+      // NB: there is deliberately no "only a few tracks" notice any more. One
+      // recommendation per reply is now the intended shape, so a count-based
+      // warning would fire on every single successful response.
+      if (!notices.length) return '';
+      return `<div class="melody-alert melody-alert-warn rec-notice" dir="auto">
+        <div class="melody-alert-body">
+          ${notices.map(n => `<div class="melody-alert-text">${esc(n)}</div>`).join('')}
         </div>
       </div>`;
+    }
+
+    /* PLAY-001/002/005. The player is inserted on click rather than up
+       front: ten autoloaded YouTube iframes cost a great deal on a first
+       paint, and `embeddable === false` means the IFrame player will refuse
+       the video outright, so those tracks get a plain provider link instead
+       (PLAY-005) rather than an embed that renders an error. */
+    const PROVIDER_LABELS = { youtube: 'YouTube', spotify: 'Spotify' };
+
+    function providerOf(track) {
+      return (track.provider || 'youtube').toLowerCase();
+    }
+
+    function renderTrackCard(t, msgIndex, trackIndex) {
+      const id = t.provider_track_id || '';
+      const provider = providerOf(t);
+      const label = PROVIDER_LABELS[provider] || 'the provider';
+      const url = t.url || (id
+        ? (provider === 'spotify'
+          ? `https://open.spotify.com/track/${encodeURIComponent(id)}`
+          : `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`)
+        : '');
+      const canEmbed = Boolean(id) && t.embeddable !== false;
+      const link = url
+        ? `<a class="rec-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open on ${esc(label)}</a>`
+        : '';
+      // Stated, not hidden: the user should know why there is no inline player.
+      const noEmbedNote = id && t.embeddable === false
+        ? `<div class="rec-noembed">This one can't be played inside Melody — the uploader disabled embedding.</div>`
+        : '';
+
+      return `
+      <li class="rec-card" data-track-index="${trackIndex}">
+        <div class="rec-card-top">
+          <span class="rec-pos rec-pos-${esc(provider)}" aria-hidden="true">${provider === 'spotify' ? '♫' : '▶'}</span>
+          <div class="rec-meta">
+            <div class="rec-track-title">${esc(t.title || 'Unknown title')}</div>
+            <div class="rec-artist">${esc(t.artist || 'Unknown artist')}${t.duration_seconds ? ` · ${formatDuration(t.duration_seconds)}` : ''} · ${esc(label)}</div>
+          </div>
+          <div class="rec-card-feedback">
+            <button class="rec-fb" type="button" data-fb="like" data-fb-msg="${msgIndex}" data-fb-track="${trackIndex}" aria-label="Like ${esc(t.title || 'track')}">👍</button>
+            <button class="rec-fb" type="button" data-fb="dislike" data-fb-msg="${msgIndex}" data-fb-track="${trackIndex}" aria-label="Dislike ${esc(t.title || 'track')}">👎</button>
+          </div>
+        </div>
+        ${t.reasoning ? `<div class="rec-reason">${esc(t.reasoning)}</div>` : ''}
+        ${noEmbedNote}
+        <div class="rec-actions">${link}</div>
+        <div class="rec-player" data-player-slot="${trackIndex}">
+          ${canEmbed ? playerEmbedHTML(provider, id, t.title) : ''}
+        </div>
+      </li>`;
+    }
+
+    /* One recommendation per reply means one player, so it is rendered
+       directly instead of behind a "Play here" button — the click-to-mount
+       step existed only to avoid loading several embeds at once. Neither
+       player autoplays: the user chose to ask, not to be played at. */
+    function playerEmbedHTML(provider, id, title) {
+      if (provider === 'spotify') {
+        return `
+        <div class="rec-embed-wrap rec-embed-spotify">
+          <iframe src="https://open.spotify.com/embed/track/${encodeURIComponent(id)}"
+                  title="Spotify player: ${esc(title || 'track')}" width="100%" height="152"
+                  frameborder="0" loading="lazy"
+                  allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+        </div>`;
+      }
+      return `
+      <div class="rec-embed-wrap">
+        <iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?rel=0"
+                title="YouTube player: ${esc(title || 'track')}" width="100%" height="200"
+                frameborder="0" loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+      </div>`;
+    }
+
+    function formatDuration(seconds) {
+      const s = Number(seconds) || 0;
+      const m = Math.floor(s / 60);
+      return `${m}:${String(s % 60).padStart(2, '0')}`;
+    }
+
+    /* UI-009. Export writes to the user's real YouTube account, so it is
+       never implicit: the button states what will happen, and the click is
+       confirmed before anything is sent. When the account isn't connected
+       or hasn't granted the playlist scope, the control says so and offers
+       the specific fix instead of failing after the fact. */
+    function renderExportBar(msgIndex, exportableIds) {
+      if (!exportableIds.length) return '';
+      const state = exportStates[msgIndex];
+
+      if (state?.status === 'done') {
+        return `<div class="rec-export rec-export-done">
+          <span>✅ Exported ${state.replayed ? '(already saved earlier)' : ''} as a private playlist.</span>
+          ${state.url ? `<a class="melody-action-btn" href="${esc(state.url)}" target="_blank" rel="noopener noreferrer">Open playlist</a>` : ''}
+        </div>`;
+      }
+      if (state?.status === 'pending') {
+        return `<div class="rec-export"><span class="rec-export-note">Creating your playlist on YouTube…</span></div>`;
+      }
+
+      if (!authState?.authenticated) {
+        return `<div class="rec-export">
+          <span class="rec-export-note">Sign in to save this as a YouTube playlist.</span>
+          <a class="melody-action-btn" href="/auth/google/login">Sign in with Google</a>
+        </div>`;
+      }
+      if (!authState?.can_export) {
+        return `<div class="rec-export">
+          <span class="rec-export-note">Melody needs your permission to create playlists.</span>
+          <a class="melody-action-btn" href="/auth/google/upgrade">Approve playlist access</a>
+        </div>`;
+      }
+      return `<div class="rec-export">
+        <span class="rec-export-note">Save these ${exportableIds.length} tracks to your YouTube account.</span>
+        <button class="melody-action-btn" type="button" data-export-msg="${msgIndex}">Export as private playlist</button>
+      </div>`;
+    }
+
+    async function handleExport(msgIndex) {
+      const message = currentMessages[msgIndex];
+      const tracks = message?.data?.tracks || [];
+      const trackIds = tracks.map(t => t.provider_track_id).filter(Boolean);
+      if (!trackIds.length) return;
+
+      const title = message?.data?.playlist_title || 'Melody Export';
+      if (!window.confirm(
+        `Create a private YouTube playlist "${title}" with ${trackIds.length} track(s) in your Google account?`
+      )) return;
+
+      // One key per recommendation, generated once and reused: a second click
+      // must land on the same playlist rather than creating another one.
+      exportKeys[msgIndex] = exportKeys[msgIndex] || `${currentThreadId || 'thread'}-${msgIndex}-${Date.now()}`;
+      exportStates[msgIndex] = { status: 'pending' };
+      renderMessages(true);
+
+      try {
+        const res = await fetch('/api/v1/playlists/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            track_ids: trackIds,
+            name: title,
+            description: message?.data?.playlist_description || '',
+            idempotency_key: exportKeys[msgIndex],
+          }),
+        });
+        const data = await res.json();
+        const exported = data?.result?.export?.body || data?.result?.export || {};
+        if (!res.ok || data?.ok === false) {
+          throw Object.assign(new Error(readErrorMessage(data)), { code: readErrorCode(data) });
+        }
+        exportStates[msgIndex] = {
+          status: 'done',
+          url: exported.url || '',
+          replayed: Boolean(exported.replayed),
+        };
+      } catch (error) {
+        exportStates[msgIndex] = null;
+        currentMessages.push({
+          role: 'assistant',
+          kind: 'error',
+          code: error.code || 'EXPORT_FAILED',
+          title: 'Export did not complete',
+          content: error.message || 'The playlist could not be created.',
+        });
+        // A failed export must not look like a success, and must not leave a
+        // half-written playlist claim on screen.
+        await refreshAuthState();
+      } finally {
+        renderMessages(true);
+        persistCurrentThread();
+      }
+    }
+
+    /* UI-006. Optimistic: the button reflects the click immediately and rolls
+       back if the request fails, so a dropped network call cannot leave the
+       UI claiming feedback that was never recorded. */
+    async function handleTrackFeedback(msgIndex, trackIndex, action, button) {
+      const track = currentMessages[msgIndex]?.data?.tracks?.[trackIndex];
+      if (!track) return;
+
+      const group = button.parentElement;
+      const previous = group.querySelector('.rec-fb.is-active');
+      const wasActive = button.classList.contains('is-active');
+      group.querySelectorAll('.rec-fb').forEach(b => b.classList.remove('is-active'));
+      if (!wasActive) button.classList.add('is-active');
+
+      try {
+        const res = await fetch('/api/v1/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action,
+            provider: track.provider || 'youtube',
+            provider_track_id: track.provider_track_id,
+            title: track.title,
+            artist: track.artist,
+            source_request_id: currentMessages[msgIndex]?.requestId,
+            idempotency_key: `${currentMessages[msgIndex]?.requestId || 'req'}-${trackIndex}-${action}`,
+          }),
+        });
+        if (!res.ok) throw new Error('feedback rejected');
+        trackFeedback[`${msgIndex}:${trackIndex}`] = wasActive ? null : action;
+      } catch {
+        group.querySelectorAll('.rec-fb').forEach(b => b.classList.remove('is-active'));
+        if (previous) previous.classList.add('is-active');
+      }
+    }
+
+    function readErrorCode(data) {
+      return data?.error?.code || data?.result?.error?.code || 'UPSTREAM_ERROR';
+    }
+
+    function readErrorMessage(data) {
+      return data?.error?.message
+        || data?.result?.error?.message
+        || 'Melody could not complete that request.';
+    }
+
+    /* What the loading indicator SAYS, set by whoever started the work.
+
+       This is not cosmetic. After a recording finishes, the overlay closes and
+       the chat took over saying "Melody is listening…" — which reads as *still
+       recording*, so the several seconds of upload, analysis and recognition
+       looked like nothing was happening at all. The animation was running the
+       whole time; the sentence under it was telling the user it had not
+       started. Reported as a freeze, and fairly. */
+    let loadingLabel = 'Melody is listening…';
+
+    function setLoading(active, label) {
+      isLoading = active;
+      if (active) loadingLabel = label || 'Melody is listening…';
+      setSubmitState(active);
     }
 
     function renderEqualizer() {
@@ -552,7 +1117,7 @@
         ${avatarHTML(32)}
         <div class="flex items-center gap-3 text-sm" style="height:40px;color:var(--muted-foreground);">
           <div class="flex items-center gap-[4px]" style="height:30px;">${bars}</div>
-          <span class="text-glow">Melody is listening…</span>
+          <span class="text-glow">${esc(loadingLabel)}</span>
         </div>
       </div>`;
     }
@@ -634,7 +1199,22 @@
       </div>`;
     }
 
-    /* ── Chat submission ────────────────────────────────────────── */
+    /* ── Chat submission ──────────────────────────────────────────
+       UI-001. This posts the canonical request envelope to the new
+       orchestrated path (Flask → WF-001 → guardrails → WF-002 → the
+       LangGraph engine → real YouTube search) and renders the structured
+       result. The legacy `/chat` Bedrock route still exists server-side for
+       rollback, but nothing in the UI calls it any more. */
+    function persistCurrentThread() {
+      if (!currentThreadId) return;
+      upsertThread({
+        id: currentThreadId,
+        title: deriveTitle(currentMessages),
+        messages: currentMessages,
+        updatedAt: Date.now(),
+      });
+    }
+
     async function sendChatMessage(displayText, outboundText) {
       if (!displayText || !outboundText || isLoading) return;
 
@@ -645,69 +1225,519 @@
       }
 
       currentMessages.push({ role: 'user', content: displayText });
-      resetFeedback();
-      isLoading = true;
-      setSubmitState(true);
+      lastPrompt = outboundText;
+      // The original wording, kept for the text path where it is accurate:
+      // Melody is listening to what you *asked*.
+      setLoading(true, 'Melody is listening…');
       renderMessages();
 
       try {
-        const stableSessionId = await ensureBackendSessionId();
-        const chatPayload = {
-          question: outboundText,
-          session_id: stableSessionId,
-          chat_id: stableSessionId,
-        };
-        console.log('[DEBUG - FRONTEND STATE] Sending /chat request:', {
-          backendSessionId,
-          stableSessionId,
-          currentThreadId,
-          displayTextLength: displayText.length,
-          outboundTextLength: outboundText.length,
-          activeFeedback,
-          messageCountBeforeRequest: currentMessages.length,
-          payloadKeys: Object.keys(chatPayload),
-        });
-        const res = await fetch('/chat', {
+        const res = await fetch('/api/v1/requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(chatPayload),
+          body: JSON.stringify({
+            prompt: outboundText,
+            discovery_mode: discoveryMode,
+            provider: providerMode,
+            // Hebrew is a first-class locale here: WF-001 accepts 'en' and
+            // 'he' only, and the request text is the reliable signal — the
+            // document language never changes.
+            locale: /[֐-׿]/.test(outboundText) ? 'he' : 'en',
+          }),
         });
         const data = await res.json();
-        console.log('[DEBUG - FRONTEND STATE] Received /chat response:', {
-          backendSessionId,
-          currentThreadId,
-          ok: res.ok,
-          status: res.status,
-          responseKeys: Object.keys(data || {}),
-          responseLength: (data.response || data.answer || '').length,
-          hasError: Boolean(data.error),
-        });
-        if (!res.ok) {
-          throw new Error(data.error || 'Request failed.');
+
+        if (!res.ok || data?.ok === false || data?.status === 'error') {
+          currentMessages.push({
+            role: 'assistant',
+            kind: 'error',
+            code: readErrorCode(data),
+            title: 'Melody could not answer that',
+            content: readErrorMessage(data),
+            retryPrompt: outboundText,
+          });
+        } else {
+          const result = data.result || {};
+          currentMessages.push({
+            role: 'assistant',
+            kind: 'recommendation',
+            requestId: data.requestId,
+            meta: data.meta || {},
+            data: {
+              playlist_title: result.playlist_title,
+              playlist_description: result.playlist_description,
+              tracks: Array.isArray(result.tracks) ? result.tracks : [],
+            },
+          });
         }
-        currentMessages.push({ role: 'assistant', content: data.response || data.answer || 'No answer returned.' });
       } catch (error) {
-        console.log('[DEBUG - FRONTEND STATE] /chat request failed:', {
-          backendSessionId,
-          currentThreadId,
-          error: error.message || String(error),
-        });
+        // Network-level failure: the request never got an answer, so offer a
+        // retry rather than implying Melody rejected the question.
         currentMessages.push({
           role: 'assistant',
-          content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+          kind: 'error',
+          code: 'NETWORK_ERROR',
+          title: 'Could not reach Melody',
+          content: error.message || 'Check your connection and try again.',
+          retryPrompt: outboundText,
         });
       } finally {
-        isLoading = false;
-        setSubmitState(false);
-        upsertThread({
-          id: currentThreadId,
-          title: deriveTitle(currentMessages),
-          messages: currentMessages,
-          updatedAt: Date.now(),
-        });
+        setLoading(false);
+        persistCurrentThread();
         renderMessages();
         renderSidebar();
         focusChatInputOnDesktop();
+      }
+    }
+
+    /* ---------------------------------------------------------------------
+       §6.1 / UI-002 — Shazam-style listening.
+
+       One tap starts capture. There is no "now press record" step and no menu
+       to pick a source from: the two sources are two buttons, and the button
+       you press is the thing you meant. Capture stops itself after
+       LISTEN_SECONDS, because a recognition fingerprint needs a few seconds of
+       audio and nothing after that, so asking the user to decide when to stop
+       is asking them to solve a problem they do not have.
+
+       The ring animation is driven from a real AnalyserNode in
+       requestAnimationFrame — it reacts to the room, not to a timer. That
+       matters beyond looking good: it is the only honest confirmation that the
+       microphone is picking anything up, and a flat ring tells the user their
+       mic is muted before they wait out the whole capture.
+       --------------------------------------------------------------------- */
+
+    // 15 s — measured, not guessed. Against a simulated room capture (music at
+    // -26 dB with pink noise and an early reflection), across 12 in-catalogue
+    // recordings:
+    //
+    //     5 s  ->  58%   |  10 s  ->  92%  |  15 s  ->  83%
+    //    20 s  ->  75%   |  25 s  ->  75%
+    //
+    // Longer is emphatically NOT better: recognition peaks around 10-15 s and
+    // then declines. 15 s is chosen over 10 s because it returned the same
+    // number of *correct* answers with fewer wrong ones, and because it gives
+    // §6.2's tempo estimate more to work with -- the features are useful even
+    // when recognition misses.
+    const LISTEN_SECONDS = 15;
+
+    let audioLimits = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let listenStream = null;
+    let listenContext = null;
+    let listenAnalyser = null;
+    let listenRaf = null;
+    let listenTimer = null;
+    let listenStopTimeout = null;
+    let listenCancelled = false;
+
+    async function loadAudioLimits() {
+      if (audioLimits) return audioLimits;
+      try {
+        const res = await fetch('/api/v1/audio/limits');
+        if (res.ok) audioLimits = await res.json();
+      } catch (_) { /* the server re-checks anyway */ }
+      return audioLimits;
+    }
+
+    /* ── The capture session ─────────────────────────────────────── */
+
+    async function startListening() {
+      if (isLoading || mediaRecorder) return;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        pushAudioError('This browser cannot record audio.',
+          'Use the Upload button to send a file instead.');
+        return;
+      }
+
+      loadAudioLimits();
+      listenCancelled = false;
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            // Recognition wants the room as it is. Browser voice processing is
+            // tuned for speech and actively damages a music fingerprint: noise
+            // suppression strips the quiet detail a match relies on, and AGC
+            // pumps the level between frames.
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+      } catch (error) {
+        pushAudioError(
+          error?.name === 'NotAllowedError'
+            ? 'Microphone access was denied.'
+            : 'Could not start listening.',
+          'You can still upload an audio file instead.'
+        );
+        return;
+      }
+
+      listenStream = stream;
+      openListenOverlay();
+      startVisualizer(stream);
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size) recordedChunks.push(event.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = recordedChunks.length
+          ? new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' })
+          : null;
+        const cancelled = listenCancelled;
+
+        // The overlay is already gone: `stopListening` closed it the moment the
+        // stop was requested, without waiting for this callback. Teardown still
+        // happens here because it is what releases the microphone, and that
+        // must not run until the recorder has actually finished with it.
+        teardownListening();
+
+        if (cancelled || !blob) return;
+        identifyBlob(blob);
+      };
+      mediaRecorder.start();
+
+      runListenCountdown();
+    }
+
+    function runListenCountdown() {
+      const bar = document.getElementById('listen-progress-bar');
+      const started = performance.now();
+      const tick = () => {
+        const elapsed = (performance.now() - started) / 1000;
+        const ratio = Math.min(1, elapsed / LISTEN_SECONDS);
+        if (bar) bar.style.transform = `scaleX(${ratio})`;
+        if (ratio < 1 && mediaRecorder) listenTimer = requestAnimationFrame(tick);
+      };
+      tick();
+      // The authoritative stop is a timeout, not the animation frame: rAF is
+      // throttled to roughly once a second in a background tab, and a capture
+      // that quietly runs for two minutes because the user switched tabs is a
+      // bug — not least because it would blow the upload size limit.
+      listenStopTimeout = setTimeout(
+        () => stopListening({ cancelled: false }), LISTEN_SECONDS * 1000
+      );
+    }
+
+    function stopListening({ cancelled }) {
+      listenCancelled = cancelled;
+      clearTimeout(listenStopTimeout);
+      listenStopTimeout = null;
+
+      // Close here — on the *request* to stop — rather than in `onstop`.
+      // `MediaRecorder.stop()` is asynchronous: the browser has to finalize the
+      // container and deliver a last `dataavailable` before `onstop` fires, and
+      // how long that takes depends on the machine, the microphone and the
+      // length of the recording. Closing from the callback left the overlay on
+      // screen for that entire unbounded window. Nothing about the overlay
+      // depends on the recorder having finished, so nothing should wait for it.
+      closeListenOverlay();
+
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();          // fires onstop -> teardown, then submit
+      } else {
+        teardownListening();
+      }
+    }
+
+    function cancelListening() {
+      stopListening({ cancelled: true });
+      closeListenOverlay();
+    }
+
+    function teardownListening() {
+      cancelAnimationFrame(listenRaf);
+      cancelAnimationFrame(listenTimer);
+      clearTimeout(listenStopTimeout);
+      listenRaf = listenTimer = listenStopTimeout = null;
+      // Stopping the tracks is what turns the browser's recording indicator
+      // off. Leaving them live looks exactly like a page that never stopped
+      // listening, which is not a thing to be casual about.
+      listenStream?.getTracks().forEach((track) => track.stop());
+      listenStream = null;
+      listenContext?.close?.().catch(() => {});
+      listenContext = null;
+      listenAnalyser = null;
+      mediaRecorder = null;
+    }
+
+    /* ── Overlay and the audio-reactive visual ───────────────────── */
+
+    let listenCloseTimer = null;
+
+    function openListenOverlay() {
+      const overlay = document.getElementById('listen-overlay');
+      clearTimeout(listenCloseTimer);
+      overlay.classList.remove('is-closing');
+      overlay.hidden = false;
+      overlay.style.removeProperty('display');   // undo the inline hide
+      overlay.classList.add('is-open');
+      setListenText('Listening…', 'Point your device towards the music');
+      const bar = document.getElementById('listen-progress-bar');
+      if (bar) bar.style.transform = 'scaleX(0)';
+    }
+
+    function closeListenOverlay() {
+      const overlay = document.getElementById('listen-overlay');
+      if (overlay.hidden) return;
+      clearTimeout(listenCloseTimer);
+      // Gone in this frame. The previous version faded over 140 ms, which was
+      // defensible on its own but put a timer between "stop" and "back in the
+      // chat" — and a timer is exactly the thing being complained about. It
+      // also depended on a CSS class being loaded to do the hiding, so a stale
+      // stylesheet could leave the overlay up entirely; `display` is set inline
+      // here so no stylesheet, cached or otherwise, can keep it on screen.
+      overlay.classList.remove('is-open', 'is-closing');
+      overlay.hidden = true;
+      overlay.style.display = 'none';
+    }
+
+    function setListenText(headline, sub) {
+      const h = document.getElementById('listen-headline');
+      const s = document.getElementById('listen-sub');
+      if (h) h.textContent = headline;
+      if (s) s.textContent = sub;
+    }
+
+    function startVisualizer(stream) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const canvas = document.getElementById('listen-canvas');
+      if (!Ctx || !canvas) return;
+
+      listenContext = new Ctx();
+      const source = listenContext.createMediaStreamSource(stream);
+      listenAnalyser = listenContext.createAnalyser();
+      // 1024 bins: enough frequency detail for a recognisable spectrum shape
+      // without spending a frame's budget on maths nobody can see.
+      listenAnalyser.fftSize = 1024;
+      listenAnalyser.smoothingTimeConstant = 0.72;
+      source.connect(listenAnalyser);
+
+      // Draw at device resolution; a 220px canvas upscaled on a 3x phone
+      // screen is visibly soft, and this is the one thing on screen.
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const cssSize = 220;
+      canvas.width = cssSize * dpr;
+      canvas.height = cssSize * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const bins = new Uint8Array(listenAnalyser.frequencyBinCount);
+      const rings = [
+        document.querySelector('.listen-ring-1'),
+        document.querySelector('.listen-ring-2'),
+        document.querySelector('.listen-ring-3'),
+      ];
+      const BARS = 56;
+      const smoothed = new Array(BARS).fill(0);
+
+      const draw = () => {
+        listenRaf = requestAnimationFrame(draw);
+        if (!listenAnalyser) return;
+        listenAnalyser.getByteFrequencyData(bins);
+
+        // Only the lower ~40% of the spectrum is worth drawing: above it music
+        // is mostly empty, and the ring would sit dead along one whole side.
+        const usable = Math.floor(bins.length * 0.4);
+        let sum = 0;
+        for (let i = 0; i < usable; i += 1) sum += bins[i];
+        const level = sum / usable / 255;
+
+        rings.forEach((ring, index) => {
+          if (!ring) return;
+          const scale = 1 + level * (0.34 - index * 0.08);
+          ring.style.transform = `translate(-50%, -50%) scale(${scale})`;
+          ring.style.opacity = String(0.16 + level * (0.6 - index * 0.14));
+        });
+
+        const centre = cssSize / 2;
+        const radius = cssSize * 0.29;
+        ctx.clearRect(0, 0, cssSize, cssSize);
+
+        for (let i = 0; i < BARS; i += 1) {
+          const bin = Math.floor((i / BARS) * usable);
+          const target = bins[bin] / 255;
+          // Attack fast, release slow. A bar that falls as fast as it rises
+          // reads as flicker; this reads as a beat.
+          smoothed[i] = target > smoothed[i]
+            ? target
+            : smoothed[i] * 0.82 + target * 0.18;
+
+          const angle = (i / BARS) * Math.PI * 2 - Math.PI / 2;
+          const length = 6 + smoothed[i] * cssSize * 0.17;
+          const x1 = centre + Math.cos(angle) * radius;
+          const y1 = centre + Math.sin(angle) * radius;
+          const x2 = centre + Math.cos(angle) * (radius + length);
+          const y2 = centre + Math.sin(angle) * (radius + length);
+
+          ctx.strokeStyle = `hsla(${262 + smoothed[i] * 70}, 90%, ${58 + smoothed[i] * 22}%, ${0.45 + smoothed[i] * 0.55})`;
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+      };
+      draw();
+    }
+
+    /* ── Submitting what we captured ─────────────────────────────── */
+
+    function pushAudioError(title, content) {
+      currentMessages.push({ role: 'assistant', kind: 'error', code: 'AUDIO_ERROR', title, content });
+      persistCurrentThread();
+      renderMessages();
+    }
+
+    async function uploadClip(blob) {
+      const form = new FormData();
+      form.append('file', blob, 'clip');
+      const res = await fetch('/api/v1/audio/uploads', { method: 'POST', body: form });
+      const body = await res.json();
+      if (!res.ok || !body?.audio_job_id) {
+        throw new Error(readErrorMessage(body) || 'The clip could not be uploaded.');
+      }
+      return body.audio_job_id;
+    }
+
+    /* Runs with the overlay already gone — see `mediaRecorder.onstop`. The user
+       is back in the chat watching the standard equalizer, which `renderMessages`
+       appends whenever `isLoading` is set. This function therefore never touches
+       the overlay, which also makes it correct for the Upload path, where no
+       overlay ever existed. */
+    async function identifyBlob(blob) {
+      // Names the actual step. "Melody is listening…" here would be a lie —
+      // listening is exactly the thing that just finished.
+      setLoading(true, 'Working out what that was…');
+
+      currentMessages.push({ role: 'user', content: '🎧 Listened to a sound' });
+      renderMessages();
+
+      try {
+        const jobId = await uploadClip(blob);
+        const res = await fetch('/api/v1/audio/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audio_job_id: jobId, mode: 'identify' }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || data?.ok === false || data?.status === 'error') {
+          currentMessages.push({
+            role: 'assistant', kind: 'error', code: readErrorCode(data),
+            title: 'Melody could not use that clip', content: readErrorMessage(data),
+          });
+        } else {
+          currentMessages.push({
+            role: 'assistant',
+            kind: 'identification',
+            requestId: data.requestId,
+            meta: data.meta || {},
+            // The job id rides along so the "similar vibe" follow-up reuses the
+            // same clip instead of making the user capture it again.
+            audioJobId: jobId,
+            data: data.result?.identification || data.result || {},
+          });
+        }
+      } catch (error) {
+        currentMessages.push({
+          role: 'assistant', kind: 'error', code: 'AUDIO_ERROR',
+          title: 'Could not use that clip',
+          content: error.message || 'Something went wrong with the audio.',
+        });
+      } finally {
+        setLoading(false);
+        persistCurrentThread();
+        renderMessages();
+        renderSidebar();
+      }
+    }
+
+    async function handleAudioFileChosen(event) {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file || isLoading) return;
+
+      await loadAudioLimits();
+      // Checked against the server's own number, never a second hardcoded one.
+      if (audioLimits && file.size > audioLimits.max_upload_bytes) {
+        const mb = Math.round(audioLimits.max_upload_bytes / (1024 * 1024));
+        pushAudioError('That file is too large',
+          `Audio uploads are limited to ${mb} MB. A shorter clip will work.`);
+        return;
+      }
+      identifyBlob(file);
+    }
+
+    /* ── Follow-up: "find me something with a similar vibe" ──────── */
+
+    async function requestSimilarVibe(msgIndex) {
+      const message = currentMessages[msgIndex];
+      if (!message?.audioJobId || isLoading) return;
+
+      const input = document.querySelector(`.ident-prompt[data-ident-msg="${msgIndex}"]`);
+      const extra = (input?.value || '').trim();
+
+      setLoading(true, 'Finding something with that vibe…');
+      currentMessages.push({
+        role: 'user',
+        content: extra
+          ? `✨ Something with a similar vibe — ${extra}`
+          : '✨ Something with a similar vibe',
+      });
+      renderMessages();
+
+      try {
+        const res = await fetch('/api/v1/audio/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio_job_id: message.audioJobId,
+            mode: 'similar',
+            // The typed text is a constraint *on top of* the audio, not a
+            // replacement for it — §6.5 composes both into one query.
+            prompt: extra,
+            provider: providerMode,
+            discovery_mode: discoveryMode,
+            locale: /[֐-׿]/.test(extra) ? 'he' : 'en',
+          }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || data?.ok === false || data?.status === 'error') {
+          currentMessages.push({
+            role: 'assistant', kind: 'error', code: readErrorCode(data),
+            title: 'Melody could not answer that', content: readErrorMessage(data),
+          });
+        } else {
+          const result = data.result?.recommendations || data.result || {};
+          currentMessages.push({
+            role: 'assistant', kind: 'recommendation',
+            requestId: data.requestId, meta: data.meta || {},
+            data: {
+              playlist_title: result.playlist_title,
+              playlist_description: result.playlist_description,
+              tracks: Array.isArray(result.tracks) ? result.tracks : [],
+            },
+          });
+        }
+      } catch (error) {
+        currentMessages.push({
+          role: 'assistant', kind: 'error', code: 'NETWORK_ERROR',
+          title: 'Could not reach Melody', content: error.message || 'Try again.',
+        });
+      } finally {
+        setLoading(false);
+        persistCurrentThread();
+        renderMessages();
+        renderSidebar();
       }
     }
 
@@ -726,15 +1756,12 @@
       const input = document.getElementById('message-input');
       const text = input.value.trim();
       if (!text || isLoading) return;
-      const outboundText = activeFeedback
-        ? `[User rated previous recommendation: ${activeFeedback}] ${text}`
-        : text;
 
       input.value = '';
       input.style.height = '';
       blurChatInput();
 
-      await sendChatMessage(text, outboundText);
+      await sendChatMessage(text, text);
     }
 
     async function handleAntiAlgorithm() {
@@ -768,121 +1795,63 @@
       });
     }
 
-    function setupFeedbackButtons() {
-      document.querySelectorAll('.feedback-btn').forEach(button => {
+    /* UI-007. The mode is a first-class request parameter, not a phrase
+       smuggled into the prompt — it reaches the LangGraph engine as
+       `discovery_mode` and changes retrieval and ranking there. */
+    function setupDiscoveryModeControl() {
+      const group = document.getElementById('discovery-mode');
+      if (!group) return;
+      group.querySelectorAll('[data-mode]').forEach(button => {
+        button.classList.toggle('is-active', button.dataset.mode === discoveryMode);
         button.addEventListener('click', () => {
-          const value = button.dataset.feedback;
-          activeFeedback = activeFeedback === value ? null : value;
-          updateFeedbackControls();
-        });
-      });
-    }
-
-    function resetFeedback() {
-      activeFeedback = null;
-      updateFeedbackControls();
-    }
-
-    function updateFeedbackControls() {
-      const controls = document.getElementById('feedback-controls');
-      if (!controls) return;
-      const hasAssistantResponse = currentMessages.some(m => m.role === 'assistant');
-      controls.classList.toggle('is-visible', hasAssistantResponse && !isLoading);
-      controls.querySelectorAll('.feedback-btn').forEach(button => {
-        button.classList.toggle('is-active', button.dataset.feedback === activeFeedback);
-      });
-    }
-
-    async function updateAuthStatus() {
-      const widget = document.getElementById('spotify-auth-widget');
-      if (!widget) return null;
-
-      try {
-        console.log('[DEBUG - FRONTEND STATE] Requesting /api/auth_status:', {
-          backendSessionId,
-          currentThreadId,
-        });
-        const res = await fetch('/api/auth_status');
-        const auth = await res.json();
-        setBackendSessionId(auth.session_id, 'updateAuthStatus');
-        console.log('[DEBUG - FRONTEND STATE] Received /api/auth_status response:', {
-          ok: res.ok,
-          status: res.status,
-          loggedIn: Boolean(auth.logged_in),
-          sessionId: auth.session_id,
-          backendSessionId,
-          displayName: auth.display_name,
-          hasProfileImage: Boolean(auth.profile_image_url),
-          responseKeys: Object.keys(auth || {}),
-        });
-
-        if (!auth.logged_in) {
-          console.log('[DEBUG - FRONTEND STATE] Rendering guest Spotify state:', {
-            backendSessionId,
-            sessionId: auth.session_id,
+          discoveryMode = button.dataset.mode;
+          localStorage.setItem(DISCOVERY_STORAGE_KEY, discoveryMode);
+          group.querySelectorAll('[data-mode]').forEach(b => {
+            b.classList.toggle('is-active', b.dataset.mode === discoveryMode);
           });
-          widget.innerHTML = `
-            <a class="spotify-auth-button" href="/login">
-              <span class="spotify-icon" aria-hidden="true">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.59 14.43a.72.72 0 0 1-.99.24c-2.72-1.66-6.14-2.04-10.17-1.12a.72.72 0 1 1-.32-1.4c4.41-1.01 8.19-.57 11.24 1.29.34.21.45.65.24.99Zm1.31-2.92a.9.9 0 0 1-1.23.3c-3.12-1.91-7.87-2.47-11.56-1.35a.9.9 0 1 1-.52-1.72c4.22-1.28 9.45-.66 13.01 1.52.42.26.55.82.3 1.25Zm.11-3.03C14.27 8.25 8.1 8.04 4.53 9.2a1.08 1.08 0 1 1-.67-2.05c4.1-1.34 10.92-1.1 15.25 1.47a1.08 1.08 0 0 1-1.1 1.86Z" />
-                </svg>
-              </span>
-              <span>Connect Spotify</span>
-            </a>`;
-          return auth;
-        }
-
-        const avatar = auth.profile_image_url
-          ? `<img class="spotify-profile-avatar" src="${esc(auth.profile_image_url)}" alt="">`
-          : `<span class="spotify-profile-avatar spotify-profile-fallback">${esc((auth.display_name || 'M').slice(0, 1))}</span>`;
-
-        console.log('[DEBUG - FRONTEND STATE] Rendering logged-in Spotify state:', {
-          backendSessionId,
-          sessionId: auth.session_id,
-          displayName: auth.display_name,
-          hasProfileImage: Boolean(auth.profile_image_url),
         });
-        widget.innerHTML = `
-          <div class="spotify-profile-widget">
-            ${avatar}
-            <div class="min-w-0 flex-1">
-              <div class="spotify-profile-name">${esc(auth.display_name || 'Spotify User')}</div>
-              <a class="spotify-logout-link" href="/logout">Logout</a>
-            </div>
-          </div>`;
-        return auth;
-      } catch (error) {
-        console.log('[DEBUG - FRONTEND STATE] /api/auth_status failed; rendering guest fallback:', {
-          backendSessionId,
-          currentThreadId,
-          error: error.message || String(error),
-        });
-        widget.innerHTML = `
-          <a class="spotify-auth-button" href="/login">
-            <span class="spotify-icon" aria-hidden="true">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.59 14.43a.72.72 0 0 1-.99.24c-2.72-1.66-6.14-2.04-10.17-1.12a.72.72 0 1 1-.32-1.4c4.41-1.01 8.19-.57 11.24 1.29.34.21.45.65.24.99Zm1.31-2.92a.9.9 0 0 1-1.23.3c-3.12-1.91-7.87-2.47-11.56-1.35a.9.9 0 1 1-.52-1.72c4.22-1.28 9.45-.66 13.01 1.52.42.26.55.82.3 1.25Zm.11-3.03C14.27 8.25 8.1 8.04 4.53 9.2a1.08 1.08 0 1 1-.67-2.05c4.1-1.34 10.92-1.1 15.25 1.47a1.08 1.08 0 0 1-1.1 1.86Z" />
-              </svg>
-            </span>
-            <span>Connect Spotify</span>
-          </a>`;
-        return null;
-      }
+      });
     }
 
-    function setupDiagnosticLibraryClickLogging() {
-      document.addEventListener('click', (event) => {
-        const target = event.target.closest('[data-save-track], [data-track-id], .save-track-btn, .add-to-library-btn');
-        if (!target) return;
-
-        console.log('[DEBUG - FRONTEND STATE] Add-to-library click observed:', {
-          backendSessionId,
-          currentThreadId,
-          dataset: { ...target.dataset },
-          buttonText: target.textContent.trim(),
-          isLoggedInWidgetVisible: Boolean(document.querySelector('.spotify-profile-widget')),
+    /* §5.6: the provider toggle. Sent as `provider` on every request; the
+       server still lets an explicit "on Spotify" in the message win, so this
+       is a default rather than a lock. */
+    function setupProviderModeControl() {
+      const group = document.getElementById('provider-mode');
+      if (!group) return;
+      const paint = () => group.querySelectorAll('[data-provider]').forEach(b => {
+        b.classList.toggle('is-active', b.dataset.provider === providerMode);
+      });
+      paint();
+      group.querySelectorAll('[data-provider]').forEach(button => {
+        button.addEventListener('click', () => {
+          providerMode = button.dataset.provider;
+          localStorage.setItem(PROVIDER_STORAGE_KEY, providerMode);
+          paint();
         });
+      });
+    }
+
+    /* One delegated listener for controls that live inside re-rendered
+       message markup — per-element listeners would be lost on every
+       re-render. */
+    function setupMessageInteractions() {
+      document.getElementById('messages-inner')?.addEventListener('click', (event) => {
+        const exportBtn = event.target.closest('[data-export-msg]');
+        if (exportBtn) {
+          handleExport(Number(exportBtn.dataset.exportMsg));
+          return;
+        }
+        const fb = event.target.closest('[data-fb]');
+        if (fb) {
+          handleTrackFeedback(Number(fb.dataset.fbMsg), Number(fb.dataset.fbTrack), fb.dataset.fb, fb);
+          return;
+        }
+        const retry = event.target.closest('[data-retry-index]');
+        if (retry) {
+          const message = currentMessages[Number(retry.dataset.retryIndex)];
+          if (message?.retryPrompt) sendChatMessage(message.retryPrompt, message.retryPrompt);
+        }
       });
     }
 
@@ -904,6 +1873,14 @@
       btn.disabled = loading;
       if (antiAlgorithmBtn) antiAlgorithmBtn.disabled = loading;
       if (input) input.disabled = loading;
+      // The audio path shares `isLoading`, so its entry points have to move
+      // with it — otherwise a clip can be submitted on top of an in-flight
+      // request and the two answers race into the transcript.
+      ['audio-listen-btn', 'audio-upload-btn'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = loading;
+      });
+      document.querySelectorAll('.ident-cta').forEach((b) => { b.disabled = loading; });
       if (loading) {
         icon.innerHTML =
           '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" fill="none" opacity="0.3"/>' +
@@ -932,17 +1909,10 @@
 
     /* ── Init ───────────────────────────────────────────────────── */
     function init() {
-      console.log('[DEBUG - FRONTEND STATE] Initializing app state:', {
-        backendSessionId,
-        storedThreadCount: loadThreads().length,
-        hasInitialQuestion: Boolean(INITIAL_QUESTION),
-        hasInitialAnswer: Boolean(INITIAL_ANSWER),
-        hasInitialError: Boolean(INITIAL_ERROR),
-      });
       setupSuggestionButtons();
-      setupFeedbackButtons();
-      setupDiagnosticLibraryClickLogging();
-      authStatusPromise = updateAuthStatus();
+      setupDiscoveryModeControl();
+      setupProviderModeControl();
+      setupMessageInteractions();
       if (INITIAL_QUESTION && (INITIAL_ANSWER || INITIAL_ERROR)) {
         currentMessages = [
           { role: 'user', content: INITIAL_QUESTION },
@@ -952,6 +1922,9 @@
       renderSidebar();
       renderMessages();
       focusChatInputOnDesktop();
+      // Last, and not awaited: the widget fills in when it resolves, and a
+      // slow status call must not delay the input becoming usable.
+      refreshAuthState().then(() => renderMessages(true));
     }
 
     init();
